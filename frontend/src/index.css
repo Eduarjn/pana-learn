@@ -1,0 +1,183 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-pana-background text-pana-text font-sans;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* PANA Custom Styles */
+@layer components {
+  .hero-background {
+    @apply bg-hero-gradient;
+  }
+  
+  .pana-gradient {
+    background: linear-gradient(135deg, #A435F0 0%, #8710D8 50%, #ECB22E 100%);
+  }
+
+  .pana-accent-button {
+    @apply bg-pana-accent hover:bg-pana-accent/90 text-white font-semibold;
+  }
+
+  .pana-primary-button {
+    @apply bg-pana-purple hover:bg-pana-purple/90 text-white font-semibold;
+  }
+
+  .pana-success-button {
+    @apply bg-pana-success hover:bg-pana-success/90 text-white font-semibold;
+  }
+
+  .button-primary {
+    @apply bg-pana-purple hover:bg-pana-purple/90 text-white font-semibold;
+  }
+
+  .form-input {
+    @apply border-gray-300 focus:border-pana-purple focus:ring-pana-purple;
+  }
+
+  .sidebar-text {
+    @apply text-white;
+  }
+
+  .sidebar-text-muted {
+    @apply text-white/70;
+  }
+
+  .nav-link {
+    @apply text-white/80;
+  }
+
+  .nav-link.active {
+    @apply text-pana-accent bg-pana-accent/20;
+  }
+
+  .nav-link:hover {
+    @apply text-white bg-white/10;
+  }
+
+  .card-title {
+    @apply text-pana-text font-semibold text-lg;
+  }
+
+  .card-description {
+    @apply text-pana-text-secondary text-sm;
+  }
+
+  .youtube-embed {
+    @apply w-full aspect-video rounded-lg shadow-lg;
+  }
+
+  /* YouTube Page Specific Styles */
+  .youtube-video-card {
+    @apply group cursor-pointer rounded-lg overflow-hidden border hover:shadow-lg transition-all duration-200;
+  }
+
+  .youtube-video-thumbnail {
+    @apply w-full h-32 object-cover group-hover:scale-105 transition-transform duration-200;
+  }
+
+  .youtube-video-overlay {
+    @apply absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center;
+  }
+
+  .youtube-play-icon {
+    @apply h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200;
+  }
+
+  .youtube-channel-link {
+    @apply text-blue-600 hover:text-blue-800 font-medium flex items-center gap-2 transition-colors;
+  }
+
+  .youtube-channel-button {
+    @apply bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 transition-colors;
+  }
+
+  .event-badge-live {
+    @apply bg-red-500 text-white text-xs;
+  }
+
+  .event-badge-webinar {
+    @apply bg-blue-500 text-white text-xs;
+  }
+
+  .event-badge-event {
+    @apply bg-green-500 text-white text-xs;
+  }
+
+  .reminder-button {
+    @apply ml-2 hover:bg-gray-100 transition-colors;
+  }
+
+  .calendar-container {
+    @apply rounded-md border;
+  }
+
+  .event-item {
+    @apply p-3 border rounded-lg hover:bg-gray-50 transition-colors;
+  }
+}
