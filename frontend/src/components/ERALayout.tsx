@@ -1,15 +1,17 @@
-
 import { useState } from 'react';
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { ERASidebar } from "@/components/ERASidebar";
 import { Button } from "@/components/ui/button";
-import { Menu, X, GraduationCap } from "lucide-react";
+import { Menu, X, GraduationCap, ChevronRight } from "lucide-react";
 
 interface ERALayoutProps {
   children: React.ReactNode;
+  breadcrumbs?: string[]; // Ex: ['Cursos', 'Nome do Curso', 'Aula X']
+  cursoNome?: string;
+  userNome?: string;
 }
 
-export function ERALayout({ children }: ERALayoutProps) {
+export function ERALayout({ children, breadcrumbs = [], cursoNome = '', userNome = 'Admin' }: ERALayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -39,9 +41,10 @@ export function ERALayout({ children }: ERALayoutProps) {
 
         {/* Main content */}
         <div className="flex-1 lg:pl-64">
-          {/* Top bar */}
-          <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between lg:px-6 shadow-sm">
-            <div className="flex items-center space-x-4">
+          {/* Top bar fixa */}
+          <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between lg:px-6 shadow-sm sticky top-0 z-30">
+            {/* Esquerda: logo/menu */}
+            <div className="flex items-center space-x-4 min-w-0">
               <Button
                 variant="ghost"
                 size="sm"
@@ -54,17 +57,32 @@ export function ERALayout({ children }: ERALayoutProps) {
                 <GraduationCap className="h-6 w-6 text-pana-accent" />
                 <span className="text-lg font-bold text-pana-text">PANA Learn</span>
               </div>
-              <h1 className="text-xl font-semibold text-pana-text hidden lg:block">
-                Plataforma de Treinamento Corporativo PANA
-              </h1>
             </div>
-            
+            {/* Centro: breadcrumbs ou nome do curso */}
+            <div className="flex-1 flex justify-center min-w-0">
+              {breadcrumbs.length > 0 ? (
+                <nav className="flex items-center space-x-2 text-sm text-gray-500 font-medium truncate">
+                  {breadcrumbs.map((crumb, idx) => (
+                    <span key={idx} className={`truncate ${idx === breadcrumbs.length - 1 ? 'text-pana-text font-semibold' : ''}`}>
+                      {crumb}
+                      {idx < breadcrumbs.length - 1 && <ChevronRight className="inline mx-1 h-4 w-4 text-gray-400 align-middle" />}
+                    </span>
+                  ))}
+                </nav>
+              ) : (
+                <h1 className="text-xl font-semibold text-pana-text truncate">{cursoNome || 'Plataforma de Treinamento Corporativo PANA'}</h1>
+              )}
+            </div>
+            {/* Direita: perfil */}
             <div className="flex items-center space-x-4">
               <Button className="pana-primary-button font-medium px-6 py-2 rounded-full hover:shadow-lg transition-all duration-200">
                 Fale conosco
               </Button>
-              <div className="text-sm text-pana-text-secondary">
-                Bem-vindo, <span className="font-medium text-pana-text">Admin</span>
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-pana-accent flex items-center justify-center text-white font-bold">
+                  {userNome?.charAt(0).toUpperCase() || 'A'}
+                </div>
+                <span className="text-sm text-pana-text-secondary font-medium truncate max-w-[120px]">{userNome}</span>
               </div>
             </div>
           </div>
