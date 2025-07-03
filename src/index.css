@@ -52,6 +52,11 @@
     --era-light-gray: 210 10% 98%;
     --era-text-primary: 210 30% 8%;
     --era-text-secondary: 210 25% 15%;
+    --era-blue: 222 83% 53%; /* #2563EB */
+    --era-light-gray-2: 220 14% 96%; /* #F3F4F6 */
+    --era-yellow: 48 97% 67%; /* #FCD34D */
+    --era-dark-green: 162 94% 18%; /* #047857 */
+    --era-purple: 256 83% 67%; /* #8B5CF6 */
   }
 
   .dark {

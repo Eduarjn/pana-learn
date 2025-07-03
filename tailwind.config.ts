@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -66,7 +65,12 @@ export default {
 				'era-lime': 'hsl(var(--era-lime))',
 				'era-dark-blue': 'hsl(var(--era-dark-blue))',
 				'era-gray': 'hsl(var(--era-gray))',
-				'era-light-gray': 'hsl(var(--era-light-gray))'
+				'era-light-gray': 'hsl(var(--era-light-gray))',
+				'era-blue': 'hsl(var(--era-blue))',
+				'era-light-gray-2': 'hsl(var(--era-light-gray-2))',
+				'era-yellow': 'hsl(var(--era-yellow))',
+				'era-dark-green': 'hsl(var(--era-dark-green))',
+				'era-purple': 'hsl(var(--era-purple))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

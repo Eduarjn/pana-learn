@@ -53,7 +53,7 @@ export function ERASidebar() {
             />
           </div>
           <div className="hidden sm:block">
-            <h2 className="text-sm md:text-lg font-bold sidebar-text">PANA LEARN</h2>
+            <h2 className="text-sm md:text-lg font-bold text-white" style={{textShadow: '0 1px 4px rgba(0,0,0,0.5)'}}>PANA LEARN</h2>
             <p className="text-xs sidebar-text-muted">Smart Training</p>
           </div>
         </div>
@@ -69,10 +69,10 @@ export function ERASidebar() {
               variant="ghost"
               className={`w-full justify-start text-left transition-all duration-200 text-xs md:text-sm p-2 md:p-3 
                 ${isActive 
-                  ? "bg-era-lime text-black font-bold shadow-md" 
-                  : "text-gray-300 hover:text-white hover:bg-white/10"}
+                  ? "bg-era-yellow text-era-dark-blue font-bold shadow-md" 
+                  : "text-white hover:text-white hover:bg-white/10"}
                 nav-link`}
-              style={{ textShadow: !isActive ? '0 1px 4px rgba(0,0,0,0.5)' : undefined }}
+              style={{ textShadow: !isActive ? '0 1px 4px rgba(0,0,0,0.7)' : undefined }}
               onClick={() => navigate(item.path)}
             >
               <item.icon className="mr-2 md:mr-3 h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
@@ -85,16 +85,16 @@ export function ERASidebar() {
       {/* User section */}
       <div className="p-2 md:p-4 border-t border-white/20">
         <div className="flex items-center space-x-2 md:space-x-3 mb-2 md:mb-3">
-          <div className="w-6 h-6 md:w-8 md:h-8 bg-era-lime rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-xs md:text-sm font-medium text-era-dark-blue">
+          <div className="w-6 h-6 md:w-8 md:h-8 bg-era-blue rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="text-xs md:text-sm font-medium text-era-yellow">
               {userProfile?.nome ? userProfile.nome.charAt(0).toUpperCase() : 'U'}
             </span>
           </div>
           <div className="min-w-0 flex-1 hidden sm:block">
-            <p className="text-xs md:text-sm font-medium sidebar-text truncate">
+            <p className="text-xs md:text-sm font-medium text-white truncate" style={{textShadow: '0 1px 4px rgba(0,0,0,0.7)'}}>
               {userProfile?.nome || 'Usuário'}
             </p>
-            <p className="text-xs sidebar-text-muted truncate">
+            <p className="text-xs text-white truncate" style={{textShadow: '0 1px 4px rgba(0,0,0,0.7)'}}>
               {userProfile?.tipo_usuario === 'admin' ? 'Administrador' : 'Cliente'}
             </p>
           </div>

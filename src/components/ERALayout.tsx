@@ -21,7 +21,7 @@ export function ERALayout({ children }: ERALayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-era-light-gray">
+      <div className="min-h-screen flex w-full bg-era-light-gray-2">
         {/* Mobile sidebar overlay */}
         <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
           <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
@@ -61,20 +61,20 @@ export function ERALayout({ children }: ERALayoutProps) {
                 <GraduationCap className="h-6 w-6 text-era-lime" />
                 <span className="text-lg font-bold text-era-text-primary">PANA LEARN</span>
               </div>
-              <h1 className="text-xl font-semibold text-era-text-primary hidden lg:block">
+              <h1 className="text-xl font-semibold text-era-blue hidden lg:block">
                 Plataforma de Treinamento Corporativo
               </h1>
             </div>
             
             <div className="flex items-center space-x-4">
               <Button 
-                className="button-primary font-medium px-6 py-2 rounded-full hover:shadow-lg transition-all duration-200"
+                className="bg-era-blue hover:bg-era-dark-green text-white font-medium px-6 py-2 rounded-full shadow-sm transition-colors"
                 onClick={handleContactClick}
               >
                 Fale conosco
               </Button>
-              <div className="text-sm text-era-text-secondary">
-                Bem-vindo, <span className="font-medium text-era-text-primary">{userProfile?.nome || 'Usuário'}</span>
+              <div className="text-sm text-era-gray">
+                Bem-vindo, <span className="font-medium text-era-blue">{userProfile?.nome || 'Usuário'}</span>
               </div>
             </div>
           </div>
@@ -89,7 +89,7 @@ export function ERALayout({ children }: ERALayoutProps) {
         <Dialog open={showContactModal} onOpenChange={setShowContactModal}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-center text-xl font-bold text-era-dark-blue">
+              <DialogTitle className="text-center text-xl font-bold text-era-blue">
                 Entre em Contato
               </DialogTitle>
             </DialogHeader>
@@ -115,8 +115,8 @@ export function ERALayout({ children }: ERALayoutProps) {
                   <p className="text-sm text-gray-600">Rua das Empresas, 123 - São Paulo/SP</p>
                 </div>
               </div>
-              <div className="text-center p-4 bg-era-lime/10 rounded-lg">
-                <p className="text-sm text-era-dark-blue">
+              <div className="text-center p-4 bg-era-blue/10 rounded-lg">
+                <p className="text-sm text-era-dark-green">
                   <strong>Horário de Atendimento:</strong><br />
                   Segunda a Sexta: 8h às 18h<br />
                   Sábado: 9h às 13h

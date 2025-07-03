@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import { Dialog } from '@/components/ui/dialog';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from '@/hooks/use-toast';
+import { Badge } from '@/components/ui/badge';
 type Video = Database['public']['Tables']['videos']['Row'];
 
 const Treinamentos = () => {
@@ -102,18 +103,18 @@ const Treinamentos = () => {
 
   const handleDeleteVideo = async (video) => {
     if (!window.confirm('Tem certeza que deseja deletar este vídeo?')) return;
-    // Deletar do banco
-    const { error: dbError } = await supabase.from('videos').delete().eq('id', video.id);
-    // Deletar do storage
+    // 1. Remover do Storage
     let storageError = null;
-    if (video.url_video) {
-      // Extrair o caminho relativo do arquivo
-      const match = video.url_video.match(/training-videos\/(.+)$/);
-      if (match && match[1]) {
-        const { error } = await supabase.storage.from('training-videos').remove([match[1]]);
-        storageError = error;
-      }
+    if (video.storage_path) {
+      const { error } = await supabase.storage.from('training-videos').remove([video.storage_path]);
+      storageError = error;
+    } else {
+      alert('storage_path não encontrado para este vídeo!');
+      return;
     }
+    // 2. Remover do banco
+    const { error: dbError } = await supabase.from('videos').delete().eq('id', video.id);
+    // 3. Feedback e atualização de estado
     if (!dbError && !storageError) {
       toast({ title: 'Sucesso', description: 'Vídeo deletado com sucesso!' });
       setVideos(prev => prev.filter(v => v.id !== video.id));
@@ -144,7 +145,7 @@ const Treinamentos = () => {
 
   return (
     <ERALayout>
-      <div className="space-y-4 md:space-y-6 p-4 md:p-0">
+      <div className="space-y-4 md:space-y-6 p-4 md:p-0 bg-era-light-gray-2 min-h-screen">
         {showUpload && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <VideoUpload 
@@ -157,12 +158,12 @@ const Treinamentos = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-pana-text">Treinamentos</h1>
-            <p className="text-sm md:text-base text-pana-text-secondary">Explore nossos cursos de PABX e Omnichannel</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-era-blue">Treinamentos</h1>
+            <p className="text-sm md:text-base text-era-gray">Explore nossos cursos de PABX e Omnichannel</p>
           </div>
           {isAdmin && (
             <Button 
-              className="pana-primary-button font-medium px-4 md:px-6 py-2 rounded-full text-sm md:text-base w-full sm:w-auto"
+              className="bg-era-blue hover:bg-era-dark-green text-white font-medium px-4 md:px-6 py-2 rounded-full text-sm md:text-base w-full sm:w-auto transition-colors"
               onClick={() => setShowUpload(true)}
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -210,7 +211,7 @@ const Treinamentos = () => {
             {isAdmin && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-pana-text">
+                  <CardTitle className="flex items-center gap-2 text-era-blue">
                     <Video className="h-5 w-5" />
                     Vídeos Importados ({videos.length})
                   </CardTitle>
@@ -225,139 +226,139 @@ const Treinamentos = () => {
                       <div className="bg-white rounded-lg shadow-lg p-4 max-w-2xl w-full relative">
                         <button className="absolute top-2 right-2 text-xl font-bold" onClick={handleCloseVideoModal}>&times;</button>
                         <h2 className="text-lg font-semibold mb-2">{selectedVideo.titulo}</h2>
-                <video
-                  id={`video-player-${selectedVideo.id}`}
-                  src={selectedVideo.url_video}
-                  controls
-                  className="w-full rounded-md shadow"
-                />
+                        <video
+                          id={`video-player-${selectedVideo.id}`}
+                          src={selectedVideo.url_video}
+                          controls
+                          className="w-full rounded-md shadow"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {loadingVideos ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pana-purple"></div>
+                    </div>
+                  ) : videos.length === 0 ? (
+                    <p className="text-center py-8 text-pana-text-secondary">
+                      Nenhum vídeo importado ainda. Use o botão "Importar Vídeo" para começar.
+                    </p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Título</TableHead>
+                            <TableHead className="hidden md:table-cell">Descrição</TableHead>
+                            <TableHead className="hidden sm:table-cell">Duração</TableHead>
+                            <TableHead>Data</TableHead>
+                            <TableHead>Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {videos.map((video, index) => (
+                            <TableRow key={video.id} className={index % 2 === 0 ? 'bg-white' : 'bg-era-light-gray-2'}>
+                              <TableCell className="font-medium">
+                                <div className="max-w-[200px] truncate">
+                                  {video.titulo}
+                                </div>
+                              </TableCell>
+                              <TableCell className="hidden md:table-cell">
+                                <div className="max-w-[300px] truncate">
+                                  {video.descricao || 'Sem descrição'}
+                                </div>
+                              </TableCell>
+                              <TableCell className="hidden sm:table-cell">
+                                {video.duracao ? `${video.duracao} min` : 'N/A'}
+                              </TableCell>
+                              <TableCell>
+                                {new Date(video.data_criacao).toLocaleDateString('pt-BR')}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-1">
+                                  <Button variant="ghost" size="sm" onClick={() => handleViewVideo(video)}>
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="sm" onClick={() => handleDownloadVideo(video)}>
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                  {isAdmin && (
+                                    <Button variant="ghost" size="sm" onClick={() => handleDeleteVideo(video)}>
+                                      <Trash className="h-4 w-4 text-red-500" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Cursos */}
+            {filteredCourses.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-pana-text-secondary">
+                  {courses.length === 0 
+                    ? 'Nenhum curso disponível no momento.' 
+                    : 'Nenhum curso encontrado com os filtros aplicados.'}
+                </p>
               </div>
-            </div>
-          )}
-          {loadingVideos ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pana-purple"></div>
-            </div>
-          ) : videos.length === 0 ? (
-            <p className="text-center py-8 text-pana-text-secondary">
-              Nenhum vídeo importado ainda. Use o botão "Importar Vídeo" para começar.
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Título</TableHead>
-                    <TableHead className="hidden md:table-cell">Descrição</TableHead>
-                    <TableHead className="hidden sm:table-cell">Duração</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {videos.map((video) => (
-                    <TableRow key={video.id}>
-                      <TableCell className="font-medium">
-                        <div className="max-w-[200px] truncate">
-                          {video.titulo}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <div className="max-w-[300px] truncate">
-                          {video.descricao || 'Sem descrição'}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        {video.duracao ? `${video.duracao} min` : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(video.data_criacao).toLocaleDateString('pt-BR')}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => handleViewVideo(video)}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDownloadVideo(video)}>
-                            <Download className="h-4 w-4" />
-                          </Button>
-                          {isAdmin && (
-                            <Button variant="ghost" size="sm" onClick={() => handleDeleteVideo(video)}>
-                              <Trash className="h-4 w-4 text-red-500" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    )}
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                {filteredCourses.map((course) => (
+                  <CourseCard
+                    key={course.id}
+                    course={course}
+                    onStartCourse={handleStartCourse}
+                  >
+                    {/* Botão iniciar/continuar curso */}
+                    <Button
+                      className="bg-era-yellow text-era-dark-blue px-4 py-1 rounded font-bold hover:bg-era-dark-green hover:text-white transition-colors"
+                      onClick={() => handleStartCourse(course.id)}
+                    >
+                      {course.progresso < 100 ? (course.progresso > 0 ? 'Continuar curso' : 'Iniciar curso') : 'Rever curso'}
+                    </Button>
+                  </CourseCard>
+                ))}
+              </div>
+            )}
+          </TabsContent>
 
-    {/* Cursos */}
-    {filteredCourses.length === 0 ? (
-      <div className="text-center py-12">
-        <p className="text-pana-text-secondary">
-          {courses.length === 0 
-            ? 'Nenhum curso disponível no momento.' 
-            : 'Nenhum curso encontrado com os filtros aplicados.'}
-        </p>
+          <TabsContent value="youtube" className="space-y-4">
+            <YouTubeEmbed 
+              title="Player de Vídeo YouTube"
+              onUrlChange={(url) => console.log('URL alterada:', url)}
+            />
+          </TabsContent>
+        </Tabs>
+
+        {/* Estatísticas */}
+        <div className="bg-gradient-to-r from-era-purple to-era-blue rounded-lg p-4 md:p-6 text-white border-t-4 border-era-yellow">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 text-center">
+            <div>
+              <div className="text-2xl md:text-3xl font-bold text-era-yellow">{courses.length}</div>
+              <p className="text-xs md:text-sm text-white/80">Cursos Disponíveis</p>
+            </div>
+            <div>
+              <div className="text-2xl md:text-3xl font-bold text-era-dark-green">{categories.length}</div>
+              <p className="text-xs md:text-sm text-white/80">Categorias</p>
+            </div>
+            <div>
+              <div className="text-2xl md:text-3xl font-bold text-era-yellow">{isAdmin ? videos.length : '100+'}</div>
+              <p className="text-xs md:text-sm text-white/80">
+                {isAdmin ? 'Vídeos Importados' : 'Horas de Conteúdo'}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-    ) : (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {filteredCourses.map((course) => (
-          <CourseCard
-            key={course.id}
-            course={course}
-            onStartCourse={handleStartCourse}
-          >
-            {/* Botão iniciar/continuar curso */}
-            <Button
-              className="bg-era-lime text-era-dark-blue px-4 py-1 rounded font-bold"
-              onClick={() => handleStartCourse(course.id)}
-            >
-              {course.progresso < 100 ? (course.progresso > 0 ? 'Continuar curso' : 'Iniciar curso') : 'Rever curso'}
-            </Button>
-          </CourseCard>
-        ))}
-      </div>
-    )}
-  </TabsContent>
-
-  <TabsContent value="youtube" className="space-y-4">
-    <YouTubeEmbed 
-      title="Player de Vídeo YouTube"
-      onUrlChange={(url) => console.log('URL alterada:', url)}
-    />
-  </TabsContent>
-</Tabs>
-
-{/* Estatísticas */}
-<div className="bg-gradient-to-r from-pana-purple to-pana-accent rounded-lg p-4 md:p-6 text-white">
-  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 text-center">
-    <div>
-      <div className="text-2xl md:text-3xl font-bold">{courses.length}</div>
-      <p className="text-xs md:text-sm text-white/80">Cursos Disponíveis</p>
-    </div>
-    <div>
-      <div className="text-2xl md:text-3xl font-bold">{categories.length}</div>
-      <p className="text-xs md:text-sm text-white/80">Categorias</p>
-    </div>
-    <div>
-      <div className="text-2xl md:text-3xl font-bold">{isAdmin ? videos.length : '100+'}</div>
-      <p className="text-xs md:text-sm text-white/80">
-        {isAdmin ? 'Vídeos Importados' : 'Horas de Conteúdo'}
-      </p>
-    </div>
-  </div>
-</div>
-</div>
-</ERALayout>
-);
+    </ERALayout>
+  );
 };
 
 export default Treinamentos;
