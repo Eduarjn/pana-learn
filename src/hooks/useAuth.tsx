@@ -8,6 +8,7 @@ interface UserProfile {
   nome: string;
   tipo_usuario: 'admin' | 'cliente';
   status: string;
+  avatar_url?: string;
 }
 
 interface AuthContextType {

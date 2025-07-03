@@ -85,11 +85,19 @@ export function ERASidebar() {
       {/* User section */}
       <div className="p-2 md:p-4 border-t border-white/20">
         <div className="flex items-center space-x-2 md:space-x-3 mb-2 md:mb-3">
-          <div className="w-6 h-6 md:w-8 md:h-8 bg-era-blue rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-xs md:text-sm font-medium text-era-yellow">
-              {userProfile?.nome ? userProfile.nome.charAt(0).toUpperCase() : 'U'}
-            </span>
-          </div>
+          {userProfile?.avatar_url ? (
+            <img
+              src={userProfile.avatar_url}
+              alt="Avatar"
+              className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover border flex-shrink-0"
+            />
+          ) : (
+            <div className="w-6 h-6 md:w-8 md:h-8 bg-era-blue rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-xs md:text-sm font-medium text-era-yellow">
+                {userProfile?.nome ? userProfile.nome.charAt(0).toUpperCase() : 'U'}
+              </span>
+            </div>
+          )}
           <div className="min-w-0 flex-1 hidden sm:block">
             <p className="text-xs md:text-sm font-medium text-white truncate" style={{textShadow: '0 1px 4px rgba(0,0,0,0.7)'}}>
               {userProfile?.nome || 'Usuário'}

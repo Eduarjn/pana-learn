@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Settings, Globe, Mail, Shield, Database, Bell, Palette } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const Configuracoes = () => {
   const { userProfile } = useAuth();
@@ -38,6 +39,14 @@ const Configuracoes = () => {
     assinaturaDigital: true
   });
 
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(userProfile?.avatar_url || '');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleConfigChange = (field: string, value: string | boolean) => {
     setConfig(prev => ({ ...prev, [field]: value }));
   };
@@ -60,294 +69,124 @@ const Configuracoes = () => {
     }
   };
 
+  // Função para alterar senha
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast({ title: 'Preencha todos os campos', variant: 'destructive' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: 'As senhas não coincidem', variant: 'destructive' });
+      return;
+    }
+    setChangingPassword(true);
+    // Validar senha atual
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: userProfile.email, password: currentPassword });
+    if (signInError) {
+      toast({ title: 'Senha atual incorreta', variant: 'destructive' });
+      setChangingPassword(false);
+      return;
+    }
+    // Atualizar senha
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setChangingPassword(false);
+    if (error) {
+      toast({ title: 'Erro ao alterar senha', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Senha alterada com sucesso!' });
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+    }
+  };
+
+  // Função para upload de foto de perfil
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const fileExt = file.name.split('.').pop();
+    const filePath = `avatars/${userProfile.id}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
+    if (uploadError) {
+      toast({ title: 'Erro ao fazer upload da foto', description: uploadError.message, variant: 'destructive' });
+      setUploading(false);
+      return;
+    }
+    const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+    setAvatarUrl(data.publicUrl);
+    // Atualizar perfil
+    await supabase.from('usuarios').update({ avatar_url: data.publicUrl }).eq('id', userProfile.id);
+    toast({ title: 'Foto de perfil atualizada!' });
+    setUploading(false);
+  };
+
   return (
     <ERALayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-xl mx-auto">
         <div>
           <h1 className="text-3xl font-bold text-era-dark-blue">Configurações</h1>
-          <p className="text-era-gray">Gerencie as configurações da plataforma</p>
+          <p className="text-era-gray">Gerencie sua conta</p>
         </div>
-
-        {/* Configurações Gerais */}
+        {/* Foto de perfil */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-era-dark-blue">
-              <Globe className="h-5 w-5" />
-              Configurações Gerais
-            </CardTitle>
-            <CardDescription>
-              Informações básicas da empresa e plataforma
-            </CardDescription>
+            <CardTitle className="text-era-dark-blue">Foto de Perfil</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-4">
+            <img
+              src={avatarUrl || '/placeholder.svg'}
+              alt="Avatar"
+              className="w-24 h-24 rounded-full object-cover border"
+            />
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
+            <Button onClick={() => fileInputRef.current?.click()} disabled={uploading}>
+              {uploading ? 'Enviando...' : 'Selecionar Foto'}
+            </Button>
+          </CardContent>
+        </Card>
+        {/* Alterar senha */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-era-dark-blue">Alterar Senha</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="nomeEmpresa">Nome da Empresa</Label>
-                <Input
-                  id="nomeEmpresa"
-                  value={config.nomeEmpresa}
-                  onChange={(e) => handleConfigChange('nomeEmpresa', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="slogan">Slogan</Label>
-                <Input
-                  id="slogan"
-                  value={config.slogan}
-                  onChange={(e) => handleConfigChange('slogan', e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Corporativo</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={config.email}
-                  onChange={(e) => handleConfigChange('email', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input
-                  id="telefone"
-                  value={config.telefone}
-                  onChange={(e) => handleConfigChange('telefone', e.target.value)}
-                />
-              </div>
-            </div>
             <div className="space-y-2">
-              <Label htmlFor="endereco">Endereço</Label>
+              <Label htmlFor="currentPassword">Senha Atual</Label>
               <Input
-                id="endereco"
-                value={config.endereco}
-                onChange={(e) => handleConfigChange('endereco', e.target.value)}
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={e => setCurrentPassword(e.target.value)}
               />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Configurações de Sistema */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-era-dark-blue">
-              <Database className="h-5 w-5" />
-              Configurações de Sistema
-            </CardTitle>
-            <CardDescription>
-              Parâmetros técnicos e de desempenho
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="maxUsuarios">Máximo de Usuários</Label>
-                <Input
-                  id="maxUsuarios"
-                  type="number"
-                  value={config.maxUsuarios}
-                  onChange={(e) => handleConfigChange('maxUsuarios', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="tempoSessao">Tempo de Sessão (minutos)</Label>
-                <Input
-                  id="tempoSessao"
-                  type="number"
-                  value={config.tempoSessao}
-                  onChange={(e) => handleConfigChange('tempoSessao', e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="backup">Frequência de Backup</Label>
-                <select
-                  id="backup"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={config.backup}
-                  onChange={(e) => handleConfigChange('backup', e.target.value)}
-                >
-                  <option value="Diário">Diário</option>
-                  <option value="Semanal">Semanal</option>
-                  <option value="Mensal">Mensal</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="manutencao">Janela de Manutenção</Label>
-                <Input
-                  id="manutencao"
-                  value={config.manutencao}
-                  onChange={(e) => handleConfigChange('manutencao', e.target.value)}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Configurações de Notificações */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-era-dark-blue">
-              <Bell className="h-5 w-5" />
-              Configurações de Notificações
-            </CardTitle>
-            <CardDescription>
-              Gerencie como e quando enviar notificações
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="emailNotificacoes">Notificações por Email</Label>
-                <p className="text-sm text-era-gray">Enviar notificações por email para usuários</p>
-              </div>
-              <input
-                type="checkbox"
-                id="emailNotificacoes"
-                checked={config.emailNotificacoes}
-                onChange={(e) => handleConfigChange('emailNotificacoes', e.target.checked)}
-                className="h-4 w-4"
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nova Senha</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
               />
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="pushNotificacoes">Notificações Push</Label>
-                <p className="text-sm text-era-gray">Enviar notificações push no navegador</p>
-              </div>
-              <input
-                type="checkbox"
-                id="pushNotificacoes"
-                checked={config.pushNotificacoes}
-                onChange={(e) => handleConfigChange('pushNotificacoes', e.target.checked)}
-                className="h-4 w-4"
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
               />
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="relatoriosAutomaticos">Relatórios Automáticos</Label>
-                <p className="text-sm text-era-gray">Enviar relatórios mensais automaticamente</p>
-              </div>
-              <input
-                type="checkbox"
-                id="relatoriosAutomaticos"
-                checked={config.relatoriosAutomaticos}
-                onChange={(e) => handleConfigChange('relatoriosAutomaticos', e.target.checked)}
-                className="h-4 w-4"
-              />
-            </div>
+            <Button onClick={handleChangePassword} disabled={changingPassword}>
+              {changingPassword ? 'Alterando...' : 'Alterar Senha'}
+            </Button>
           </CardContent>
         </Card>
-
-        {/* Configurações de Certificados */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-era-dark-blue">
-              <Shield className="h-5 w-5" />
-              Configurações de Certificados
-            </CardTitle>
-            <CardDescription>
-              Parâmetros para emissão de certificados
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="validadeCertificado">Validade do Certificado (dias)</Label>
-                <Input
-                  id="validadeCertificado"
-                  type="number"
-                  value={config.validadeCertificado}
-                  onChange={(e) => handleConfigChange('validadeCertificado', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="modeloCertificado">Modelo do Certificado</Label>
-                <select
-                  id="modeloCertificado"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  value={config.modeloCertificado}
-                  onChange={(e) => handleConfigChange('modeloCertificado', e.target.value)}
-                >
-                  <option value="Padrão ERA">Padrão ERA</option>
-                  <option value="Corporativo">Corporativo</option>
-                  <option value="Personalizado">Personalizado</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="assinaturaDigital">Assinatura Digital</Label>
-                <p className="text-sm text-era-gray">Incluir assinatura digital nos certificados</p>
-              </div>
-              <input
-                type="checkbox"
-                id="assinaturaDigital"
-                checked={config.assinaturaDigital}
-                onChange={(e) => handleConfigChange('assinaturaDigital', e.target.checked)}
-                className="h-4 w-4"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Seção de perfil do usuário */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-era-dark-blue">
-              Perfil do Usuário
-            </CardTitle>
-            <CardDescription>
-              Gerencie seus dados pessoais
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">E-mail</Label>
-              <Input id="email" type="email" value={config.email} onChange={(e) => handleConfigChange('email', e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="foto">Foto de Perfil</Label>
-              <Input id="foto" type="file" accept="image/*" />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Seção de alteração de senha */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-era-dark-blue">
-              Alterar Senha
-            </CardTitle>
-            <CardDescription>
-              Troque sua senha de acesso
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="senhaAtual">Senha Atual</Label>
-              <Input id="senhaAtual" type="password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="novaSenha">Nova Senha</Label>
-              <Input id="novaSenha" type="password" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmarSenha">Confirmar Nova Senha</Label>
-              <Input id="confirmarSenha" type="password" />
-            </div>
-            <Button className="bg-era-lime text-era-dark-blue px-4 py-1 rounded font-bold">Salvar Nova Senha</Button>
-          </CardContent>
-        </Card>
-
-        {/* Save Button */}
-        <div className="flex justify-end">
-          <Button className="era-lime-button" onClick={handleSave}>
-            <Settings className="mr-2 h-4 w-4" />
-            Salvar Configurações
-          </Button>
-        </div>
       </div>
     </ERALayout>
   );
