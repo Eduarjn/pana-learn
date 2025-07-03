@@ -12,6 +12,17 @@ import type { Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
+interface UserListItem {
+  id: string;
+  nome: string;
+  email: string;
+  user_id: string;
+  tipo_usuario: string;
+  status: string;
+  data_criacao: string;
+  data_atualizacao: string;
+}
+
 const Usuarios = () => {
   const { userProfile } = useAuth();
   const isAdmin = userProfile?.tipo_usuario === 'admin';
@@ -26,18 +37,24 @@ const Usuarios = () => {
     tipo: 'Cliente',
     status: 'Ativo'
   });
-  const [users, setUsers] = useState<Database['public']['Tables']['usuarios']['Row'][]>([]);
+  const [users, setUsers] = useState<UserListItem[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchUsers();
+    // Atualiza a cada 1 hora
+    const interval = setInterval(fetchUsers, 3600000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchUsers = async () => {
-    const { data, error } = await supabase.from('usuarios').select('*');
-    if (!error && data) setUsers(data);
+    const { data, error } = await supabase.from('usuarios').select('*').order('data_criacao', { ascending: false });
+    if (!error && data) {
+      setUsers(data as UserListItem[]);
+    }
   };
 
+  // Exibir todos os usuários (clientes e administradores) para o admin
   const filteredUsers = users.filter(user =>
     user.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
@@ -73,8 +90,8 @@ const Usuarios = () => {
     }
   };
 
-  const handleEditUser = (user: Database['public']['Tables']['usuarios']['Row']) => {
-    setEditingUser(user);
+  const handleEditUser = (user: UserListItem) => {
+    setEditingUser(user as Database['public']['Tables']['usuarios']['Row']);
     setShowEditModal(true);
   };
 
@@ -312,7 +329,7 @@ const Usuarios = () => {
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.nome}</TableCell>
                       <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.user_id || user.email}</TableCell>
+                      <TableCell>{user.email}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           user.tipo_usuario === 'admin'
@@ -339,7 +356,7 @@ const Usuarios = () => {
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => handleEditUser(user)}
+                          onClick={() => handleEditUser(user as UserListItem)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>

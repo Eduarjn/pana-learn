@@ -1,4 +1,3 @@
-
 -- Create ENUM types
 CREATE TYPE user_type AS ENUM ('admin', 'cliente');
 CREATE TYPE status_type AS ENUM ('ativo', 'inativo', 'suspenso');

@@ -96,20 +96,15 @@ const CursoDetalhe = () => {
   const currentCategory = currentCourse?.categoria;
 
   React.useEffect(() => {
+    if (!id || !userId) return;
     const fetchVideosAndProgress = async () => {
-      if (!id || !userId) return;
       setLoading(true);
-      // Buscar módulos do curso
-      const videoIds = modules.map(m => m.video_id).filter(Boolean);
-      let videosData = [];
-      if (videoIds.length > 0) {
-        const { data } = await supabase
-          .from('videos')
-          .select('*')
-          .in('id', videoIds);
-        videosData = data || [];
-      }
-      setVideos(videosData);
+      const { data: videosData } = await supabase
+        .from('videos')
+        .select('*')
+        .eq('curso_id', id);
+      setVideos(videosData || []);
+      console.log('Vídeos carregados:', videosData);
       // Buscar progresso do usuário para cada módulo
       const { data: progressData } = await supabase
         .from('progresso_usuario')
@@ -124,8 +119,8 @@ const CursoDetalhe = () => {
       setProgress(progressMap);
       setLoading(false);
     };
-    if (!isAdmin && modules.length > 0) fetchVideosAndProgress();
-  }, [id, userId, refresh, isAdmin, modules]);
+    fetchVideosAndProgress();
+  }, [id, userId, refresh, isAdmin]);
 
   // Buscar média de conclusão por módulo
   useEffect(() => {
@@ -167,7 +162,10 @@ const CursoDetalhe = () => {
         <p className="mb-6">ID do curso: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{id}</span></p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {modules.map((modulo) => {
-            // Buscar vídeo do módulo pelo video_id
+            // Buscar todos os vídeos do Supabase relacionados ao módulo
+            const videosDoModulo = videos.filter(v => String(v.modulo_id).trim() === String(modulo.id).trim());
+            console.log('Módulo:', modulo.id, modulo.nome_modulo, 'Vídeos deste módulo:', videosDoModulo);
+            // Buscar vídeo do módulo pelo video_id (pode ser removido se não usado)
             const video = videos.find(v => v.id === modulo.video_id);
             const progresso = progress[modulo.id];
             const status = progresso?.status === 'concluido' ? 'Concluído' : (progresso?.status === 'em_andamento' ? 'Em andamento' : 'Não iniciado');
@@ -272,7 +270,31 @@ const CursoDetalhe = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {modules.map((modulo) => {
             // Buscar todos os vídeos do Supabase relacionados ao módulo
-            const videosDoModulo = videos.filter(v => v.modulo_id === modulo.id);
+            const videosDoModulo = videos.filter(v => String(v.modulo_id).trim() === String(modulo.id).trim());
+            console.log('Módulo:', modulo.id, modulo.nome_modulo, 'Vídeos deste módulo:', videosDoModulo);
+            // Buscar vídeo do módulo pelo video_id (pode ser removido se não usado)
+            const video = videos.find(v => v.id === modulo.video_id);
+            const progresso = progress[modulo.id];
+            const status = progresso?.status === 'concluido' ? 'Concluído' : (progresso?.status === 'em_andamento' ? 'Em andamento' : 'Não iniciado');
+            const percentual = progresso?.percentual_concluido ?? 0;
+            const tempoAssistido = progresso?.tempo_total_assistido ?? 0;
+            // Handler para continuar de onde parou
+            const handleContinue = () => {
+              const videoElem = document.getElementById(`video-player-${modulo.id}`) as HTMLVideoElement | null;
+              if (videoElem && progresso?.tempo_total_assistido) {
+                videoElem.currentTime = progresso.tempo_total_assistido;
+                videoElem.play();
+              }
+            };
+            // Handler para marcar como concluído
+            const handleMarkDone = async () => {
+              if (!progresso) return;
+              await supabase
+                .from('progresso_usuario')
+                .update({ status: 'concluido', percentual_concluido: 100 })
+                .eq('id', progresso.id);
+              setRefresh(r => r + 1);
+            };
             return (
               <div key={modulo.id} className="bg-white rounded shadow p-6 flex flex-col items-center">
                 {/* Thumbnails ou players de vídeo */}

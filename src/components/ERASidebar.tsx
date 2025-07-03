@@ -60,26 +60,41 @@ export function ERASidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-2 md:p-4 space-y-1 overflow-y-auto">
-        {visibleMenuItems.map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Button
-              key={item.path}
-              variant="ghost"
-              className={`w-full justify-start text-left transition-all duration-200 text-xs md:text-sm p-2 md:p-3 
-                ${isActive 
-                  ? "bg-era-yellow text-era-dark-blue font-bold shadow-md" 
-                  : "text-white hover:text-white hover:bg-white/10"}
-                nav-link`}
-              style={{ textShadow: !isActive ? '0 1px 4px rgba(0,0,0,0.7)' : undefined }}
-              onClick={() => navigate(item.path)}
-            >
-              <item.icon className="mr-2 md:mr-3 h-4 w-4 md:h-5 md:w-5 flex-shrink-0" />
-              <span className="hidden sm:inline truncate">{item.title}</span>
-            </Button>
-          );
-        })}
+      <nav className="flex-1 p-2 md:p-4 space-y-2 overflow-y-auto">
+        <ul className="flex flex-col gap-2">
+          {visibleMenuItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            const isDisabled = false;
+            return (
+              <li key={item.path} className="relative">
+                <Button
+                  variant="ghost"
+                  className={`w-full justify-start text-left text-xs md:text-sm p-2 md:p-3 rounded-xl transition-all duration-300 nav-link
+                    ${isActive
+                      ? "bg-white/90 text-era-dark-blue font-bold shadow-lg border-2 border-era-lime scale-[1.04] z-10"
+                      : isDisabled
+                        ? "text-white opacity-80 cursor-not-allowed"
+                        : "text-white hover:bg-white/10"}
+                  `}
+                  style={{
+                    textShadow: !isActive ? '0 1px 4px rgba(0,0,0,0.9)' : undefined,
+                    opacity: isDisabled ? 0.7 : 1,
+                    pointerEvents: isDisabled ? 'none' : undefined,
+                    boxShadow: isActive ? '0 4px 24px 0 rgba(0,0,0,0.10), 0 1.5px 8px 0 rgba(0,0,0,0.10)' : undefined,
+                  }}
+                  onClick={() => !isDisabled && navigate(item.path)}
+                  aria-disabled={isDisabled}
+                >
+                  <item.icon className={`mr-2 md:mr-3 h-4 w-4 md:h-5 md:w-5 flex-shrink-0 ${isActive ? 'text-era-lime' : 'text-white'}`} />
+                  <span className={`hidden sm:inline truncate ${isActive ? 'text-era-dark-blue' : 'text-white'}`}>{item.title}</span>
+                  {isActive && (
+                    <span className="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-era-lime rounded-full shadow-era-lime/30 shadow-lg transition-all duration-300" />
+                  )}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
       </nav>
 
       {/* User section */}

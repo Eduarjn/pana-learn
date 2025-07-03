@@ -61,7 +61,7 @@ export function ERALayout({ children }: ERALayoutProps) {
                 <GraduationCap className="h-6 w-6 text-era-lime" />
                 <span className="text-lg font-bold text-era-text-primary">PANA LEARN</span>
               </div>
-              <h1 className="text-xl font-semibold text-era-blue hidden lg:block">
+              <h1 className="text-xl font-bold text-neutral-900 hidden lg:block">
                 Plataforma de Treinamento Corporativo
               </h1>
             </div>

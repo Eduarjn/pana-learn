@@ -312,6 +312,34 @@ const Relatorios = () => {
     setFilters(prev => ({ ...prev, [field]: value }));
   };
 
+  // Validação de filtros antes de aplicar
+  const validateFilters = () => {
+    // Validação de datas (YYYY-MM-DD)
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (filters.dataInicio && !dateRegex.test(filters.dataInicio)) {
+      toast({ title: 'Data de início inválida', description: 'Use o formato AAAA-MM-DD', variant: 'destructive' });
+      return false;
+    }
+    if (filters.dataConclusao && !dateRegex.test(filters.dataConclusao)) {
+      toast({ title: 'Data de conclusão inválida', description: 'Use o formato AAAA-MM-DD', variant: 'destructive' });
+      return false;
+    }
+    // Validação de progresso
+    if (filters.progresso) {
+      const prog = Number(filters.progresso);
+      if (isNaN(prog) || prog < 0 || prog > 100) {
+        toast({ title: 'Progresso inválido', description: 'Digite um valor entre 0 e 100', variant: 'destructive' });
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Substituir chamada direta por função com validação
+  const handleApplyFilters = () => {
+    if (validateFilters()) applyFilters();
+  };
+
   useEffect(() => {
     fetchReportData();
   }, []);
@@ -432,13 +460,15 @@ const Relatorios = () => {
                   id="progresso"
                   type="number"
                   placeholder="0-100"
+                  min={0}
+                  max={100}
                   value={filters.progresso}
                   onChange={(e) => handleFilterChange('progresso', e.target.value)}
                 />
               </div>
             </div>
             <div className="flex gap-2 mt-4">
-              <Button onClick={applyFilters} className="era-lime-button">
+              <Button onClick={handleApplyFilters} className="era-lime-button">
                 <Search className="mr-2 h-4 w-4" />
                 Aplicar Filtros
               </Button>

@@ -81,6 +81,26 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
       return;
     }
 
+    if (!selectedCourseId) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione o curso ao qual o vídeo pertence.",
+        variant: "destructive"
+      });
+      setUploading(false);
+      return;
+    }
+
+    if (!selectedModuleId) {
+      toast({
+        title: "Erro",
+        description: "Por favor, selecione o módulo ao qual o vídeo pertence.",
+        variant: "destructive"
+      });
+      setUploading(false);
+      return;
+    }
+
     if (!videoFile) {
       toast({
         title: "Erro",
@@ -115,7 +135,8 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
           thumbnail_url: thumbnailUrl,
           categoria: videoData.categoria,
           curso_id: selectedCourseId,
-          modulo_id: selectedModuleId || null
+          modulo_id: selectedModuleId,
+          storage_path: videoPath
         });
 
       if (insertError) throw insertError;

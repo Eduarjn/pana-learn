@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,12 +15,27 @@ export function LoginForm({ onLogin }: LoginFormProps) {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+
+  // Carregar credenciais do localStorage ao montar
+  useEffect(() => {
+    const saved = localStorage.getItem('pana-remember');
+    if (saved) {
+      const { email, password } = JSON.parse(saved);
+      setEmail(email || '');
+      setPassword(password || '');
+      setRememberMe(true);
+    }
+  }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log('Login attempt:', { email, password, rememberMe });
-    
+    if (rememberMe) {
+      localStorage.setItem('pana-remember', JSON.stringify({ email, password }));
+    } else {
+      localStorage.removeItem('pana-remember');
+    }
     // Simular autenticação
     setTimeout(() => {
       onLogin();
@@ -105,7 +120,7 @@ export function LoginForm({ onLogin }: LoginFormProps) {
                   Remember me
                 </Label>
               </div>
-              <a href="#" className="text-sm text-era-lime hover:text-era-lime/80 transition-colors">
+              <a href="#" target="_blank" rel="noopener noreferrer" className="text-sm text-era-lime hover:text-era-lime/80 transition-colors" onClick={e => { e.preventDefault(); setShowForgot(true); }}>
                 Forgot Password?
               </a>
             </div>
@@ -128,6 +143,27 @@ export function LoginForm({ onLogin }: LoginFormProps) {
           </div>
         </div>
       </div>
+
+      {/* Modal de recuperação de senha (mock) */}
+      {showForgot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full relative">
+            <button className="absolute top-2 right-2 text-gray-400 hover:text-gray-700" onClick={() => setShowForgot(false)}>&times;</button>
+            <h2 className="text-xl font-bold mb-4 text-era-dark-blue">Recuperar Senha</h2>
+            <p className="mb-4 text-gray-700">Digite seu email para receber instruções de recuperação de senha.</p>
+            <input
+              type="email"
+              className="border rounded px-3 py-2 w-full mb-4"
+              placeholder="Seu email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
+            <Button className="w-full bg-era-lime text-era-dark-blue font-bold" onClick={() => { setShowForgot(false); alert('Se fosse real, um email seria enviado!'); }}>
+              Enviar instruções
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

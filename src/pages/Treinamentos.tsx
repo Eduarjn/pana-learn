@@ -34,12 +34,12 @@ const Treinamentos = () => {
 
   const isAdmin = userProfile?.tipo_usuario === 'admin';
 
-  // Carregar vídeos se for administrador
+  // Carregar vídeos para qualquer usuário autenticado
   useEffect(() => {
-    if (isAdmin) {
+    if (userProfile) {
       loadVideos();
     }
-  }, [isAdmin]);
+  }, [userProfile]);
 
   const loadVideos = async () => {
     setLoadingVideos(true);
@@ -158,7 +158,7 @@ const Treinamentos = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-era-blue">Treinamentos</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-neutral-900">Treinamentos</h1>
             <p className="text-sm md:text-base text-era-gray">Explore nossos cursos de PABX e Omnichannel</p>
           </div>
           {isAdmin && (
@@ -208,15 +208,15 @@ const Treinamentos = () => {
             </div>
 
             {/* Lista de vídeos para administrador */}
-            {isAdmin && (
+            {(isAdmin || userProfile) && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-era-blue">
+                  <CardTitle className="flex items-center gap-2 text-neutral-900 font-bold">
                     <Video className="h-5 w-5" />
                     Vídeos Importados ({videos.length})
                   </CardTitle>
                   <CardDescription>
-                    Gerencie os vídeos de treinamento da plataforma
+                    {isAdmin ? 'Gerencie os vídeos de treinamento da plataforma' : 'Assista aos vídeos de treinamento disponíveis'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -241,7 +241,7 @@ const Treinamentos = () => {
                     </div>
                   ) : videos.length === 0 ? (
                     <p className="text-center py-8 text-pana-text-secondary">
-                      Nenhum vídeo importado ainda. Use o botão "Importar Vídeo" para começar.
+                      Nenhum vídeo importado ainda.
                     </p>
                   ) : (
                     <div className="overflow-x-auto">
