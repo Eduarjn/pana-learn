@@ -61,6 +61,31 @@ interface ProgressData {
   };
 }
 
+// Tipo para dados do progresso de vídeos
+interface VideoProgressData {
+  id: string;
+  video_id: string;
+  usuario_id: string;
+  curso_id: string;
+  modulo_id: string | null;
+  tempo_assistido: number | null;
+  tempo_total: number | null;
+  percentual_assistido: number | null;
+  concluido: boolean;
+  data_conclusao: string | null;
+  videos: {
+    titulo: string;
+    descricao: string | null;
+  };
+  usuarios: {
+    nome: string;
+    email: string;
+  };
+  cursos: {
+    nome: string;
+  };
+}
+
 const Relatorios = () => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
@@ -147,6 +172,38 @@ const Relatorios = () => {
 
       if (evaluationsError) {
         console.error('Erro ao buscar avaliações:', evaluationsError);
+      }
+
+      // Buscar progresso de vídeos
+      const { data: videoProgressData, error: videoProgressError } = await supabase
+        .from('video_progress')
+        .select(`
+          id,
+          video_id,
+          usuario_id,
+          curso_id,
+          modulo_id,
+          tempo_assistido,
+          tempo_total,
+          percentual_assistido,
+          concluido,
+          data_conclusao,
+          videos!inner (
+            titulo,
+            descricao
+          ),
+          usuarios!inner (
+            nome,
+            email
+          ),
+          cursos!inner (
+            nome
+          )
+        `)
+        .order('data_criacao', { ascending: false });
+
+      if (videoProgressError) {
+        console.error('Erro ao buscar progresso de vídeos:', videoProgressError);
       }
 
       // Combinar dados

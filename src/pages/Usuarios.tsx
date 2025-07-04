@@ -39,6 +39,7 @@ const Usuarios = () => {
   });
   const [users, setUsers] = useState<UserListItem[]>([]);
   const { toast } = useToast();
+  const [showEmailValidationMsg, setShowEmailValidationMsg] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -83,6 +84,7 @@ const Usuarios = () => {
       toast({ title: 'Usuário cadastrado com sucesso!', description: `Senha provisória: ${senha}` });
       setShowNewUserForm(false);
       setNewUser({ nome: '', email: '', login: '', tipo: 'Cliente', status: 'Ativo' });
+      setShowEmailValidationMsg(true);
       fetchUsers();
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Erro desconhecido';
@@ -239,6 +241,12 @@ const Usuarios = () => {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {showEmailValidationMsg && (
+          <div className="my-4 p-4 rounded-lg bg-yellow-50 border-l-4 border-yellow-400 text-yellow-900 font-medium shadow">
+            Usuário cadastrado! Peça para o usuário verificar o e-mail informado para validar e ativar o acesso à plataforma.
+          </div>
         )}
 
         {/* Edit User Modal */}

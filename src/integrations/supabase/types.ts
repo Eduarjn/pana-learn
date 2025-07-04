@@ -328,6 +328,86 @@ export type Database = {
           },
         ]
       }
+      video_progress: {
+        Row: {
+          id: string
+          usuario_id: string
+          video_id: string
+          curso_id: string
+          modulo_id: string | null
+          tempo_assistido: number | null
+          tempo_total: number | null
+          percentual_assistido: number | null
+          concluido: boolean
+          data_primeiro_acesso: string
+          data_ultimo_acesso: string
+          data_conclusao: string | null
+          data_criacao: string
+          data_atualizacao: string
+        }
+        Insert: {
+          id?: string
+          usuario_id: string
+          video_id: string
+          curso_id: string
+          modulo_id?: string | null
+          tempo_assistido?: number | null
+          tempo_total?: number | null
+          percentual_assistido?: number | null
+          concluido?: boolean
+          data_primeiro_acesso?: string
+          data_ultimo_acesso?: string
+          data_conclusao?: string | null
+          data_criacao?: string
+          data_atualizacao?: string
+        }
+        Update: {
+          id?: string
+          usuario_id?: string
+          video_id?: string
+          curso_id?: string
+          modulo_id?: string | null
+          tempo_assistido?: number | null
+          tempo_total?: number | null
+          percentual_assistido?: number | null
+          concluido?: boolean
+          data_primeiro_acesso?: string
+          data_ultimo_acesso?: string
+          data_conclusao?: string | null
+          data_criacao?: string
+          data_atualizacao?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_progress_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "usuarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_progress_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_progress_curso_id_fkey"
+            columns: ["curso_id"]
+            isOneToOne: false
+            referencedRelation: "cursos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_progress_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "modulos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       usuarios: {
         Row: {
           created_at: string | null
@@ -380,6 +460,9 @@ export type Database = {
           thumbnail_url: string | null
           titulo: string
           url_video: string | null
+          modulo_id: string | null
+          curso_id: string | null
+          categoria: string | null
         }
         Insert: {
           data_atualizacao?: string
@@ -390,6 +473,9 @@ export type Database = {
           thumbnail_url?: string | null
           titulo: string
           url_video?: string | null
+          modulo_id?: string | null
+          curso_id?: string | null
+          categoria?: string | null
         }
         Update: {
           data_atualizacao?: string
@@ -400,8 +486,26 @@ export type Database = {
           thumbnail_url?: string | null
           titulo?: string
           url_video?: string | null
+          modulo_id?: string | null
+          curso_id?: string | null
+          categoria?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "videos_modulo_id_fkey"
+            columns: ["modulo_id"]
+            isOneToOne: false
+            referencedRelation: "modulos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_curso_id_fkey"
+            columns: ["curso_id"]
+            isOneToOne: false
+            referencedRelation: "cursos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

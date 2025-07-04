@@ -6,10 +6,15 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Module } from '@/hooks/useCourses';
 import type { Database } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Play, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { VideoPlayerWithProgress } from '@/components/VideoPlayerWithProgress';
+import { VideoChecklist } from '@/components/VideoChecklist';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Adicionar tipo auxiliar para vídeo com modulo_id e categoria
 type VideoWithModulo = Database['public']['Tables']['videos']['Row'] & {
@@ -82,7 +87,8 @@ const CursoDetalhe = () => {
   const [videos, setVideos] = React.useState<VideoWithModulo[]>([]);
   const [progress, setProgress] = React.useState<Record<string, Database['public']['Tables']['progresso_usuario']['Row']>>({});
   const [loading, setLoading] = React.useState(false);
-  const [selectedVideo, setSelectedVideo] = React.useState<Module | VideoWithModulo | null>(null);
+  const [selectedVideo, setSelectedVideo] = React.useState<VideoWithModulo | null>(null);
+  const [selectedModule, setSelectedModule] = React.useState<Module | null>(null);
   const [editingModuleId, setEditingModuleId] = React.useState<string | null>(null);
   const [editTitle, setEditTitle] = React.useState('');
   const [editDesc, setEditDesc] = React.useState('');
@@ -151,6 +157,7 @@ const CursoDetalhe = () => {
 
   // Renderização para CLIENTE
   if (!isAdmin) {
+
     return (
       <div className="p-4 md:p-8">
         <div className="mb-4 flex items-center gap-2">
@@ -158,99 +165,115 @@ const CursoDetalhe = () => {
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
           </Button>
         </div>
-        <h1 className="text-2xl font-bold mb-4">Detalhes do Curso</h1>
-        <p className="mb-6">ID do curso: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{id}</span></p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {modules.map((modulo) => {
-            // Buscar todos os vídeos do Supabase relacionados ao módulo
-            const videosDoModulo = videos.filter(v => String(v.modulo_id).trim() === String(modulo.id).trim());
-            console.log('Módulo:', modulo.id, modulo.nome_modulo, 'Vídeos deste módulo:', videosDoModulo);
-            // Buscar vídeo do módulo pelo video_id (pode ser removido se não usado)
-            const video = videos.find(v => v.id === modulo.video_id);
-            const progresso = progress[modulo.id];
-            const status = progresso?.status === 'concluido' ? 'Concluído' : (progresso?.status === 'em_andamento' ? 'Em andamento' : 'Não iniciado');
-            const percentual = progresso?.percentual_concluido ?? 0;
-            const tempoAssistido = progresso?.tempo_total_assistido ?? 0;
-            // Handler para continuar de onde parou
-            const handleContinue = () => {
-              const videoElem = document.getElementById(`video-player-${modulo.id}`) as HTMLVideoElement | null;
-              if (videoElem && progresso?.tempo_total_assistido) {
-                videoElem.currentTime = progresso.tempo_total_assistido;
-                videoElem.play();
-              }
-            };
-            // Handler para marcar como concluído
-            const handleMarkDone = async () => {
-              if (!progresso) return;
-              await supabase
-                .from('progresso_usuario')
-                .update({ status: 'concluido', percentual_concluido: 100 })
-                .eq('id', progresso.id);
-              setRefresh(r => r + 1);
-            };
-            return (
-              <div key={modulo.id} className="bg-white rounded shadow p-6 flex flex-col items-center">
-                {/* Thumbnails ou players de vídeo */}
-                {videosDoModulo.length > 0 ? (
-                  videosDoModulo.map(video => (
-                    <div key={video.id} className="w-full mb-4 aspect-video max-w-2xl flex flex-col items-center justify-center">
-                      {video.thumbnail_url && (
-                        <img src={video.thumbnail_url} alt="Miniatura do vídeo" className="mb-2 rounded shadow max-h-40 object-cover" />
-                      )}
-                      <video
-                        id={`video-player-${video.id}`}
-                        src={video.url_video}
-                        controls
-                        className="w-full rounded-md shadow"
-                        onLoadedMetadata={e => {
-                          if (progresso?.tempo_total_assistido) {
-                            (e.target as HTMLVideoElement).currentTime = progresso.tempo_total_assistido;
-                          }
-                        }}
-                        onPause={async e => {
-                          // Salvar progresso ao pausar
-                          if (progresso) {
-                            await supabase
-                              .from('progresso_usuario')
-                              .update({ tempo_total_assistido: (e.target as HTMLVideoElement).currentTime })
-                              .eq('id', progresso.id);
-                          }
-                        }}
-                        onEnded={async () => {
-                          // Marcar como concluído automaticamente
-                          if (progresso && progresso.status !== 'concluido') {
-                            await supabase
-                              .from('progresso_usuario')
-                              .update({ status: 'concluido', percentual_concluido: 100 })
-                              .eq('id', progresso.id);
-                            setRefresh(r => r + 1);
-                          }
-                        }}
-                      />
-                      <div className="w-full mt-2">
-                        <h3 className="text-base font-semibold text-era-dark-blue">{video.titulo}</h3>
-                        <p className="text-sm text-era-gray mb-2">{video.descricao}</p>
-                      </div>
+        
+        <header className="mb-8 p-4 rounded-xl border-l-8 border-era-lime bg-era-lime/10 shadow flex flex-col gap-2">
+          <h1 className="text-3xl font-extrabold text-era-dark-blue tracking-tight" tabIndex={0} aria-label="Título do curso">
+            {currentCourse?.nome || 'Detalhes do Curso'}
+          </h1>
+          {currentCourse?.descricao && (
+            <p className="text-era-gray text-lg leading-relaxed max-w-2xl">{currentCourse.descricao}</p>
+          )}
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Área principal com player de vídeo */}
+          <div className="lg:col-span-2">
+            {selectedVideo ? (
+              <VideoPlayerWithProgress
+                video={selectedVideo}
+                cursoId={id || ''}
+                moduloId={selectedModule?.id}
+                userId={userId}
+                className="mb-6"
+              />
+            ) : (
+              <Card className="mb-6">
+                <CardContent className="p-8 text-center">
+                  <Play className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                    Selecione um vídeo para começar
+                  </h3>
+                  <p className="text-gray-500">
+                    Escolha um vídeo da lista ao lado para iniciar seu aprendizado
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Sidebar com módulos e vídeos */}
+          <div className="space-y-6">
+            {modules.map((modulo) => {
+              const videosDoModulo = videos.filter(v => String(v.modulo_id).trim() === String(modulo.id).trim());
+              const progresso = progress[modulo.id];
+              const status = progresso?.status === 'concluido' ? 'Concluído' : (progresso?.status === 'em_andamento' ? 'Em andamento' : 'Não iniciado');
+              const percentual = progresso?.percentual_concluido ?? 0;
+              
+              return (
+                <Card key={modulo.id} className="border border-era-lime/30">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-bold text-era-dark-blue">
+                      {modulo.nome_modulo}
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={status === 'Concluído' ? 'default' : 'secondary'}
+                        className={status === 'Concluído' ? 'bg-green-100 text-green-800' : ''}
+                      >
+                        {status}
+                      </Badge>
+                      <span className="text-sm text-gray-600">{percentual}% completo</span>
                     </div>
-                  ))
-                ) : (
-                  <div className="w-full mb-4 p-6 bg-gray-100 text-center rounded text-gray-500 font-medium">
-                    Vídeo não disponível para este módulo.
-                  </div>
-                )}
-                {/* Título e descrição */}
-                <div className="w-full">
-                  <h2 className="text-lg font-bold mb-1">{modulo.nome_modulo}</h2>
-                  <p className="text-gray-600 mb-2">{modulo.descricao}</p>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-1 rounded bg-gray-200 text-xs font-semibold">{status}</span>
-                    <span className="text-xs text-gray-500">{percentual}% assistido</span>
-                  </div>
-                  {/* Botões de progresso, se desejar */}
-                </div>
-              </div>
-            );
-          })}
+                    <Progress value={percentual} className="h-2" />
+                  </CardHeader>
+                  
+                  <CardContent>
+                    {videosDoModulo.length > 0 ? (
+                      <div className="space-y-2">
+                        {videosDoModulo.map(video => (
+                          <div
+                            key={video.id}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-gray-50 ${
+                              selectedVideo?.id === video.id ? 'border-era-lime bg-era-lime/10' : 'border-gray-200'
+                            }`}
+                            onClick={() => {
+                              setSelectedVideo(video);
+                              setSelectedModule(modulo);
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex-shrink-0">
+                                {progresso?.status === 'concluido' ? (
+                                  <CheckCircle className="w-5 h-5 text-green-500" />
+                                ) : (
+                                  <Play className="w-5 h-5 text-gray-400" />
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-gray-900 truncate">
+                                  {video.titulo}
+                                </h4>
+                                {video.descricao && (
+                                  <p className="text-sm text-gray-600 truncate">
+                                    {video.descricao}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm">Nenhum vídeo disponível</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
@@ -267,68 +290,102 @@ const CursoDetalhe = () => {
         </div>
         <h1 className="text-2xl font-bold mb-4">Detalhes do Curso (Admin)</h1>
         <p className="mb-6">ID do curso: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{id}</span></p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {modules.map((modulo) => {
-            // Buscar todos os vídeos do Supabase relacionados ao módulo
-            const videosDoModulo = videos.filter(v => String(v.modulo_id).trim() === String(modulo.id).trim());
-            console.log('Módulo:', modulo.id, modulo.nome_modulo, 'Vídeos deste módulo:', videosDoModulo);
-            // Buscar vídeo do módulo pelo video_id (pode ser removido se não usado)
-            const video = videos.find(v => v.id === modulo.video_id);
-            const progresso = progress[modulo.id];
-            const status = progresso?.status === 'concluido' ? 'Concluído' : (progresso?.status === 'em_andamento' ? 'Em andamento' : 'Não iniciado');
-            const percentual = progresso?.percentual_concluido ?? 0;
-            const tempoAssistido = progresso?.tempo_total_assistido ?? 0;
-            // Handler para continuar de onde parou
-            const handleContinue = () => {
-              const videoElem = document.getElementById(`video-player-${modulo.id}`) as HTMLVideoElement | null;
-              if (videoElem && progresso?.tempo_total_assistido) {
-                videoElem.currentTime = progresso.tempo_total_assistido;
-                videoElem.play();
-              }
-            };
-            // Handler para marcar como concluído
-            const handleMarkDone = async () => {
-              if (!progresso) return;
-              await supabase
-                .from('progresso_usuario')
-                .update({ status: 'concluido', percentual_concluido: 100 })
-                .eq('id', progresso.id);
-              setRefresh(r => r + 1);
-            };
-            return (
-              <div key={modulo.id} className="bg-white rounded shadow p-6 flex flex-col items-center">
-                {/* Thumbnails ou players de vídeo */}
-                {videosDoModulo.length > 0 ? (
-                  videosDoModulo.map(video => (
-                    <div key={video.id} className="w-full mb-4 aspect-video max-w-2xl flex flex-col items-center justify-center">
-                      {video.thumbnail_url && (
-                        <img src={video.thumbnail_url} alt="Miniatura do vídeo" className="mb-2 rounded shadow max-h-40 object-cover" />
-                      )}
-                      <video
-                        id={`video-player-${video.id}`}
-                        src={video.url_video}
-                        controls
-                        className="w-full rounded-md shadow"
-                      />
-                      <div className="w-full mt-2">
-                        <h3 className="text-base font-semibold text-era-dark-blue">{video.titulo}</h3>
-                        <p className="text-sm text-era-gray mb-2">{video.descricao}</p>
-                      </div>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Área principal com player de vídeo */}
+          <div className="lg:col-span-2">
+            {selectedVideo ? (
+              <VideoPlayerWithProgress
+                video={selectedVideo}
+                cursoId={id || ''}
+                moduloId={selectedModule?.id}
+                userId={userId}
+                className="mb-6"
+              />
+            ) : (
+              <Card className="mb-6">
+                <CardContent className="p-8 text-center">
+                  <Play className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-semibold text-gray-600 mb-2">
+                    Selecione um vídeo para visualizar
+                  </h3>
+                  <p className="text-gray-500">
+                    Escolha um vídeo da lista ao lado para visualizar
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Sidebar com módulos e vídeos */}
+          <div className="space-y-6">
+            {modules.map((modulo) => {
+              const videosDoModulo = videos.filter(v => String(v.modulo_id).trim() === String(modulo.id).trim());
+              const progresso = progress[modulo.id];
+              const status = progresso?.status === 'concluido' ? 'Concluído' : (progresso?.status === 'em_andamento' ? 'Em andamento' : 'Não iniciado');
+              const percentual = progresso?.percentual_concluido ?? 0;
+              
+              return (
+                <Card key={modulo.id} className="border border-era-lime/30">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-bold text-era-dark-blue">
+                      {modulo.nome_modulo}
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={status === 'Concluído' ? 'default' : 'secondary'}
+                        className={status === 'Concluído' ? 'bg-green-100 text-green-800' : ''}
+                      >
+                        {status}
+                      </Badge>
+                      <span className="text-sm text-gray-600">{percentual}% completo</span>
                     </div>
-                  ))
-                ) : (
-                  <div className="w-full mb-4 p-6 bg-gray-100 text-center rounded text-gray-500 font-medium">
-                    Vídeo não disponível para este módulo.
-                  </div>
-                )}
-                {/* Título e descrição do módulo */}
-                <div className="w-full">
-                  <h2 className="text-lg font-bold mb-1">{modulo.nome_modulo}</h2>
-                  <p className="text-gray-600 mb-2">{modulo.descricao}</p>
-                </div>
-              </div>
-            );
-          })}
+                    <Progress value={percentual} className="h-2" />
+                  </CardHeader>
+                  
+                  <CardContent>
+                    {videosDoModulo.length > 0 ? (
+                      <div className="space-y-2">
+                        {videosDoModulo.map(video => (
+                          <div
+                            key={video.id}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-gray-50 ${
+                              selectedVideo?.id === video.id ? 'border-era-lime bg-era-lime/10' : 'border-gray-200'
+                            }`}
+                            onClick={() => {
+                              setSelectedVideo(video);
+                              setSelectedModule(modulo);
+                            }}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex-shrink-0">
+                                <Play className="w-5 h-5 text-gray-400" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-medium text-gray-900 truncate">
+                                  {video.titulo}
+                                </h4>
+                                {video.descricao && (
+                                  <p className="text-sm text-gray-600 truncate">
+                                    {video.descricao}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4 text-gray-500">
+                        <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                        <p className="text-sm">Nenhum vídeo disponível</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
