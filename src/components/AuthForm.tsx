@@ -92,7 +92,7 @@ export function AuthForm() {
         console.error('❌ Erro no cadastro:', error);
         setError(error.message || 'Erro ao criar conta');
       } else {
-        setMessage('Conta criada com sucesso! Você pode fazer login agora.');
+        setMessage('Conta criada com sucesso! Verifique seu e-mail para finalizar o cadastro antes de fazer login.');
         console.log('✅ Cadastro realizado com sucesso');
         // Limpar formulário
         (e.target as HTMLFormElement).reset();
@@ -171,7 +171,7 @@ export function AuthForm() {
 
               {message && (
                 <Alert className="bg-green-50 border-green-200">
-                  <AlertDescription className="text-green-800">
+                  <AlertDescription className="text-green-800 font-semibold">
                     {message}
                   </AlertDescription>
                 </Alert>
