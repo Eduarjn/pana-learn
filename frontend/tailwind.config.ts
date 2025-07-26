@@ -66,6 +66,10 @@ export default {
         'high-contrast': '#1C1D1F',
         'medium-contrast': '#3E4143',
         'card-improved': '#FFFFFF',
+        'primary-bg': '#CCFF00',
+        'primary-fg': '#2B2B2B',
+        'era-neon': '#CCFF00',
+        'era-dark': '#2B2B2B',
       },
       backgroundImage: {
         'hero-gradient': 'linear-gradient(135deg, #A435F0 0%, #8710D8 50%, #ECB22E 100%)',
@@ -88,6 +92,33 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      fontFamily: {
+        heading: [
+          'EraGeometric',
+          'Orbitron',
+          'Square 721',
+          'Arial',
+          'sans-serif',
+        ],
+        base: [
+          'EraGeometric',
+          'Orbitron',
+          'Square 721',
+          'Arial',
+          'sans-serif',
+        ],
+      },
+      fontSize: {
+        heading: '2rem',
+        subheading: '1.5rem',
+        base: '1rem',
+      },
+      letterSpacing: {
+        heading: '0.05em',
+      },
+      borderColor: {
+        'era-dark': '#2B2B2B',
       },
     },
   },

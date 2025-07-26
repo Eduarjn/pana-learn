@@ -147,3 +147,29 @@ INSERT INTO cursos (nome, descricao, categoria) VALUES
 ('Configuração Avançada PABX', 'Configurações avançadas e troubleshooting', 'PABX'),
 ('Introdução ao Omnichannel', 'Conceitos e implementação de soluções omnichannel', 'Omnichannel'),
 ('Telefonia IP', 'Fundamentos da telefonia sobre IP', 'Telefonia');
+
+-- Seed de demonstração para relatório visual
+-- Usuário Bianca
+INSERT INTO categorias (nome, descricao, cor)
+VALUES ('Avançado', 'Cursos avançados', '#6366F1')
+ON CONFLICT (nome) DO NOTHING;
+
+INSERT INTO usuarios (nome, email, senha_hashed, tipo_usuario, status, matricula)
+VALUES ('Bianca', 'biancacc2008@gmail.com', 'demopass', 'cliente', 'ativo', 'biancacc2008@gmail.com')
+ON CONFLICT (email) DO NOTHING;
+
+INSERT INTO cursos (nome, descricao, categoria, status)
+VALUES ('OMNICHANNEL para Empresas', 'Implementação de soluções omnichannel em ambientes empresariais', 'Avançado', 'ativo')
+ON CONFLICT (nome) DO NOTHING;
+
+-- Vincular IDs para progresso_usuario
+WITH u AS (
+  SELECT id as usuario_id FROM usuarios WHERE email = 'biancacc2008@gmail.com'
+),
+ c AS (
+  SELECT id as curso_id FROM cursos WHERE nome = 'OMNICHANNEL para Empresas'
+)
+INSERT INTO progresso_usuario (usuario_id, curso_id, status, percentual_concluido, data_inicio, data_conclusao)
+SELECT u.usuario_id, c.curso_id, 'concluido', 100, '2025-06-01', '2025-06-15'
+FROM u, c
+ON CONFLICT DO NOTHING;

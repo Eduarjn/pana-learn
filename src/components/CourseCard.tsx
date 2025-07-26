@@ -2,8 +2,10 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, BookOpen, Play } from 'lucide-react';
+import { Clock, BookOpen, Play, Info } from 'lucide-react';
 import { Course } from '@/hooks/useCourses';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface CourseCardProps {
   course: Course;
@@ -12,6 +14,18 @@ interface CourseCardProps {
 
 export function CourseCard({ course, onStartCourse }: CourseCardProps) {
   const categoryColor = course.categorias?.cor || '#A435F0';
+  const [showTooltip, setShowTooltip] = useState(false);
+  const isMock = course.id?.startsWith('mock-');
+  const navigate = useNavigate();
+
+  const handleStart = () => {
+    if (isMock) return;
+    if (onStartCourse) {
+      onStartCourse(course.id);
+    } else {
+      navigate(`/curso/${course.id}`);
+    }
+  };
 
   return (
     <Card className="h-full hover:shadow-lg transition-all duration-200 border-0 shadow-md bg-white">
@@ -25,15 +39,7 @@ export function CourseCard({ course, onStartCourse }: CourseCardProps) {
               {course.descricao || 'Curso de treinamento profissional'}
             </CardDescription>
           </div>
-          <Badge 
-            className="ml-2 flex-shrink-0"
-            style={{ 
-              backgroundColor: categoryColor,
-              color: 'white'
-            }}
-          >
-            {course.categorias?.nome || course.categoria}
-          </Badge>
+          {/* Removido badge 'Iniciante' e ícone de telefone */}
         </div>
       </CardHeader>
       
@@ -50,14 +56,26 @@ export function CourseCard({ course, onStartCourse }: CourseCardProps) {
             </div>
           </div>
         </div>
-        
-        <Button 
-          className="w-full pana-primary-button font-medium"
-          onClick={() => onStartCourse?.(course.id)}
-        >
-          <Play className="h-4 w-4 mr-2" />
-          Iniciar Curso
-        </Button>
+        <div className="relative group">
+          <Button
+            className="w-full font-bold transition-all duration-300 rounded-xl py-3 text-base flex items-center justify-center bg-accent text-primary shadow-md hover:bg-accent/80"
+            onClick={handleStart}
+            disabled={isMock}
+            onMouseEnter={() => isMock && setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            tabIndex={isMock ? -1 : 0}
+            aria-disabled={isMock}
+          >
+            <Play className="h-4 w-4 mr-2" />
+            Iniciar Curso
+          </Button>
+          {isMock && showTooltip && (
+            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-10 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap flex items-center gap-1 animate-fade-in">
+              <Info className="h-3 w-3 mr-1" />
+              Curso em breve
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

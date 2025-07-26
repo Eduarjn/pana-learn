@@ -1,5 +1,5 @@
 
-# PANA Learn - Plataforma de Treinamento Corporativo
+# ERA Learn - Plataforma de Treinamento Corporativo
 
 Plataforma inteligente de treinamento corporativo especializada em PABX e soluções Omnichannel.
 

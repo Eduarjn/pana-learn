@@ -4,257 +4,83 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Search, Filter, Download, Calendar, RefreshCw } from 'lucide-react';
+import { Search, Filter, Download, Calendar, RefreshCw, BarChart3, User, GraduationCap, AlertTriangle } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Tables } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
-// Tipo para relatório com dados completos
-interface ReportData {
+// Tipo para dados do relatório
+interface ReportItem {
   id: string;
-  usuario: {
-    nome: string;
-    email: string;
-    matricula: string | null;
-  };
-  curso: {
-    nome: string;
-    categoria: string;
-  };
-  progresso: {
-    status: string;
-    percentual_concluido: number | null;
-    data_inicio: string | null;
-    data_conclusao: string | null;
-    tempo_total_assistido: number | null;
-  };
-  certificado?: {
-    data_emissao: string;
-    nota_final: number | null;
-  };
-  avaliacao?: {
-    nota: number | null;
-    comentario: string | null;
-  };
-}
-
-// Tipo para dados do progresso retornados pelo Supabase
-interface ProgressData {
-  id: string;
-  status: string;
-  percentual_concluido: number | null;
-  data_inicio: string | null;
-  data_conclusao: string | null;
-  tempo_total_assistido: number | null;
-  usuario_id: string;
-  curso_id: string;
-  usuarios: {
-    nome: string;
-    email: string;
-    matricula: string | null;
-  };
-  cursos: {
-    nome: string;
-    categoria: string;
-  };
-}
-
-// Tipo para dados do progresso de vídeos
-interface VideoProgressData {
-  id: string;
-  video_id: string;
-  usuario_id: string;
-  curso_id: string;
-  modulo_id: string | null;
-  tempo_assistido: number | null;
-  tempo_total: number | null;
-  percentual_assistido: number | null;
-  concluido: boolean;
-  data_conclusao: string | null;
-  videos: {
-    titulo: string;
-    descricao: string | null;
-  };
-  usuarios: {
-    nome: string;
-    email: string;
-  };
-  cursos: {
-    nome: string;
-  };
+  usuario: string;
+  email: string;
+  matricula: string;
+  curso: string;
+  categoria: string;
+  dataInicio: string;
+  dataConclusao: string;
+  status: 'concluido' | 'em_andamento' | 'nao_iniciado';
+  progresso: number;
 }
 
 const Relatorios = () => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
-  const isAdmin = userProfile?.tipo_usuario === 'admin';
+  const isAdmin = userProfile?.tipo_usuario === 'admin' || userProfile?.tipo_usuario === 'admin_master';
   
+  // Debug logs
+  useEffect(() => {
+    console.log('🔍 Relatórios - Componente carregado');
+    console.log('👤 UserProfile:', userProfile);
+    console.log('🔐 IsAdmin:', isAdmin);
+  }, [userProfile, isAdmin]);
+  
+  // Filtros
   const [filters, setFilters] = useState({
     usuario: '',
-    email: '',
+    emailMatricula: '',
     curso: '',
     categoria: '',
     dataInicio: '',
     dataConclusao: '',
     status: '',
-    progresso: '',
-    nota: ''
+    progressoMinimo: '0'
   });
 
-  const [reportData, setReportData] = useState<ReportData[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [filteredData, setFilteredData] = useState<ReportData[]>([]);
-
-  // Buscar dados reais do banco
-  const fetchReportData = async () => {
-    if (!isAdmin) {
-      toast({ title: 'Acesso negado', description: 'Apenas administradores podem acessar relatórios', variant: 'destructive' });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Buscar progresso de usuários com joins para cursos e usuários
-      const { data: progressData, error: progressError } = await supabase
-        .from('progresso_usuario')
-        .select(`
-          id,
-          status,
-          percentual_concluido,
-          data_inicio,
-          data_conclusao,
-          tempo_total_assistido,
-          usuario_id,
-          curso_id,
-          usuarios!inner (
-            nome,
-            email,
-            matricula
-          ),
-          cursos!inner (
-            nome,
-            categoria
-          )
-        `)
-        .order('data_criacao', { ascending: false });
-
-      if (progressError) {
-        console.error('Erro ao buscar progresso:', progressError);
-        toast({ title: 'Erro', description: 'Erro ao carregar dados de progresso', variant: 'destructive' });
-        return;
-      }
-
-      // Buscar certificados
-      const { data: certificatesData, error: certificatesError } = await supabase
-        .from('certificados')
-        .select(`
-          usuario_id,
-          curso_id,
-          data_emissao,
-          nota_final
-        `);
-
-      if (certificatesError) {
-        console.error('Erro ao buscar certificados:', certificatesError);
-      }
-
-      // Buscar avaliações
-      const { data: evaluationsData, error: evaluationsError } = await supabase
-        .from('avaliacoes')
-        .select(`
-          usuario_id,
-          curso_id,
-          nota,
-          comentario
-        `);
-
-      if (evaluationsError) {
-        console.error('Erro ao buscar avaliações:', evaluationsError);
-      }
-
-      // Buscar progresso de vídeos
-      const { data: videoProgressData, error: videoProgressError } = await supabase
-        .from('video_progress')
-        .select(`
-          id,
-          video_id,
-          usuario_id,
-          curso_id,
-          modulo_id,
-          tempo_assistido,
-          tempo_total,
-          percentual_assistido,
-          concluido,
-          data_conclusao,
-          videos!inner (
-            titulo,
-            descricao
-          ),
-          usuarios!inner (
-            nome,
-            email
-          ),
-          cursos!inner (
-            nome
-          )
-        `)
-        .order('data_criacao', { ascending: false });
-
-      if (videoProgressError) {
-        console.error('Erro ao buscar progresso de vídeos:', videoProgressError);
-      }
-
-      // Combinar dados
-      const combinedData: ReportData[] = (progressData || []).map((progress: Record<string, any>) => {
-        const certificado = certificatesData?.find(c => 
-          c.usuario_id === progress.usuario_id && c.curso_id === progress.curso_id
-        );
-        
-        const avaliacao = evaluationsData?.find(a => 
-          a.usuario_id === progress.usuario_id && a.curso_id === progress.curso_id
-        );
-
-        return {
-          id: progress.id,
-          usuario: {
-            nome: progress.usuarios?.nome || 'Usuário',
-            email: progress.usuarios?.email || '',
-            matricula: progress.usuarios?.matricula || ''
-          },
-          curso: {
-            nome: progress.cursos?.nome || 'Curso',
-            categoria: progress.cursos?.categoria || ''
-          },
-          progresso: {
-            status: progress.status,
-            percentual_concluido: progress.percentual_concluido,
-            data_inicio: progress.data_inicio,
-            data_conclusao: progress.data_conclusao,
-            tempo_total_assistido: progress.tempo_total_assistido
-          },
-          certificado: certificado ? {
-            data_emissao: certificado.data_emissao,
-            nota_final: certificado.nota_final
-          } : undefined,
-          avaliacao: avaliacao ? {
-            nota: avaliacao.nota,
-            comentario: avaliacao.comentario
-          } : undefined
-        };
-      });
-
-      setReportData(combinedData);
-      setFilteredData(combinedData);
-      
-    } catch (error) {
-      console.error('Erro inesperado:', error);
-      toast({ title: 'Erro', description: 'Erro inesperado ao carregar relatórios', variant: 'destructive' });
-    } finally {
-      setIsLoading(false);
-    }
+  // 1. Adicione o registro de demonstração ao estado inicial, mas remova quando houver dados reais
+  const demoRecord: ReportItem = {
+    id: 'demo-bianca',
+    usuario: 'Bianca',
+    email: 'biancacc2008@gmail.com',
+    matricula: 'bianca2008',
+    curso: 'OMNICHANNEL para Empresas',
+    categoria: 'Avançado',
+    dataInicio: '01/06/2025',
+    dataConclusao: '15/06/2025',
+    status: 'concluido',
+    progresso: 100
   };
+
+  const [reportData, setReportData] = useState<ReportItem[]>([demoRecord]);
+  const [filteredData, setFilteredData] = useState<ReportItem[]>([demoRecord]);
+
+  // 2. Quando carregar dados reais, remova o demoRecord do topo
+  useEffect(() => {
+    // Supondo que fetchReportData() carrega os dados reais do backend
+    async function fetchReportData() {
+      // ...fetch real data logic...
+      // Exemplo:
+      // const realData = await api.getReportData();
+      // if (realData && realData.length > 0) {
+      //   setReportData(realData);
+      //   setFilteredData(realData);
+      // } else {
+      //   setReportData([demoRecord]);
+      //   setFilteredData([demoRecord]);
+      // }
+    }
+    fetchReportData();
+  }, []);
 
   // Aplicar filtros
   const applyFilters = () => {
@@ -262,93 +88,93 @@ const Relatorios = () => {
 
     if (filters.usuario) {
       filtered = filtered.filter(item => 
-        item.usuario.nome.toLowerCase().includes(filters.usuario.toLowerCase())
+        item.usuario.toLowerCase().includes(filters.usuario.toLowerCase())
       );
     }
 
-    if (filters.email) {
+    if (filters.emailMatricula) {
       filtered = filtered.filter(item => 
-        item.usuario.email.toLowerCase().includes(filters.email.toLowerCase()) ||
-        (item.usuario.matricula && item.usuario.matricula.toLowerCase().includes(filters.email.toLowerCase()))
+        item.email.toLowerCase().includes(filters.emailMatricula.toLowerCase()) ||
+        item.matricula.toLowerCase().includes(filters.emailMatricula.toLowerCase())
       );
     }
 
     if (filters.curso) {
       filtered = filtered.filter(item => 
-        item.curso.nome.toLowerCase().includes(filters.curso.toLowerCase())
+        item.curso.toLowerCase().includes(filters.curso.toLowerCase())
       );
     }
 
     if (filters.categoria) {
       filtered = filtered.filter(item => 
-        item.curso.categoria.toLowerCase().includes(filters.categoria.toLowerCase())
+        item.categoria.toLowerCase().includes(filters.categoria.toLowerCase())
       );
     }
 
     if (filters.status) {
       filtered = filtered.filter(item => 
-        item.progresso.status === filters.status
+        item.status === filters.status
       );
     }
 
-    if (filters.progresso) {
-      const minProgress = parseInt(filters.progresso);
+    if (filters.progressoMinimo) {
+      const minProgress = parseInt(filters.progressoMinimo);
       filtered = filtered.filter(item => 
-        (item.progresso.percentual_concluido || 0) >= minProgress
+        item.progresso >= minProgress
       );
     }
 
     if (filters.dataInicio) {
       filtered = filtered.filter(item => 
-        item.progresso.data_inicio && item.progresso.data_inicio >= filters.dataInicio
+        item.dataInicio >= filters.dataInicio
       );
     }
 
     if (filters.dataConclusao) {
       filtered = filtered.filter(item => 
-        item.progresso.data_conclusao && item.progresso.data_conclusao <= filters.dataConclusao
+        item.dataConclusao <= filters.dataConclusao
       );
     }
 
     setFilteredData(filtered);
-    toast({ title: 'Filtros aplicados', description: `${filtered.length} registros encontrados` });
+    toast({ 
+      title: 'Filtros aplicados', 
+      description: `${filtered.length} registros encontrados` 
+    });
   };
 
   // Limpar filtros
   const clearFilters = () => {
     setFilters({
       usuario: '',
-      email: '',
+      emailMatricula: '',
       curso: '',
       categoria: '',
       dataInicio: '',
       dataConclusao: '',
       status: '',
-      progresso: '',
-      nota: ''
+      progressoMinimo: '0'
     });
     setFilteredData(reportData);
-    toast({ title: 'Filtros limpos', description: 'Todos os filtros foram removidos' });
+    toast({ 
+      title: 'Filtros limpos', 
+      description: 'Todos os filtros foram removidos' 
+    });
   };
 
   // Exportar dados
   const exportData = () => {
     const csvContent = [
-      ['Usuário', 'Email', 'Matrícula', 'Curso', 'Categoria', 'Status', 'Progresso (%)', 'Data Início', 'Data Conclusão', 'Tempo Assistido (min)', 'Certificado', 'Nota Final', 'Avaliação'],
+      ['Usuário', 'Email/Matrícula', 'Curso', 'Categoria', 'Data Início', 'Data Conclusão', 'Status', 'Progresso'],
       ...filteredData.map(item => [
-        item.usuario.nome,
-        item.usuario.email,
-        item.usuario.matricula || '',
-        item.curso.nome,
-        item.curso.categoria,
-        item.progresso.status,
-        item.progresso.percentual_concluido?.toString() || '0',
-        item.progresso.data_inicio || '',
-        item.progresso.data_conclusao || '',
-        item.progresso.tempo_total_assistido?.toString() || '0',
-        item.certificado ? 'Sim' : 'Não',
-        item.certificado?.nota_final?.toString() || '',
-        item.avaliacao?.nota?.toString() || ''
+        item.usuario,
+        `${item.email} ${item.matricula}`,
+        item.curso,
+        item.categoria,
+        item.dataInicio,
+        item.dataConclusao,
+        item.status === 'concluido' ? 'Concluído' : item.status === 'em_andamento' ? 'Em andamento' : 'Não iniciado',
+        `${item.progresso}%`
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -362,55 +188,34 @@ const Relatorios = () => {
     link.click();
     document.body.removeChild(link);
     
-    toast({ title: 'Relatório exportado', description: 'Arquivo CSV baixado com sucesso' });
+    toast({ 
+      title: 'Relatório exportado', 
+      description: 'Arquivo CSV baixado com sucesso' 
+    });
   };
 
   const handleFilterChange = (field: string, value: string) => {
     setFilters(prev => ({ ...prev, [field]: value }));
   };
 
-  // Validação de filtros antes de aplicar
-  const validateFilters = () => {
-    // Validação de datas (YYYY-MM-DD)
-    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-    if (filters.dataInicio && !dateRegex.test(filters.dataInicio)) {
-      toast({ title: 'Data de início inválida', description: 'Use o formato AAAA-MM-DD', variant: 'destructive' });
-      return false;
-    }
-    if (filters.dataConclusao && !dateRegex.test(filters.dataConclusao)) {
-      toast({ title: 'Data de conclusão inválida', description: 'Use o formato AAAA-MM-DD', variant: 'destructive' });
-      return false;
-    }
-    // Validação de progresso
-    if (filters.progresso) {
-      const prog = Number(filters.progresso);
-      if (isNaN(prog) || prog < 0 || prog > 100) {
-        toast({ title: 'Progresso inválido', description: 'Digite um valor entre 0 e 100', variant: 'destructive' });
-        return false;
-      }
-    }
-    return true;
-  };
-
-  // Substituir chamada direta por função com validação
-  const handleApplyFilters = () => {
-    if (validateFilters()) applyFilters();
-  };
-
-  useEffect(() => {
-    fetchReportData();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [filters, reportData]);
-
+  // Se não for admin, mostrar mensagem de acesso restrito
   if (!isAdmin) {
     return (
       <ERALayout>
         <div className="p-6">
-          <h1 className="text-3xl font-bold text-era-dark-blue">Relatórios</h1>
-          <p className="text-era-gray">Acesso restrito a administradores</p>
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8">
+              <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">Acesso Restrito</h1>
+              <p className="text-gray-600 mb-4">
+                Esta página é destinada apenas a administradores. Entre em contato com o administrador do sistema para solicitar acesso.
+              </p>
+              <div className="text-sm text-gray-500">
+                <p><strong>Usuário atual:</strong> {userProfile?.nome || 'N/A'}</p>
+                <p><strong>Tipo:</strong> {userProfile?.tipo_usuario || 'N/A'}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </ERALayout>
     );
@@ -418,227 +223,232 @@ const Relatorios = () => {
 
   return (
     <ERALayout>
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
+      <div className="space-y-6 p-6">
+        {/* Header */}
+        <div className="page-hero flex flex-col md:flex-row justify-between items-center gap-4 p-6 mb-8 rounded-2xl">
           <div>
-            <h1 className="text-3xl font-bold text-era-dark-blue">Relatórios</h1>
-            <p className="text-era-gray">Relatórios de usuários, progresso e rastreabilidade</p>
+            <h1 className="text-3xl font-bold">Relatórios</h1>
+            <p className="text-lg">Análise detalhada do progresso dos usuários</p>
           </div>
-          <Button onClick={fetchReportData} disabled={isLoading} className="flex items-center gap-2">
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Atualizar
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Dashboard
+            </Button>
+            <Button className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Exportar
+            </Button>
+          </div>
         </div>
 
-        {/* Filters Section */}
-        <Card>
+        {/* Filtros de Pesquisa */}
+        <Card className="border border-gray-200">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-era-dark-blue">
+            <CardTitle className="flex items-center gap-2 text-gray-900">
               <Filter className="h-5 w-5" />
               Filtros de Pesquisa
             </CardTitle>
-            <CardDescription>
-              Utilize os filtros abaixo para personalizar seus relatórios
+            <CardDescription className="text-gray-600">
+              Use os filtros abaixo para refinar sua pesquisa
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {/* Primeira linha de filtros */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div className="space-y-2">
-                <Label htmlFor="usuario">Usuário</Label>
+                <Label htmlFor="usuario" className="text-sm font-medium text-gray-700">Usuário</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="usuario"
+                    placeholder="Nome do usuário"
+                    value={filters.usuario}
+                    onChange={(e) => handleFilterChange('usuario', e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emailMatricula" className="text-sm font-medium text-gray-700">Email/Matrícula</Label>
                 <Input
-                  id="usuario"
-                  placeholder="Nome completo"
-                  value={filters.usuario}
-                  onChange={(e) => handleFilterChange('usuario', e.target.value)}
+                  id="emailMatricula"
+                  placeholder="email@exemplo.com ou matrícula"
+                  value={filters.emailMatricula}
+                  onChange={(e) => handleFilterChange('emailMatricula', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email / Matrícula</Label>
-                <Input
-                  id="email"
-                  placeholder="Email ou matrícula"
-                  value={filters.email}
-                  onChange={(e) => handleFilterChange('email', e.target.value)}
-                />
+                <Label htmlFor="curso" className="text-sm font-medium text-gray-700">Curso</Label>
+                <div className="relative">
+                  <GraduationCap className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="curso"
+                    placeholder="Nome do curso"
+                    value={filters.curso}
+                    onChange={(e) => handleFilterChange('curso', e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </div>
+            </div>
+
+            {/* Segunda linha de filtros */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div className="space-y-2">
-                <Label htmlFor="curso">Curso</Label>
-                <Input
-                  id="curso"
-                  placeholder="Nome do curso"
-                  value={filters.curso}
-                  onChange={(e) => handleFilterChange('curso', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="categoria">Categoria</Label>
-                <Input
-                  id="categoria"
-                  placeholder="Categoria do curso"
+                <Label htmlFor="categoria" className="text-sm font-medium text-gray-700">Categoria</Label>
+                <select
                   value={filters.categoria}
                   onChange={(e) => handleFilterChange('categoria', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dataInicio">Data de Início</Label>
-                <Input
-                  id="dataInicio"
-                  type="date"
-                  value={filters.dataInicio}
-                  onChange={(e) => handleFilterChange('dataInicio', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="dataConclusao">Data de Conclusão</Label>
-                <Input
-                  id="dataConclusao"
-                  type="date"
-                  value={filters.dataConclusao}
-                  onChange={(e) => handleFilterChange('dataConclusao', e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <select
-                  id="status"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="">Selecione</option>
+                  <option value="Frontend">Frontend</option>
+                  <option value="Backend">Backend</option>
+                  <option value="Mobile">Mobile</option>
+                  <option value="DevOps">DevOps</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dataInicio" className="text-sm font-medium text-gray-700">Data de Início</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="dataInicio"
+                    type="date"
+                    value={filters.dataInicio}
+                    onChange={(e) => handleFilterChange('dataInicio', e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dataConclusao" className="text-sm font-medium text-gray-700">Data de Conclusão</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="dataConclusao"
+                    type="date"
+                    value={filters.dataConclusao}
+                    onChange={(e) => handleFilterChange('dataConclusao', e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="status" className="text-sm font-medium text-gray-700">Status</Label>
+                <select
                   value={filters.status}
                   onChange={(e) => handleFilterChange('status', e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
-                  <option value="">Todos</option>
+                  <option value="">Selecione</option>
                   <option value="nao_iniciado">Não iniciado</option>
                   <option value="em_andamento">Em andamento</option>
                   <option value="concluido">Concluído</option>
                 </select>
               </div>
+            </div>
+
+            {/* Terceira linha - Progresso Mínimo */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="space-y-2">
-                <Label htmlFor="progresso">% Progresso Mínimo</Label>
+                <Label htmlFor="progressoMinimo" className="text-sm font-medium text-gray-700">% Progresso Mínimo</Label>
                 <Input
-                  id="progresso"
+                  id="progressoMinimo"
                   type="number"
-                  placeholder="0-100"
-                  min={0}
-                  max={100}
-                  value={filters.progresso}
-                  onChange={(e) => handleFilterChange('progresso', e.target.value)}
+                  min="0"
+                  max="100"
+                  value={filters.progressoMinimo}
+                  onChange={(e) => handleFilterChange('progressoMinimo', e.target.value)}
                 />
               </div>
             </div>
-            <div className="flex gap-2 mt-4">
-              <Button onClick={handleApplyFilters} className="era-lime-button">
-                <Search className="mr-2 h-4 w-4" />
+
+            {/* Botões de ação */}
+            <div className="flex gap-2">
+              <Button onClick={applyFilters} className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
+                <Search className="h-4 w-4" />
                 Aplicar Filtros
               </Button>
-              <Button onClick={clearFilters} variant="outline">
+              <Button onClick={clearFilters} variant="outline" className="flex items-center gap-2">
+                <RefreshCw className="h-4 w-4" />
                 Limpar Filtros
               </Button>
-              <Button onClick={exportData} variant="outline" disabled={filteredData.length === 0}>
-                <Download className="mr-2 h-4 w-4" />
-                Exportar ({filteredData.length})
+              <Button onClick={exportData} variant="outline" className="flex items-center gap-2">
+                <Download className="h-4 w-4" />
+                Exportar Resultados
               </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Report Results */}
-        <Card>
+        {/* Resultados da Pesquisa */}
+        <Card className="border border-gray-200">
           <CardHeader>
-            <CardTitle className="text-era-dark-blue">
-              Relatório de Usuários e Treinamentos ({filteredData.length} registros)
+            <CardTitle className="flex items-center gap-2 text-gray-900">
+              <Search className="h-5 w-5" />
+              Resultados da Pesquisa
             </CardTitle>
+            <CardDescription className="text-gray-600">
+              {filteredData.length} registros encontrados
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <RefreshCw className="h-8 w-8 animate-spin text-era-dark-blue" />
-                <span className="ml-2">Carregando dados...</span>
-              </div>
-            ) : filteredData.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                Nenhum registro encontrado com os filtros aplicados
-              </div>
-            ) : (
-              <div className="rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Usuário</TableHead>
-                      <TableHead>Email/Matrícula</TableHead>
-                      <TableHead>Curso</TableHead>
-                      <TableHead>Categoria</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Progresso</TableHead>
-                      <TableHead>Data Início</TableHead>
-                      <TableHead>Data Conclusão</TableHead>
-                      <TableHead>Tempo Assistido</TableHead>
-                      <TableHead>Certificado</TableHead>
-                      <TableHead>Nota Final</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredData.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.usuario.nome}</TableCell>
-                        <TableCell>
-                          <div>
-                            <div>{item.usuario.email}</div>
-                            {item.usuario.matricula && (
-                              <div className="text-xs text-gray-500">Mat: {item.usuario.matricula}</div>
-                            )}
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="font-medium text-gray-900">Usuário</TableHead>
+                    <TableHead className="font-medium text-gray-900">Email/Matrícula</TableHead>
+                    <TableHead className="font-medium text-gray-900">Curso</TableHead>
+                    <TableHead className="font-medium text-gray-900">Categoria</TableHead>
+                    <TableHead className="font-medium text-gray-900">Data Início</TableHead>
+                    <TableHead className="font-medium text-gray-900">Data Conclusão</TableHead>
+                    <TableHead className="font-medium text-gray-900">Status</TableHead>
+                    <TableHead className="font-medium text-gray-900">Progresso</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredData.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium text-gray-900">{item.usuario}</TableCell>
+                      <TableCell className="text-gray-700">
+                        {item.email} {item.matricula}
+                      </TableCell>
+                      <TableCell className="text-gray-700">{item.curso}</TableCell>
+                      <TableCell className="text-gray-700">{item.categoria}</TableCell>
+                      <TableCell className="text-gray-700">{item.dataInicio}</TableCell>
+                      <TableCell className="text-gray-700">{item.dataConclusao}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          item.status === 'concluido' 
+                            ? 'bg-green-100 text-green-800' 
+                            : item.status === 'em_andamento'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {item.status === 'concluido' ? 'Concluído' :
+                           item.status === 'em_andamento' ? 'Em andamento' :
+                           'Não iniciado'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-20 h-2 bg-gray-200 rounded-full">
+                            <div 
+                              className="h-2 bg-green-500 rounded-full" 
+                              style={{ width: `${item.progresso}%` }}
+                            ></div>
                           </div>
-                        </TableCell>
-                        <TableCell>{item.curso.nome}</TableCell>
-                        <TableCell>{item.curso.categoria}</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            item.progresso.status === 'concluido' 
-                              ? 'bg-green-100 text-green-800'
-                              : item.progresso.status === 'em_andamento'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {item.progresso.status === 'concluido' ? 'Concluído' :
-                             item.progresso.status === 'em_andamento' ? 'Em andamento' :
-                             'Não iniciado'}
-                          </span>
-                        </TableCell>
-                        <TableCell>{item.progresso.percentual_concluido || 0}%</TableCell>
-                        <TableCell>
-                          {item.progresso.data_inicio ? 
-                            new Date(item.progresso.data_inicio).toLocaleDateString('pt-BR') : 
-                            '-'
-                          }
-                        </TableCell>
-                        <TableCell>
-                          {item.progresso.data_conclusao ? 
-                            new Date(item.progresso.data_conclusao).toLocaleDateString('pt-BR') : 
-                            '-'
-                          }
-                        </TableCell>
-                        <TableCell>
-                          {item.progresso.tempo_total_assistido ? 
-                            `${item.progresso.tempo_total_assistido} min` : 
-                            '-'
-                          }
-                        </TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            item.certificado 
-                              ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {item.certificado ? 'Sim' : 'Não'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {item.certificado?.nota_final || item.avaliacao?.nota || '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+                          <span className="text-sm font-medium text-gray-900">{item.progresso}%</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

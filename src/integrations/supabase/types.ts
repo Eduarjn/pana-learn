@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export type Database = {
+export interface Database {
   public: {
     Tables: {
       avaliacoes: {
@@ -421,6 +421,7 @@ export type Database = {
           status: Database["public"]["Enums"]["status_type"]
           tipo_usuario: Database["public"]["Enums"]["user_type"]
           user_id: string | null
+          domain_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -434,6 +435,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["status_type"]
           tipo_usuario?: Database["public"]["Enums"]["user_type"]
           user_id?: string | null
+          domain_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -447,6 +449,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["status_type"]
           tipo_usuario?: Database["public"]["Enums"]["user_type"]
           user_id?: string | null
+          domain_id?: string | null
         }
         Relationships: []
       }
@@ -507,6 +510,87 @@ export type Database = {
           },
         ]
       }
+      domains: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+      }
+      domain_configs: {
+        Row: {
+          id: string
+          domain_id: string
+          config_key: string
+          config_value: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          domain_id: string
+          config_key: string
+          config_value?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          domain_id?: string
+          config_key?: string
+          config_value?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      domain_default_users: {
+        Row: {
+          id: string
+          domain_id: string
+          nome: string
+          email: string
+          tipo_usuario: "cliente" | "admin" | "admin_master"
+          senha_padrao: string
+          status: "ativo" | "inativo" | "pendente"
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          domain_id: string
+          nome: string
+          email: string
+          tipo_usuario?: "cliente" | "admin" | "admin_master"
+          senha_padrao: string
+          status?: "ativo" | "inativo" | "pendente"
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          domain_id?: string
+          nome?: string
+          email?: string
+          tipo_usuario?: "cliente" | "admin" | "admin_master"
+          senha_padrao?: string
+          status?: "ativo" | "inativo" | "pendente"
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -518,7 +602,7 @@ export type Database = {
       course_status: "ativo" | "inativo" | "em_breve"
       progress_status: "nao_iniciado" | "em_andamento" | "concluido"
       status_type: "ativo" | "inativo" | "pendente"
-      user_type: "cliente" | "admin"
+      user_type: "cliente" | "admin" | "admin_master"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -637,7 +721,7 @@ export const Constants = {
       course_status: ["ativo", "inativo", "em_breve"],
       progress_status: ["nao_iniciado", "em_andamento", "concluido"],
       status_type: ["ativo", "inativo", "pendente"],
-      user_type: ["cliente", "admin"],
+      user_type: ["cliente", "admin", "admin_master"],
     },
   },
 } as const

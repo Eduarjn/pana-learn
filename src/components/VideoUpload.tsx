@@ -18,28 +18,174 @@ interface VideoUploadProps {
 
 export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
   const { userProfile } = useAuth();
-  const { data: courses = [] } = useCourses();
+  const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useCourses();
   const [selectedCourseId, setSelectedCourseId] = useState('');
-  const { data: modules = [] } = useCourseModules(selectedCourseId);
+  const { data: modules = [], isLoading: modulesLoading } = useCourseModules(selectedCourseId);
   const [selectedModuleId, setSelectedModuleId] = useState('');
   const [uploading, setUploading] = useState(false);
   const [videoData, setVideoData] = useState({
     titulo: '',
     descricao: '',
-    categoria: '',
     duracao: 0,
-    url_video: '',
-    thumbnail_url: ''
   });
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
 
-  useEffect(() => {
-    if (selectedCourseId) {
-      const course = courses.find(c => c.id === selectedCourseId);
-      if (course) setVideoData(prev => ({ ...prev, categoria: course.categoria }));
+  // Debug logs
+  console.log('🔍 VideoUpload - Estado dos cursos:', {
+    coursesLoading,
+    coursesError,
+    coursesCount: courses.length,
+    courses: courses
+  });
+
+  // Função para inserir dados de teste
+  const insertTestData = async () => {
+    try {
+      console.log('🔧 Inserindo dados de teste...');
+      
+      // Verificar se o usuário está autenticado
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('👤 Usuário autenticado:', user?.email);
+      
+      if (!user) {
+        console.error('❌ Usuário não autenticado');
+        toast({
+          title: "Erro",
+          description: "Você precisa estar logado para inserir dados de teste.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Inserir categorias primeiro
+      console.log('📝 Inserindo categorias...');
+      const { data: categorias, error: catError } = await supabase
+        .from('categorias')
+        .upsert([
+          { nome: 'PABX', descricao: 'Treinamentos sobre sistemas PABX', cor: '#3B82F6' },
+          { nome: 'VoIP', descricao: 'Treinamentos sobre tecnologias VoIP', cor: '#10B981' },
+          { nome: 'Omnichannel', descricao: 'Treinamentos sobre plataformas Omnichannel', cor: '#8B5CF6' },
+          { nome: 'CALLCENTER', descricao: 'Treinamentos sobre call center', cor: '#6366F1' },
+          { nome: 'Básico', descricao: 'Treinamentos introdutórios', cor: '#F59E0B' },
+          { nome: 'Avançado', descricao: 'Treinamentos avançados', cor: '#EF4444' },
+          { nome: 'Intermediário', descricao: 'Treinamentos de nível intermediário', cor: '#6B7280' }
+        ], { onConflict: 'nome' });
+
+      if (catError) {
+        console.error('❌ Erro ao inserir categorias:', catError);
+        toast({
+          title: "Erro",
+          description: `Erro ao inserir categorias: ${catError.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('✅ Categorias inseridas:', categorias);
+
+      // Inserir cursos completos (todos os que aparecem na página de Treinamentos)
+      console.log('📝 Inserindo cursos...');
+      const { data: cursos, error: cursosError } = await supabase
+        .from('cursos')
+        .upsert([
+          {
+            nome: 'Fundamentos de PABX',
+            categoria: 'PABX',
+            descricao: 'Curso introdutório sobre sistemas PABX e suas funcionalidades básicas',
+            status: 'ativo',
+            ordem: 1
+          },
+          {
+            nome: 'Fundamentos CALLCENTER',
+            categoria: 'CALLCENTER',
+            descricao: 'Introdução aos sistemas de call center e suas funcionalidades',
+            status: 'ativo',
+            ordem: 2
+          },
+          {
+            nome: 'Configurações Avançadas PABX',
+            categoria: 'PABX',
+            descricao: 'Configurações avançadas para otimização do sistema PABX',
+            status: 'ativo',
+            ordem: 3
+          },
+          {
+            nome: 'OMNICHANNEL para Empresas',
+            categoria: 'Omnichannel',
+            descricao: 'Implementação de soluções omnichannel em ambientes empresariais',
+            status: 'ativo',
+            ordem: 4
+          },
+          {
+            nome: 'Configurações Avançadas OMNI',
+            categoria: 'Omnichannel',
+            descricao: 'Configurações avançadas para sistemas omnichannel',
+            status: 'ativo',
+            ordem: 5
+          },
+          {
+            nome: 'Configuração VoIP Avançada',
+            categoria: 'VoIP',
+            descricao: 'Configurações avançadas para sistemas VoIP corporativos',
+            status: 'ativo',
+            ordem: 6
+          },
+          {
+            nome: 'Telefonia Básica',
+            categoria: 'Básico',
+            descricao: 'Conceitos fundamentais de telefonia e comunicação',
+            status: 'ativo',
+            ordem: 7
+          },
+          {
+            nome: 'Sistemas de Comunicação',
+            categoria: 'Intermediário',
+            descricao: 'Sistemas intermediários de comunicação empresarial',
+            status: 'ativo',
+            ordem: 8
+          }
+        ], { onConflict: 'nome' });
+
+      if (cursosError) {
+        console.error('❌ Erro ao inserir cursos:', cursosError);
+        toast({
+          title: "Erro",
+          description: `Erro ao inserir cursos: ${cursosError.message}`,
+          variant: "destructive"
+        });
+        return;
+      }
+
+      console.log('✅ Cursos inseridos:', cursos);
+      
+      toast({
+        title: "Sucesso",
+        description: "Dados de teste inseridos com sucesso! Recarregando...",
+      });
+      
+      // Recarregar dados após 1 segundo
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error) {
+      console.error('❌ Erro ao inserir dados de teste:', error);
+      toast({
+        title: "Erro",
+        description: "Erro inesperado ao inserir dados de teste.",
+        variant: "destructive"
+      });
     }
-  }, [selectedCourseId, courses]);
+  };
+
+  // Reset módulo quando curso muda
+  useEffect(() => {
+    setSelectedModuleId('');
+  }, [selectedCourseId]);
+
+  // Obter categoria do curso selecionado
+  const selectedCourse = courses.find(c => c.id === selectedCourseId);
+  const courseCategory = selectedCourse?.categoria || '';
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'video' | 'thumbnail') => {
     const file = event.target.files?.[0];
@@ -71,11 +217,11 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!userProfile || userProfile.tipo_usuario !== 'admin') {
+
+    if (!videoFile) {
       toast({
         title: "Erro",
-        description: "Apenas administradores podem fazer upload de vídeos",
+        description: "Selecione um arquivo de vídeo.",
         variant: "destructive"
       });
       return;
@@ -84,27 +230,7 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
     if (!selectedCourseId) {
       toast({
         title: "Erro",
-        description: "Por favor, selecione o curso ao qual o vídeo pertence.",
-        variant: "destructive"
-      });
-      setUploading(false);
-      return;
-    }
-
-    if (!selectedModuleId) {
-      toast({
-        title: "Erro",
-        description: "Por favor, selecione o módulo ao qual o vídeo pertence.",
-        variant: "destructive"
-      });
-      setUploading(false);
-      return;
-    }
-
-    if (!videoFile) {
-      toast({
-        title: "Erro",
-        description: "Por favor, selecione um arquivo de vídeo",
+        description: "Selecione um curso.",
         variant: "destructive"
       });
       return;
@@ -133,9 +259,9 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
           duracao: videoData.duracao,
           url_video: videoUrl,
           thumbnail_url: thumbnailUrl,
-          categoria: videoData.categoria,
+          categoria: courseCategory,
           curso_id: selectedCourseId,
-          modulo_id: selectedModuleId,
+          modulo_id: selectedModuleId || null,
           storage_path: videoPath
         });
 
@@ -180,27 +306,39 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="curso">Curso</Label>
-              <Select value={selectedCourseId} onValueChange={setSelectedCourseId} required>
+              <Label htmlFor="curso">Curso *</Label>
+              <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o curso" />
+                  <SelectValue placeholder={coursesLoading ? "Carregando..." : "Selecione o curso"} />
                 </SelectTrigger>
                 <SelectContent>
                   {courses.map(course => (
-                    <SelectItem key={course.id} value={course.id}>{course.nome}</SelectItem>
+                    <SelectItem key={course.id} value={course.id}>
+                      {course.nome}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="modulo">Módulo (opcional)</Label>
-              <Select value={selectedModuleId} onValueChange={setSelectedModuleId} disabled={!selectedCourseId}>
+              <Select 
+                value={selectedModuleId} 
+                onValueChange={setSelectedModuleId} 
+                disabled={!selectedCourseId || modulesLoading}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o módulo (opcional)" />
+                  <SelectValue placeholder={
+                    !selectedCourseId ? "Selecione um curso primeiro" :
+                    modulesLoading ? "Carregando..." :
+                    "Selecione o módulo (opcional)"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
                   {modules.map(modulo => (
-                    <SelectItem key={modulo.id} value={modulo.id}>{modulo.nome_modulo}</SelectItem>
+                    <SelectItem key={modulo.id} value={modulo.id}>
+                      {modulo.nome_modulo}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -208,12 +346,12 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="titulo">Título do Vídeo</Label>
+            <Label htmlFor="titulo">Título do Vídeo *</Label>
             <Input
               id="titulo"
-              placeholder="Digite o título do vídeo"
               value={videoData.titulo}
               onChange={(e) => setVideoData(prev => ({ ...prev, titulo: e.target.value }))}
+              placeholder="Digite o título do vídeo"
               required
             />
           </div>
@@ -222,46 +360,29 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
             <Label htmlFor="descricao">Descrição</Label>
             <Textarea
               id="descricao"
-              placeholder="Descreva o conteúdo do vídeo"
               value={videoData.descricao}
               onChange={(e) => setVideoData(prev => ({ ...prev, descricao: e.target.value }))}
+              placeholder="Descreva o conteúdo do vídeo"
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="duracao">Duração (em minutos)</Label>
+            <Label htmlFor="duracao">Duração (em minutos) *</Label>
             <Input
               id="duracao"
               type="number"
-              placeholder="Ex: 15"
-              value={videoData.duracao || ''}
+              min="1"
+              value={videoData.duracao}
               onChange={(e) => setVideoData(prev => ({ ...prev, duracao: parseInt(e.target.value) || 0 }))}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="categoria">Categoria</Label>
-            <Select
-              id="categoria"
-              value={videoData.categoria}
-              onValueChange={value => setVideoData(prev => ({ ...prev, categoria: value }))}
+              placeholder="Ex: 15"
               required
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PABX">PABX</SelectItem>
-                <SelectItem value="VoIP">VoIP</SelectItem>
-                <SelectItem value="Omnichannel">Omnichannel</SelectItem>
-              </SelectContent>
-            </Select>
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="video">Arquivo de Vídeo</Label>
+              <Label htmlFor="video">Arquivo de Vídeo *</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="video"
@@ -294,7 +415,7 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
           <div className="flex gap-2 pt-4">
             <Button
               type="submit"
-              disabled={uploading}
+              disabled={uploading || !selectedCourseId || !videoData.titulo || !videoData.duracao || !videoFile}
               className="era-lime-button flex-1"
             >
               {uploading ? (

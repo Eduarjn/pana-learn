@@ -6,15 +6,19 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Module } from '@/hooks/useCourses';
 import type { Database } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle, Play, Clock } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Play, Clock, PlusCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { VideoPlayerWithProgress } from '@/components/VideoPlayerWithProgress';
 import { VideoChecklist } from '@/components/VideoChecklist';
+import { QuizModal } from '@/components/QuizModal';
+import { CourseCompletionModal } from '@/components/CourseCompletionModal';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import CommentsSection from '@/components/CommentsSection';
+import { useQuiz } from '@/hooks/useQuiz';
 
 // Adicionar tipo auxiliar para vídeo com modulo_id e categoria
 type VideoWithModulo = Database['public']['Tables']['videos']['Row'] & {
@@ -97,9 +101,20 @@ const CursoDetalhe = () => {
   const [showClientView, setShowClientView] = React.useState<string | null>(null);
   const [attachments, setAttachments] = React.useState<Record<string, unknown[]>>({}); // para anexos futuros
   const [progressAvg, setProgressAvg] = React.useState<Record<string, number>>({});
+  const [showQuizModal, setShowQuizModal] = React.useState(false);
+  const [showCompletionModal, setShowCompletionModal] = React.useState(false);
+  const [quizNota, setQuizNota] = React.useState(0);
   const { data: allCourses = [] } = useCourses();
   const currentCourse = allCourses.find(c => c.id === id);
   const currentCategory = currentCourse?.categoria;
+  
+  // Hook para gerenciar quiz e certificado
+  const { 
+    quizConfig, 
+    isCourseCompleted, 
+    certificate, 
+    generateCertificate 
+  } = useQuiz(userId, currentCategory);
 
   React.useEffect(() => {
     if (!id || !userId) return;
@@ -155,37 +170,78 @@ const CursoDetalhe = () => {
   // Dentro do map dos módulos, filtrar vídeos pela categoria do curso
   const filteredVideos = videos.filter(v => v.categoria === currentCategory);
 
+  // Verificar se deve mostrar o quiz quando o curso for concluído
+  React.useEffect(() => {
+    if (isCourseCompleted && !certificate && quizConfig) {
+      setShowQuizModal(true);
+    }
+  }, [isCourseCompleted, certificate, quizConfig]);
+
+  const handleQuizSuccess = async (nota: number) => {
+    setQuizNota(nota);
+    setShowQuizModal(false);
+    
+    try {
+      // Gerar certificado
+      await generateCertificate(nota);
+      setShowCompletionModal(true);
+    } catch (error) {
+      console.error('Erro ao gerar certificado:', error);
+    }
+  };
+
+  const handleQuizFail = () => {
+    setShowQuizModal(false);
+  };
+
+  const handleViewCertificate = () => {
+    if (certificate) {
+      window.open(`/certificado/${certificate.id}`, '_blank');
+    }
+  };
+
   // Renderização para CLIENTE
   if (!isAdmin) {
 
     return (
-      <div className="p-4 md:p-8">
+      <div className="p-4 md:p-8 bg-era-light-gray-2 min-h-screen">
         <div className="mb-4 flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate('/treinamentos')}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
           </Button>
         </div>
-        
-        <header className="mb-8 p-4 rounded-xl border-l-8 border-era-lime bg-era-lime/10 shadow flex flex-col gap-2">
-          <h1 className="text-3xl font-extrabold text-era-dark-blue tracking-tight" tabIndex={0} aria-label="Título do curso">
-            {currentCourse?.nome || 'Detalhes do Curso'}
-          </h1>
-          {currentCourse?.descricao && (
-            <p className="text-era-gray text-lg leading-relaxed max-w-2xl">{currentCourse.descricao}</p>
-          )}
-        </header>
+        {/* Header do Curso */}
+        <div className="mb-8 p-6 rounded-2xl shadow-lg border-l-8 border-era-lime bg-white flex flex-col gap-2">
+          <div className="flex items-center gap-4">
+            <div className="bg-era-lime rounded-lg p-2">
+              <Play className="w-8 h-8 text-era-dark-blue" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-extrabold text-era-dark-blue">{currentCourse?.nome || 'Detalhes do Curso'}</h1>
+              {currentCourse?.descricao && (
+                <p className="text-era-gray text-lg">{currentCourse.descricao}</p>
+              )}
+              <div className="flex gap-3 mt-2">
+                {currentCourse?.categoria && <Badge className="bg-era-lime text-black">{currentCourse.categoria}</Badge>}
+              </div>
+            </div>
+          </div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Área principal com player de vídeo */}
-          <div className="lg:col-span-2">
+          {/* Player e Comentários */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
             {selectedVideo ? (
-              <VideoPlayerWithProgress
-                video={selectedVideo}
-                cursoId={id || ''}
-                moduloId={selectedModule?.id}
-                userId={userId}
-                className="mb-6"
-              />
+              <div className="bg-white rounded-2xl shadow-lg p-6 mb-2">
+                <h2 className="text-xl font-bold mb-2">{selectedVideo.titulo}</h2>
+                <VideoPlayerWithProgress
+                  video={selectedVideo}
+                  cursoId={id || ''}
+                  moduloId={selectedModule?.id}
+                  userId={userId}
+                  className="mb-4"
+                />
+              </div>
             ) : (
               <Card className="mb-6">
                 <CardContent className="p-8 text-center">
@@ -199,20 +255,25 @@ const CursoDetalhe = () => {
                 </CardContent>
               </Card>
             )}
+            <div className="bg-white rounded-2xl shadow p-6">
+              {selectedVideo && userProfile && (
+                <CommentsSection videoId={selectedVideo.id} currentUser={{...userProfile, role: userProfile.tipo_usuario}} />
+              )}
+            </div>
           </div>
 
-          {/* Sidebar com módulos e vídeos */}
+          {/* Sidebar de módulos */}
           <div className="space-y-6">
             {modules.map((modulo) => {
               const videosDoModulo = videos.filter(v => String(v.modulo_id).trim() === String(modulo.id).trim());
               const progresso = progress[modulo.id];
               const status = progresso?.status === 'concluido' ? 'Concluído' : (progresso?.status === 'em_andamento' ? 'Em andamento' : 'Não iniciado');
               const percentual = progresso?.percentual_concluido ?? 0;
-              
               return (
-                <Card key={modulo.id} className="border border-era-lime/30">
+                <Card key={modulo.id} className={`border-2 ${selectedModule?.id === modulo.id ? 'border-era-lime' : 'border-era-lime/30'} rounded-xl shadow-sm transition-all`}>
                   <CardHeader>
-                    <CardTitle className="text-lg font-bold text-era-dark-blue">
+                    <CardTitle className="text-lg font-bold text-era-dark-blue flex items-center gap-2">
+                      <Play className="w-5 h-5 text-era-lime" />
                       {modulo.nome_modulo}
                     </CardTitle>
                     <div className="flex items-center gap-2">
@@ -226,16 +287,13 @@ const CursoDetalhe = () => {
                     </div>
                     <Progress value={percentual} className="h-2" />
                   </CardHeader>
-                  
                   <CardContent>
                     {videosDoModulo.length > 0 ? (
                       <div className="space-y-2">
                         {videosDoModulo.map(video => (
                           <div
                             key={video.id}
-                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-gray-50 ${
-                              selectedVideo?.id === video.id ? 'border-era-lime bg-era-lime/10' : 'border-gray-200'
-                            }`}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-era-lime/10 ${selectedVideo?.id === video.id ? 'border-era-lime bg-era-lime/10' : 'border-gray-200 bg-white'}`}
                             onClick={() => {
                               setSelectedVideo(video);
                               setSelectedModule(modulo);
@@ -246,7 +304,7 @@ const CursoDetalhe = () => {
                                 {progresso?.status === 'concluido' ? (
                                   <CheckCircle className="w-5 h-5 text-green-500" />
                                 ) : (
-                                  <Play className="w-5 h-5 text-gray-400" />
+                                  <Play className="w-5 h-5 text-era-lime" />
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
@@ -282,53 +340,76 @@ const CursoDetalhe = () => {
   // Renderização para ADMINISTRADOR
   if (isAdmin) {
     return (
-      <div className="p-4 md:p-8">
+      <div className="p-4 md:p-8 bg-era-light-gray-2 min-h-screen">
         <div className="mb-4 flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => navigate('/treinamentos')}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
           </Button>
         </div>
-        <h1 className="text-2xl font-bold mb-4">Detalhes do Curso (Admin)</h1>
-        <p className="mb-6">ID do curso: <span className="font-mono bg-gray-100 px-2 py-1 rounded">{id}</span></p>
-        
+        {/* Header do Curso */}
+        <div className="mb-8 p-6 rounded-2xl shadow-lg border-l-8 border-era-lime bg-white flex flex-col gap-2">
+          <div className="flex items-center gap-4">
+            <div className="bg-era-lime rounded-lg p-2">
+              <Play className="w-8 h-8 text-era-dark-blue" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-extrabold text-era-dark-blue">{currentCourse?.nome || 'Detalhes do Curso'}</h1>
+              {currentCourse?.descricao && (
+                <p className="text-era-gray text-lg">{currentCourse.descricao}</p>
+              )}
+              <div className="flex gap-3 mt-2">
+                {currentCourse?.categoria && <Badge className="bg-era-lime text-black">{currentCourse.categoria}</Badge>}
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Área principal com player de vídeo */}
-          <div className="lg:col-span-2">
+          {/* Player e Comentários */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
             {selectedVideo ? (
-              <VideoPlayerWithProgress
-                video={selectedVideo}
-                cursoId={id || ''}
-                moduloId={selectedModule?.id}
-                userId={userId}
-                className="mb-6"
-              />
+              <div className="bg-white rounded-2xl shadow-lg p-6 mb-2">
+                <h2 className="text-xl font-bold mb-2">{selectedVideo.titulo}</h2>
+                <VideoPlayerWithProgress
+                  video={selectedVideo}
+                  cursoId={id || ''}
+                  moduloId={selectedModule?.id}
+                  userId={userId}
+                  className="mb-4"
+                />
+              </div>
             ) : (
               <Card className="mb-6">
                 <CardContent className="p-8 text-center">
                   <Play className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                   <h3 className="text-lg font-semibold text-gray-600 mb-2">
-                    Selecione um vídeo para visualizar
+                    Selecione um vídeo para começar
                   </h3>
                   <p className="text-gray-500">
-                    Escolha um vídeo da lista ao lado para visualizar
+                    Escolha um vídeo da lista ao lado para iniciar seu aprendizado
                   </p>
                 </CardContent>
               </Card>
             )}
+            <div className="bg-white rounded-2xl shadow p-6">
+              {selectedVideo && userProfile && (
+                <CommentsSection videoId={selectedVideo.id} currentUser={{...userProfile, role: userProfile.tipo_usuario}} />
+              )}
+            </div>
           </div>
 
-          {/* Sidebar com módulos e vídeos */}
+          {/* Sidebar de módulos */}
           <div className="space-y-6">
             {modules.map((modulo) => {
               const videosDoModulo = videos.filter(v => String(v.modulo_id).trim() === String(modulo.id).trim());
               const progresso = progress[modulo.id];
               const status = progresso?.status === 'concluido' ? 'Concluído' : (progresso?.status === 'em_andamento' ? 'Em andamento' : 'Não iniciado');
               const percentual = progresso?.percentual_concluido ?? 0;
-              
               return (
-                <Card key={modulo.id} className="border border-era-lime/30">
+                <Card key={modulo.id} className={`border-2 ${selectedModule?.id === modulo.id ? 'border-era-lime' : 'border-era-lime/30'} rounded-xl shadow-sm transition-all`}>
                   <CardHeader>
-                    <CardTitle className="text-lg font-bold text-era-dark-blue">
+                    <CardTitle className="text-lg font-bold text-era-dark-blue flex items-center gap-2">
+                      <Play className="w-5 h-5 text-era-lime" />
                       {modulo.nome_modulo}
                     </CardTitle>
                     <div className="flex items-center gap-2">
@@ -342,16 +423,13 @@ const CursoDetalhe = () => {
                     </div>
                     <Progress value={percentual} className="h-2" />
                   </CardHeader>
-                  
                   <CardContent>
                     {videosDoModulo.length > 0 ? (
                       <div className="space-y-2">
                         {videosDoModulo.map(video => (
                           <div
                             key={video.id}
-                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-gray-50 ${
-                              selectedVideo?.id === video.id ? 'border-era-lime bg-era-lime/10' : 'border-gray-200'
-                            }`}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-era-lime/10 ${selectedVideo?.id === video.id ? 'border-era-lime bg-era-lime/10' : 'border-gray-200 bg-white'}`}
                             onClick={() => {
                               setSelectedVideo(video);
                               setSelectedModule(modulo);
@@ -359,7 +437,11 @@ const CursoDetalhe = () => {
                           >
                             <div className="flex items-center gap-3">
                               <div className="flex-shrink-0">
-                                <Play className="w-5 h-5 text-gray-400" />
+                                {progresso?.status === 'concluido' ? (
+                                  <CheckCircle className="w-5 h-5 text-green-500" />
+                                ) : (
+                                  <Play className="w-5 h-5 text-era-lime" />
+                                )}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-medium text-gray-900 truncate">
@@ -387,6 +469,25 @@ const CursoDetalhe = () => {
             })}
           </div>
         </div>
+
+        {/* Modais de Quiz e Conclusão */}
+        <QuizModal
+          isOpen={showQuizModal}
+          onClose={() => setShowQuizModal(false)}
+          onSuccess={handleQuizSuccess}
+          onFail={handleQuizFail}
+          quizConfig={quizConfig}
+          categoriaNome={currentCategory || ''}
+        />
+
+        <CourseCompletionModal
+          isOpen={showCompletionModal}
+          onClose={() => setShowCompletionModal(false)}
+          onViewCertificate={handleViewCertificate}
+          categoriaNome={currentCategory || ''}
+          nota={quizNota}
+          certificadoUrl={certificate?.certificado_url}
+        />
       </div>
     );
   }

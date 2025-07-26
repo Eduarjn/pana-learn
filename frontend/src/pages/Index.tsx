@@ -3,10 +3,17 @@ import { ERALayout } from '@/components/ERALayout';
 import { AuthForm } from '@/components/AuthForm';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUserBadges } from '@/hooks/useUserBadges';
+import { useCourses } from '@/hooks/useCourses';
+import { useUserProgress } from '@/hooks/useUserProgress';
+import { Badge as BadgeUI } from '@/components/ui/badge';
 
 const Index = () => {
   const { user, loading, userProfile } = useAuth();
   const navigate = useNavigate();
+  const { badges, loading: loadingBadges } = useUserBadges(userProfile?.id, userProfile?.empresa_id, userProfile?.tipo_usuario);
+  const { data: courses, loading: loadingCourses } = useCourses(userProfile?.empresa_id, userProfile?.tipo_usuario);
+  const { data: progress, loading: loadingProgress } = useUserProgress(userProfile?.empresa_id, userProfile?.tipo_usuario);
 
   useEffect(() => {
     console.log('📍 Index - Estado atual:', { 
@@ -47,8 +54,8 @@ const Index = () => {
     <ERALayout>
       <div className="space-y-6">
         <div className="text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-era-lime rounded-lg flex items-center justify-center">
+          <div className="page-hero flex flex-col items-center justify-center gap-3 mb-4 py-8">
+            <div className="w-12 h-12 bg-accent rounded-lg flex items-center justify-center">
               <img 
                 src="/lovable-uploads/92441561-a944-48ee-930e-7e3b16318673.png" 
                 alt="Platform Symbol" 
@@ -56,48 +63,67 @@ const Index = () => {
               />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-high-contrast">
+              <h1 className="text-3xl font-bold text-primary">
                 Bem-vindo ao ERA Learn
               </h1>
-              <p className="text-medium-contrast text-lg">
+              <p className="text-contrast text-lg">
                 Sua plataforma de treinamento corporativo
               </p>
             </div>
           </div>
-          <p className="text-sm text-era-gray mt-2">
+          <p className="text-sm text-contrast mt-2">
             Olá, {userProfile.nome}! Você está logado como {userProfile.tipo_usuario}.
           </p>
+          {/* Badges conquistados */}
+          <div className="flex flex-wrap justify-center gap-2 mt-4">
+            {loadingBadges ? (
+              <span className="text-contrast text-sm">Carregando conquistas...</span>
+            ) : badges.length === 0 ? (
+              <span className="text-contrast text-sm">Nenhuma conquista ainda.</span>
+            ) : (
+              badges.map((userBadge) => (
+                <div key={userBadge.id} title={userBadge.badge.descricao} className="flex items-center gap-1">
+                  {userBadge.badge.icone_url && (
+                    <img src={userBadge.badge.icone_url} alt={userBadge.badge.nome} className="w-6 h-6 rounded-full border border-neutral bg-surface" />
+                  )}
+                  <BadgeUI className="bg-accent text-primary font-semibold px-3 py-1" >
+                    {userBadge.badge.nome}
+                  </BadgeUI>
+                </div>
+              ))
+            )}
+          </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-card-improved p-6 rounded-lg">
-            <h3 className="card-title mb-2">
+          <div className="bg-surface p-6 rounded-lg">
+            <h3 className="card-title mb-2 text-primary">
               Treinamentos Disponíveis
             </h3>
-            <p className="card-description mb-4">
+            <p className="card-description mb-4 text-contrast">
               Acesse os vídeos de treinamento organizados por categoria
             </p>
-            <div className="text-2xl font-bold text-blue-600">15</div>
+            <div className="text-2xl font-bold text-accent">15</div>
           </div>
           
-          <div className="bg-card-improved p-6 rounded-lg">
-            <h3 className="card-title mb-2">
+          <div className="bg-surface p-6 rounded-lg">
+            <h3 className="card-title mb-2 text-primary">
               Progresso Geral
             </h3>
-            <p className="card-description mb-4">
+            <p className="card-description mb-4 text-contrast">
               Seu progresso nos treinamentos
             </p>
-            <div className="text-2xl font-bold text-green-600">78%</div>
+            <div className="text-2xl font-bold text-accent">78%</div>
           </div>
           
-          <div className="bg-card-improved p-6 rounded-lg">
-            <h3 className="card-title mb-2">
+          <div className="bg-surface p-6 rounded-lg">
+            <h3 className="card-title mb-2 text-primary">
               Certificados
             </h3>
-            <p className="card-description mb-4">
+            <p className="card-description mb-4 text-contrast">
               Certificados conquistados
             </p>
-            <div className="text-2xl font-bold text-purple-600">3</div>
+            <div className="text-2xl font-bold text-accent">3</div>
           </div>
         </div>
       </div>

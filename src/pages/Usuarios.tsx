@@ -5,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Search, Plus, Users, UserPlus, Edit } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import UsersFilters from '@/components/UsersFilters';
 
 interface UserListItem {
   id: string;
@@ -21,6 +22,7 @@ interface UserListItem {
   status: string;
   data_criacao: string;
   data_atualizacao: string;
+  login?: string;
 }
 
 const Usuarios = () => {
@@ -40,26 +42,32 @@ const Usuarios = () => {
   const [users, setUsers] = useState<UserListItem[]>([]);
   const { toast } = useToast();
   const [showEmailValidationMsg, setShowEmailValidationMsg] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-    // Atualiza a cada 1 hora
-    const interval = setInterval(fetchUsers, 3600000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchUsers = async () => {
-    const { data, error } = await supabase.from('usuarios').select('*').order('data_criacao', { ascending: false });
-    if (!error && data) {
-      setUsers(data as UserListItem[]);
-    }
+  // Fetch users from API with filters
+  const fetchUsers = async (search = searchTerm, role = selectedRole, status = selectedStatus) => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (role) params.append('role', role);
+    if (status) params.append('status', status);
+    const res = await fetch(`/api/users?${params.toString()}`);
+    const data = await res.json();
+    setUsers(data);
+    setLoading(false);
   };
 
-  // Exibir todos os usuários (clientes e administradores) para o admin
-  const filteredUsers = users.filter(user =>
-    user.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Debounced search
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchUsers();
+    }, 300);
+    return () => debounceRef.current && clearTimeout(debounceRef.current);
+  }, [searchTerm, selectedRole, selectedStatus]);
 
   const handleNewUserSubmit = async () => {
     if (!newUser.nome || !newUser.email) {
@@ -132,35 +140,18 @@ const Usuarios = () => {
           <p className="text-era-gray">Gerencie usuários e permissões do sistema</p>
         </div>
 
-        {/* Search and Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between text-era-dark-blue">
-              <span className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Lista de Usuários
-              </span>
-              <Button 
-                className="era-lime-button"
-                onClick={() => setShowNewUserForm(!showNewUserForm)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Novo Usuário
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Search className="h-4 w-4 text-era-gray" />
-              <Input
-                placeholder="Buscar por nome, login ou email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Search and Filters - Fixo no topo */}
+        <div className="sticky top-0 z-10 bg-era-light-gray-2 pb-2">
+          <UsersFilters
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            selectedRole={selectedRole}
+            setSelectedRole={setSelectedRole}
+            selectedStatus={selectedStatus}
+            setSelectedStatus={setSelectedStatus}
+            onNewUserClick={() => setShowNewUserForm(!showNewUserForm)}
+          />
+        </div>
 
         {/* New User Form */}
         {showNewUserForm && (
@@ -315,10 +306,10 @@ const Usuarios = () => {
         {/* Users Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-era-dark-blue">Usuários Cadastrados ({filteredUsers.length})</CardTitle>
+            <CardTitle className="text-era-dark-blue">Usuários Cadastrados ({users.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -333,44 +324,75 @@ const Usuarios = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.nome}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          user.tipo_usuario === 'admin'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {user.tipo_usuario === 'admin' ? 'Administrador' : 'Cliente'}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          user.status === 'ativo'
-                            ? 'bg-green-100 text-green-800'
-                            : user.status === 'inativo'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}>
-                          {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                        </span>
-                      </TableCell>
-                      <TableCell>{user.data_criacao ? new Date(user.data_criacao).toLocaleDateString() : '-'}</TableCell>
-                      <TableCell>{user.data_atualizacao ? new Date(user.data_atualizacao).toLocaleDateString() : '-'}</TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleEditUser(user as UserListItem)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <span className="text-era-gray">Carregando...</span>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <span className="text-era-gray">Nenhum usuário encontrado.</span>
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    users.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.nome}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.login || user.email}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            user.tipo_usuario === 'admin'
+                              ? 'bg-blue-100 text-blue-800'
+                              : user.tipo_usuario === 'admin_master'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-green-100 text-green-800'
+                          }`}>
+                            {user.tipo_usuario === 'admin' ? 'Administrador' : user.tipo_usuario === 'admin_master' ? 'Admin Master' : 'Cliente'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            user.status === 'ativo'
+                              ? 'bg-green-100 text-green-800'
+                              : user.status === 'inativo'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                          </span>
+                        </TableCell>
+                        <TableCell>{user.data_criacao ? new Date(user.data_criacao).toLocaleDateString() : '-'}</TableCell>
+                        <TableCell>{user.data_atualizacao ? new Date(user.data_atualizacao).toLocaleDateString() : '-'}</TableCell>
+                        <TableCell className="flex gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleEditUser(user as UserListItem)}
+                            title="Editar"
+                          >
+                            ✏️
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-700"
+                            title="Excluir"
+                            onClick={async () => {
+                              if (window.confirm('Tem certeza que deseja excluir este usuário?')) {
+                                await fetch(`/api/users/${user.id}`, { method: 'DELETE' });
+                                fetchUsers();
+                              }
+                            }}
+                          >
+                            🗑️
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>

@@ -26,33 +26,26 @@ export interface Module {
   link_video: string | null;
 }
 
-export const useCourses = () => {
+export const useCourses = (empresaId?: string, tipoUsuario?: string) => {
   return useQuery({
-    queryKey: ['courses'],
+    queryKey: ['courses', empresaId, tipoUsuario],
     queryFn: async () => {
       console.log('🔍 Buscando cursos...');
-      
       try {
-        const { data, error } = await supabase
+        // Consulta filtrando por empresa_id, exceto admin_master
+        let query = supabase
           .from('cursos')
-          .select(`
-            *,
-            categorias (
-              nome,
-              cor
-            )
-          `)
+          .select(`*, categorias (nome, cor)`) 
           .eq('status', 'ativo')
           .order('ordem', { ascending: true });
-
+        if (empresaId && tipoUsuario !== 'admin_master') {
+          query = query.eq('empresa_id', empresaId);
+        }
+        const { data, error } = await query;
         if (error) {
           console.error('❌ Erro ao buscar cursos:', error);
           throw error;
         }
-
-        console.log('✅ Cursos encontrados:', data?.length || 0);
-        console.log('📋 Dados dos cursos:', data);
-        
         return (data || []) as Course[];
       } catch (error) {
         console.error('❌ Erro inesperado ao buscar cursos:', error);

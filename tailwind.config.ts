@@ -62,15 +62,15 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				'era-lime': 'hsl(var(--era-lime))',
-				'era-dark-blue': 'hsl(var(--era-dark-blue))',
-				'era-gray': 'hsl(var(--era-gray))',
-				'era-light-gray': 'hsl(var(--era-light-gray))',
-				'era-blue': 'hsl(var(--era-blue))',
-				'era-light-gray-2': 'hsl(var(--era-light-gray-2))',
-				'era-yellow': 'hsl(var(--era-yellow))',
-				'era-dark-green': 'hsl(var(--era-dark-green))',
-				'era-purple': 'hsl(var(--era-purple))'
+				'era-lime': '#CCFF00',
+				'era-dark-blue': '#181C1B',
+				'era-gray': '#232323',
+				'era-light-gray': '#F4F4F4',
+				'era-blue': '#232323',
+				'era-light-gray-2': '#E5E5E5',
+				'era-yellow': '#CCFF00',
+				'era-dark-green': '#181C1B',
+				'era-purple': '#232323'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

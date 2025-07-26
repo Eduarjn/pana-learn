@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { CheckCircle, Play, Pause } from 'lucide-react';
+import { CheckCircle, Play, Pause, Maximize2 } from 'lucide-react';
 import { useVideoProgress } from '@/hooks/useVideoProgress';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -123,6 +123,11 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
         variant: "default"
       });
 
+      // Verificar se é o último vídeo da categoria
+      if (onProgressChange) {
+        onProgressChange(100); // Notificar que o vídeo foi concluído
+      }
+
       // Esconder badge após 3 segundos
       setTimeout(() => setShowCompletionBadge(false), 3000);
     } catch (error) {
@@ -140,6 +145,16 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
       videoElement.play();
     }
     setIsPlaying(!isPlaying);
+  };
+
+  const handleFullscreen = () => {
+    if (videoRef.current) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        videoRef.current.requestFullscreen();
+      }
+    }
   };
 
   const formatTime = (seconds: number) => {
@@ -183,7 +198,15 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
           onPlay={() => setIsPlaying(true)}
           onPause={() => setIsPlaying(false)}
         />
-        
+        {/* Botão fullscreen */}
+        <button
+          onClick={handleFullscreen}
+          className="absolute bottom-4 right-4 bg-black/60 text-white rounded-full p-2 hover:bg-black/80 transition z-10"
+          title="Tela cheia"
+          type="button"
+        >
+          <Maximize2 className="w-5 h-5" />
+        </button>
         {/* Controles customizados */}
         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
           <div className="flex items-center gap-4">

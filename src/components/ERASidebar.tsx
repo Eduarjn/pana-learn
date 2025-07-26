@@ -11,21 +11,92 @@ import {
   FileText, 
   PieChart, 
   UserCheck, 
-  Cog 
+  Cog,
+  ChevronDown,
+  Globe
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { useNavigate, useLocation } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
 
 const menuItems = [
-  { title: "Dashboard", icon: Home, path: "/dashboard", roles: ["admin", "cliente"] },
-  { title: "Treinamentos", icon: BookOpen, path: "/treinamentos", roles: ["admin", "cliente"] },
-  { title: "Certificados", icon: Award, path: "/certificados", roles: ["admin", "cliente"] },
-  { title: "Relatórios", icon: PieChart, path: "/relatorios", roles: ["admin"] },
-  { title: "Usuários", icon: UserCheck, path: "/usuarios", roles: ["admin"] },
-  { title: "Configurações", icon: Cog, path: "/configuracoes", roles: ["admin", "cliente"] },
+  { title: "Dashboard", icon: Home, path: "/dashboard", roles: ["admin", "cliente", "admin_master"] },
+  { title: "Treinamentos", icon: BookOpen, path: "/treinamentos", roles: ["admin", "cliente", "admin_master"] },
+  { title: "Relatórios", icon: PieChart, path: "/relatorios", roles: ["admin", "admin_master"] },
+  { title: "Usuários", icon: UserCheck, path: "/usuarios", roles: ["admin", "admin_master"] },
+  { title: "Domínios", icon: Globe, path: "/dominios", roles: ["admin_master"] },
+  { title: "Configurações", icon: Cog, path: "/configuracoes", roles: ["admin", "cliente", "admin_master"] },
 ];
+
+function SidebarItem({ icon: Icon, label, submenu, userType }: { 
+  icon: React.ComponentType<{ className?: string }>, 
+  label: string, 
+  submenu: { label: string, path: string, roles?: string[] }[],
+  userType?: string 
+}) {
+  const location = useLocation();
+  
+  const visibleSubmenu = submenu.filter(item => 
+    !item.roles || item.roles.includes(userType || '')
+  );
+
+  const isAnySubmenuActive = visibleSubmenu.some(item => 
+    location.pathname === item.path || 
+    location.pathname.startsWith(item.path + '/') ||
+    (item.path === '/configuracoes/preferencias' && location.pathname === '/configuracoes')
+  );
+
+  const [open, setOpen] = useState(isAnySubmenuActive);
+
+  return (
+    <div>
+      <button
+        className={`w-full flex items-center justify-between text-left text-sm p-3 rounded-lg transition-all duration-200 ${
+          isAnySubmenuActive 
+            ? 'text-green-500 bg-white/10' 
+            : 'text-white hover:bg-white/10'
+        }`}
+        onClick={() => setOpen((v) => !v)}
+        type="button"
+        style={{ background: 'none' }}
+      >
+        <span className="flex items-center gap-3">
+          <Icon className={`h-5 w-5 flex-shrink-0 ${
+            isAnySubmenuActive ? 'text-green-500' : 'text-white'
+          }`} />
+          <span className={`${
+            isAnySubmenuActive ? 'text-green-500' : 'text-white'
+          }`}>{label}</span>
+        </span>
+        <ChevronDown className={`transition-transform duration-200 ${open ? 'rotate-180' : ''} h-4 w-4 ${
+          isAnySubmenuActive ? 'text-green-500' : 'text-white'
+        }`} />
+      </button>
+      {open && (
+        <div className="pl-8 mt-1 space-y-1">
+          {visibleSubmenu.map((item) => {
+            const isSpecialActive = item.path === '/configuracoes/preferencias' && location.pathname === '/configuracoes';
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) => `w-full block text-left text-sm p-2 rounded-md transition-all duration-200 ${
+                  (isActive || isSpecialActive)
+                    ? 'text-green-500 font-medium bg-white/10' 
+                    : 'text-white/80 hover:text-green-500 hover:bg-white/10'
+                }`}
+              >
+                {item.label}
+              </NavLink>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function ERASidebar() {
   const navigate = useNavigate();
@@ -41,55 +112,57 @@ export function ERASidebar() {
   );
 
   return (
-    <div className="flex flex-col h-full era-gradient text-white">
-      {/* Logo */}
-      <div className="p-4 md:p-6 border-b border-white/20">
-        <div className="flex items-center space-x-2 md:space-x-3">
-          <div className="w-6 h-6 md:w-8 md:h-8 bg-era-lime rounded-lg flex items-center justify-center">
-            <img 
-              src="/lovable-uploads/92441561-a944-48ee-930e-7e3b16318673.png" 
-              alt="Platform Symbol" 
-              className="w-3 h-3 md:w-5 md:h-5 filter invert"
-            />
+    <div className="flex flex-col h-full bg-gray-900 text-white">
+      {/* Logo ERA Learn */}
+      <div className="p-6 border-b border-gray-700">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+            <GraduationCap className="w-5 h-5 text-white" />
           </div>
-          <div className="hidden sm:block">
-            <h2 className="text-sm md:text-lg font-bold text-white" style={{textShadow: '0 1px 4px rgba(0,0,0,0.5)'}}>PANA LEARN</h2>
-            <p className="text-xs sidebar-text-muted">Smart Training</p>
+          <div>
+            <h2 className="text-lg font-bold text-white">ERA Learn</h2>
+            <p className="text-xs text-gray-400">Smart Training</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-2 md:p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
         <ul className="flex flex-col gap-2">
           {visibleMenuItems.map((item) => {
+            if (item.title === "Configurações") {
+              return (
+                <SidebarItem
+                  key={item.path}
+                  icon={item.icon}
+                  label={item.title}
+                  userType={userProfile?.tipo_usuario}
+                  submenu={[
+                    { label: 'Preferências', path: '/configuracoes/preferencias' },
+                    { label: 'Conta', path: '/configuracoes/conta' },
+                    { label: 'White-Label', path: '/configuracoes/whitelabel', roles: ['admin'] },
+                    { label: 'Certificado', path: '/configuracoes/certificado', roles: ['admin'] },
+                    { label: 'Quiz de Conclusão', path: '/configuracoes/quiz', roles: ['admin'] },
+                    { label: 'Integrações & API', path: '/configuracoes/integracoes', roles: ['admin'] },
+                    { label: 'Segurança', path: '/configuracoes/seguranca', roles: ['admin'] },
+                  ]}
+                />
+              );
+            }
             const isActive = location.pathname === item.path;
-            const isDisabled = false;
             return (
               <li key={item.path} className="relative">
                 <Button
                   variant="ghost"
-                  className={`w-full justify-start text-left text-xs md:text-sm p-2 md:p-3 rounded-xl transition-all duration-300 nav-link
+                  className={`w-full justify-start text-left text-sm p-3 rounded-lg transition-all duration-200
                     ${isActive
-                      ? "bg-white/90 text-era-dark-blue font-bold shadow-lg border-2 border-era-lime scale-[1.04] z-10"
-                      : isDisabled
-                        ? "text-white opacity-80 cursor-not-allowed"
-                        : "text-white hover:bg-white/10"}
+                      ? "bg-green-500 text-white font-semibold"
+                      : "text-white hover:bg-white/10"}
                   `}
-                  style={{
-                    textShadow: !isActive ? '0 1px 4px rgba(0,0,0,0.9)' : undefined,
-                    opacity: isDisabled ? 0.7 : 1,
-                    pointerEvents: isDisabled ? 'none' : undefined,
-                    boxShadow: isActive ? '0 4px 24px 0 rgba(0,0,0,0.10), 0 1.5px 8px 0 rgba(0,0,0,0.10)' : undefined,
-                  }}
-                  onClick={() => !isDisabled && navigate(item.path)}
-                  aria-disabled={isDisabled}
+                  onClick={() => navigate(item.path)}
                 >
-                  <item.icon className={`mr-2 md:mr-3 h-4 w-4 md:h-5 md:w-5 flex-shrink-0 ${isActive ? 'text-era-lime' : 'text-white'}`} />
-                  <span className={`hidden sm:inline truncate ${isActive ? 'text-era-dark-blue' : 'text-white'}`}>{item.title}</span>
-                  {isActive && (
-                    <span className="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-8 bg-era-lime rounded-full shadow-era-lime/30 shadow-lg transition-all duration-300" />
-                  )}
+                  <item.icon className={`mr-3 h-5 w-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-white'}`} />
+                  <span className={isActive ? 'text-white' : 'text-white'}>{item.title}</span>
                 </Button>
               </li>
             );
@@ -98,37 +171,29 @@ export function ERASidebar() {
       </nav>
 
       {/* User section */}
-      <div className="p-2 md:p-4 border-t border-white/20">
-        <div className="flex items-center space-x-2 md:space-x-3 mb-2 md:mb-3">
-          {userProfile?.avatar_url ? (
-            <img
-              src={userProfile.avatar_url}
-              alt="Avatar"
-              className="w-6 h-6 md:w-8 md:h-8 rounded-full object-cover border flex-shrink-0"
-            />
-          ) : (
-            <div className="w-6 h-6 md:w-8 md:h-8 bg-era-blue rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-xs md:text-sm font-medium text-era-yellow">
-                {userProfile?.nome ? userProfile.nome.charAt(0).toUpperCase() : 'U'}
-              </span>
-            </div>
-          )}
-          <div className="min-w-0 flex-1 hidden sm:block">
-            <p className="text-xs md:text-sm font-medium text-white truncate" style={{textShadow: '0 1px 4px rgba(0,0,0,0.7)'}}>
+      <div className="p-4 border-t border-gray-700">
+        <div className="flex items-center space-x-3 mb-3">
+          <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
+            <span className="text-sm font-medium text-white">
+              {userProfile?.nome ? userProfile.nome.charAt(0).toUpperCase() : 'U'}
+            </span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-white truncate">
               {userProfile?.nome || 'Usuário'}
             </p>
-            <p className="text-xs text-white truncate" style={{textShadow: '0 1px 4px rgba(0,0,0,0.7)'}}>
+            <p className="text-xs text-gray-400 truncate">
               {userProfile?.tipo_usuario === 'admin' ? 'Administrador' : 'Cliente'}
             </p>
           </div>
         </div>
         <Button 
           variant="ghost" 
-          className="w-full justify-start nav-link hover:text-white hover:bg-white/10 text-xs md:text-sm p-2 md:p-3"
+          className="w-full justify-start text-white hover:bg-white/10 text-sm p-3"
           onClick={handleSignOut}
         >
-          <LogOut className="mr-2 md:mr-3 h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
-          <span className="hidden sm:inline">Sair</span>
+          <LogOut className="mr-3 h-4 w-4" />
+          Sair
         </Button>
       </div>
     </div>

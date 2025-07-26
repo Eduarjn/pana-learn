@@ -6,7 +6,7 @@ interface UserProfile {
   id: string;
   email: string;
   nome: string;
-  tipo_usuario: 'admin' | 'cliente';
+  tipo_usuario: 'admin' | 'admin_master' | 'cliente'; // Adicionado 'admin_master'
   status: string;
   avatar_url?: string;
 }
@@ -228,7 +228,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setSession(null);
       await supabase.auth.signOut();
-    } catch {}
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
   };
 
   const value = {

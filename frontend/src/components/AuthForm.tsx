@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, GraduationCap } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export function AuthForm() {
   const { signIn, signUp } = useAuth();
@@ -14,6 +15,14 @@ export function AuthForm() {
   const [error, setError] = useState<string>('');
   const [message, setMessage] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
+  // Garantir campos vazios por padrão
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [nome, setNome] = useState('');
+  const [tab, setTab] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetError, setResetError] = useState('');
 
   const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -96,24 +105,28 @@ export function AuthForm() {
     setLoading(false);
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      {/* Background Image */}
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: `url('/lovable-uploads/aafcc16a-d43c-4f66-9fa4-70da46d38ccb.png')`,
-        }}
-      >
-        <div className="absolute inset-0 bg-black/60"></div>
-      </div>
+  const handleForgotPassword = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setResetMessage('');
+    setResetError('');
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: window.location.origin + '/reset-password'
+    });
+    if (error) {
+      setResetError('Erro ao enviar email: ' + error.message);
+    } else {
+      setResetMessage('Se o email existir, você receberá um link para redefinir sua senha.');
+    }
+  };
 
+  return (
+    <div className="era-login-bg min-h-screen flex items-center justify-center p-4 relative">
       {/* Content */}
       <div className="relative z-10 w-full max-w-md">
         <Card className="backdrop-blur-md bg-white/95 border-white/30 shadow-2xl">
           <CardHeader className="text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-era-dark-blue rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
                 <img 
                   src="/lovable-uploads/92441561-a944-48ee-930e-7e3b16318673.png" 
                   alt="Platform Symbol" 
@@ -121,34 +134,25 @@ export function AuthForm() {
                 />
               </div>
               <div>
-                <CardTitle className="text-3xl font-bold text-era-dark-blue">ERA Learn</CardTitle>
-                <p className="text-xs text-era-gray">Smart Training Platform</p>
+                <CardTitle className="text-3xl font-bold text-accent">ERA Learn</CardTitle>
+                <p className="text-xs text-contrast">Smart Training Platform</p>
               </div>
             </div>
-            <CardDescription className="text-era-gray">
+            <CardDescription className="text-contrast">
               Acesse sua plataforma de treinamento
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Usuários de Teste */}
-            <div className="mb-6 p-4 bg-era-lime/10 rounded-lg border border-era-lime/20">
-              <h3 className="text-sm font-semibold text-era-dark-blue mb-2 flex items-center gap-2">
-                <GraduationCap className="w-4 h-4" />
-                Credenciais de Teste:
-              </h3>
-              <div className="text-xs text-era-gray space-y-1">
-                <p><strong>Admin:</strong> admin@eralearn.com / test123456</p>
-                <p><strong>Cliente:</strong> cliente@eralearn.com / test123456</p>
-              </div>
-            </div>
-
-            <Tabs defaultValue="signin" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 bg-era-light-gray">
+            <Tabs value={tab} onValueChange={setTab} defaultValue="signin" className="space-y-4">
+              <TabsList className="grid w-full grid-cols-3 bg-era-light-gray">
                 <TabsTrigger value="signin" className="data-[state=active]:bg-era-lime data-[state=active]:text-era-dark-blue text-era-dark-blue">
                   Entrar
                 </TabsTrigger>
                 <TabsTrigger value="signup" className="data-[state=active]:bg-era-lime data-[state=active]:text-era-dark-blue text-era-dark-blue">
                   Cadastrar
+                </TabsTrigger>
+                <TabsTrigger value="forgot" className="data-[state=active]:bg-era-lime data-[state=active]:text-era-dark-blue text-era-dark-blue">
+                  Esqueci a senha
                 </TabsTrigger>
               </TabsList>
 
@@ -171,47 +175,16 @@ export function AuthForm() {
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email" className="text-era-dark-blue font-medium">Email</Label>
-                    <Input
-                      id="signin-email"
-                      name="email"
-                      type="email"
-                      required
-                      defaultValue="admin@eralearn.com"
-                      className="form-input"
-                      placeholder="seu@email.com"
-                    />
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" name="email" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required disabled={loading} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password" className="text-era-dark-blue font-medium">Senha</Label>
-                    <div className="relative">
-                      <Input
-                        id="signin-password"
-                        name="password"
-                        type={showPassword ? "text" : "password"}
-                        required
-                        defaultValue="test123456"
-                        className="form-input pr-12"
-                        placeholder="Sua senha"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-era-gray hover:text-era-dark-blue"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
+                    <Label htmlFor="password">Senha</Label>
+                    <Input id="password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required disabled={loading} />
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full era-lime-button text-era-dark-blue font-semibold" 
+                    className="w-full era-lime-button !text-white font-semibold" 
                     disabled={loading}
                   >
                     {loading ? (
@@ -223,6 +196,34 @@ export function AuthForm() {
                       'Entrar'
                     )}
                   </Button>
+                  <button type="button" onClick={() => setTab('forgot')} className="text-era-lime underline text-sm mt-2">
+                    Esqueci minha senha?
+                  </button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="forgot">
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email">Email</Label>
+                    <Input id="reset-email" name="reset-email" type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} required disabled={loading} />
+                  </div>
+                  <Button type="submit" className="w-full era-lime-button text-era-dark-blue font-semibold" disabled={loading}>
+                    {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando...</>) : ('Enviar link de redefinição')}
+                  </Button>
+                  {resetMessage && (
+                    <Alert className="bg-green-50 border-green-200">
+                      <AlertDescription className="text-green-800">{resetMessage}</AlertDescription>
+                    </Alert>
+                  )}
+                  {resetError && (
+                    <Alert className="bg-red-50 border-red-200">
+                      <AlertDescription className="text-red-800">{resetError}</AlertDescription>
+                    </Alert>
+                  )}
+                  <button type="button" onClick={() => setTab('signin')} className="text-era-lime underline text-sm mt-2">
+                    Voltar para login
+                  </button>
                 </form>
               </TabsContent>
 
@@ -238,6 +239,8 @@ export function AuthForm() {
                       className="form-input"
                       placeholder="Seu nome completo"
                       minLength={2}
+                      value={nome}
+                      onChange={e => setNome(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -249,6 +252,8 @@ export function AuthForm() {
                       required
                       className="form-input"
                       placeholder="seu@email.com"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -262,6 +267,8 @@ export function AuthForm() {
                         minLength={6}
                         className="form-input pr-12"
                         placeholder="Mínimo 6 caracteres"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
                       />
                       <Button
                         type="button"

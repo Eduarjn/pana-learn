@@ -57,7 +57,7 @@ const Index = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-high-contrast">
-                Bem-vindo ao PANA LEARN
+                Bem-vindo ao ERA Learn
               </h1>
               <p className="text-era-lime text-base font-semibold mt-2">
                 Aprenda com seu parceiro de confiança, usando métodos modernos e inteligentes.

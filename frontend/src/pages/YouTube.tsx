@@ -174,7 +174,7 @@ const YouTubePage = () => {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header com Link do Canal e Botão */}
-      <div className="mb-8 text-center">
+      <div className="page-hero mb-8 text-center py-8 rounded-2xl">
         <h1 className="text-3xl font-bold text-gray-900 mb-4">
           Canal Oficial da Empresa
         </h1>
