@@ -40,7 +40,17 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
     coursesLoading,
     coursesError,
     coursesCount: courses.length,
-    courses: courses
+    courses: courses.map(c => ({ id: c.id, nome: c.nome, categoria: c.categoria })),
+    selectedCourseId
+  });
+
+  // Obter categoria do curso selecionado
+  const selectedCourse = courses.find(c => c.id === selectedCourseId);
+  const courseCategory = selectedCourse?.categoria || '';
+
+  console.log('🔍 VideoUpload - Curso selecionado:', {
+    selectedCourse,
+    courseCategory
   });
 
   // Função para inserir dados de teste
@@ -187,10 +197,6 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
     setSelectedModuleId('');
   }, [selectedCourseId]);
 
-  // Obter categoria do curso selecionado
-  const selectedCourse = courses.find(c => c.id === selectedCourseId);
-  const courseCategory = selectedCourse?.categoria || '';
-
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'video' | 'thumbnail') => {
     const file = event.target.files?.[0];
     if (file) {
@@ -252,6 +258,18 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
     setUploading(true);
 
     try {
+      // Debug: Verificar dados antes da inserção
+      console.log('🔍 VideoUpload - Dados para inserção:', {
+        titulo: videoData.titulo,
+        descricao: videoData.descricao,
+        duracao: videoData.duracao,
+        curso_id: selectedCourseId,
+        categoria: courseCategory,
+        modulo_id: selectedModuleId || null,
+        source: activeTab,
+        selectedCourse: selectedCourse
+      });
+
       let videoUrl = '';
       let storagePath = '';
 
@@ -273,23 +291,35 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
         thumbnailUrl = await uploadFile(thumbnailFile, 'training-videos', thumbnailPath);
       }
 
-      // Salvar informações do vídeo no banco
-      const { error: insertError } = await supabase
-        .from('videos')
-        .insert({
-          titulo: videoData.titulo,
-          descricao: videoData.descricao,
-          duracao: videoData.duracao,
-          url_video: videoUrl,
-          thumbnail_url: thumbnailUrl,
-          categoria: courseCategory,
-          curso_id: selectedCourseId,
-          modulo_id: selectedModuleId || null,
-          storage_path: storagePath,
-          source: activeTab
-        });
+      // Dados para inserção no banco
+      const videoDataToInsert = {
+        titulo: videoData.titulo,
+        descricao: videoData.descricao,
+        duracao: videoData.duracao,
+        url_video: videoUrl,
+        thumbnail_url: thumbnailUrl,
+        categoria: courseCategory,
+        curso_id: selectedCourseId,
+        modulo_id: selectedModuleId || null,
+        storage_path: storagePath,
+        source: activeTab
+      };
 
-      if (insertError) throw insertError;
+      console.log('📝 VideoUpload - Inserindo vídeo no banco:', videoDataToInsert);
+
+      // Salvar informações do vídeo no banco
+      const { data: insertedVideo, error: insertError } = await supabase
+        .from('videos')
+        .insert(videoDataToInsert)
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('❌ Erro ao inserir vídeo:', insertError);
+        throw insertError;
+      }
+
+      console.log('✅ Vídeo inserido com sucesso:', insertedVideo);
 
       toast({
         title: "Sucesso",
@@ -299,7 +329,7 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('Erro no upload:', error);
+      console.error('❌ Erro no upload:', error);
       toast({
         title: "Erro",
         description: `Erro ao ${activeTab === 'upload' ? 'enviar' : 'importar'} o vídeo. Tente novamente.`,

@@ -21,7 +21,6 @@ import Certificado from "./pages/Certificado";
 import Certificados from "./pages/Certificados";
 import Quizzes from "./pages/Quizzes";
 import { BrandingProvider } from '@/context/BrandingContext';
-import { DebugPanel } from '@/components/DebugPanel';
 import { TestComponent } from '@/components/TestComponent';
 
 const queryClient = new QueryClient();
@@ -137,7 +136,6 @@ const App = () => (
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-              <DebugPanel />
               </BrandingProvider>
             </DomainProvider>
           </AuthProvider>

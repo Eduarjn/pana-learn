@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Module, Course } from '@/hooks/useCourses';
 import type { Database } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle, Play, Clock, PlusCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Play, Clock, PlusCircle, Video, BookOpen } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -195,18 +195,52 @@ const CursoDetalhe = () => {
     if (!id || !userId) return;
     const fetchVideosAndProgress = async () => {
       setLoading(true);
-      const { data: videosData } = await supabase
+      
+      console.log('🔍 CursoDetalhe - Iniciando carregamento:', {
+        cursoId: id,
+        userId: userId,
+        isAdmin: isAdmin
+      });
+      
+      // Buscar vídeos específicos do curso
+      const { data: videosData, error: videosError } = await supabase
         .from('videos')
         .select('*')
         .eq('curso_id', id);
-      setVideos(videosData || []);
-      console.log('Vídeos carregados:', videosData);
+
+      console.log('🔍 CursoDetalhe - Resultado da consulta de vídeos:', {
+        videosData: videosData,
+        videosError: videosError,
+        cursoId: id,
+        totalVideos: videosData?.length || 0
+      });
+
+      if (videosError) {
+        console.error('❌ Erro ao carregar vídeos:', videosError);
+      } else {
+        console.log('✅ Vídeos carregados com sucesso:', videosData);
+        setVideos(videosData || []);
+      }
+
       // Buscar progresso do usuário para cada módulo
-      const { data: progressData } = await supabase
+      const { data: progressData, error: progressError } = await supabase
         .from('progresso_usuario')
         .select('*')
         .eq('curso_id', id)
         .eq('usuario_id', userId);
+
+      console.log('🔍 CursoDetalhe - Resultado da consulta de progresso:', {
+        progressData: progressData,
+        progressError: progressError,
+        totalProgress: progressData?.length || 0
+      });
+
+      if (progressError) {
+        console.error('❌ Erro ao carregar progresso:', progressError);
+      } else {
+        console.log('✅ Progresso carregado com sucesso:', progressData);
+      }
+
       // Indexar por modulo_id
       const progressMap: Record<string, Database['public']['Tables']['progresso_usuario']['Row']> = {};
       (progressData || []).forEach((p) => {
@@ -243,7 +277,27 @@ const CursoDetalhe = () => {
   }, [id, isAdmin, refresh]);
 
   // Dentro do map dos módulos, filtrar vídeos pela categoria do curso
-  const filteredVideos = videos.filter(v => v.categoria === currentCategory);
+  const filteredVideos = videos.filter(v => {
+    // Se o vídeo tem curso_id, usar apenas vídeos do curso atual
+    if (v.curso_id) {
+      return v.curso_id === id;
+    }
+    // Fallback: filtrar por categoria (método antigo)
+    return v.categoria === currentCategory;
+  });
+
+  console.log('🔍 CursoDetalhe - Vídeos filtrados:', {
+    totalVideos: videos.length,
+    filteredVideos: filteredVideos.length,
+    currentCourseId: id,
+    currentCategory: currentCategory,
+    videos: videos.map(v => ({
+      id: v.id,
+      titulo: v.titulo,
+      curso_id: v.curso_id,
+      categoria: v.categoria
+    }))
+  });
 
   // Verificar se deve mostrar o quiz quando o curso for concluído
   React.useEffect(() => {
@@ -257,6 +311,63 @@ const CursoDetalhe = () => {
       window.open(`/certificado/${certificate.id}`, '_blank');
     }
   };
+
+  // Criar módulos automáticos se necessário (para clientes)
+  const createDefaultModules = async () => {
+    if (!isAdmin && modules.length === 0 && videos.length > 0) {
+      try {
+        console.log('🔧 Criando módulos padrão para o curso...');
+        
+        // Criar módulo "Introdução"
+        const { data: introModule, error: introError } = await supabase
+          .from('modulos')
+          .insert({
+            curso_id: id,
+            nome_modulo: 'Introdução',
+            descricao: 'Vídeos introdutórios do curso',
+            ordem: 1
+          })
+          .select()
+          .single();
+
+        if (introError) {
+          console.error('❌ Erro ao criar módulo introdução:', introError);
+        } else {
+          console.log('✅ Módulo introdução criado:', introModule);
+        }
+
+        // Criar módulo "Conteúdo Principal"
+        const { data: mainModule, error: mainError } = await supabase
+          .from('modulos')
+          .insert({
+            curso_id: id,
+            nome_modulo: 'Conteúdo Principal',
+            descricao: 'Vídeos principais do curso',
+            ordem: 2
+          })
+          .select()
+          .single();
+
+        if (mainError) {
+          console.error('❌ Erro ao criar módulo principal:', mainError);
+        } else {
+          console.log('✅ Módulo principal criado:', mainModule);
+        }
+
+        // Recarregar módulos
+        window.location.reload();
+      } catch (error) {
+        console.error('❌ Erro ao criar módulos:', error);
+      }
+    }
+  };
+
+  // Executar criação de módulos se necessário
+  React.useEffect(() => {
+    if (!isAdmin && modules.length === 0 && videos.length > 0 && !loading) {
+      createDefaultModules();
+    }
+  }, [isAdmin, modules.length, videos.length, loading, id]);
 
   // Renderização para CLIENTE
   if (!isAdmin) {
@@ -323,75 +434,115 @@ const CursoDetalhe = () => {
             </div>
           </div>
 
-          {/* Sidebar de módulos */}
+          {/* Sidebar de vídeos - Versão simplificada para clientes */}
           <div className="space-y-6">
-            {modules.map((modulo) => {
-              const videosDoModulo = videos.filter(v => String(v.modulo_id).trim() === String(modulo.id).trim());
-              const progresso = progress[modulo.id];
-              const status = progresso?.status === 'concluido' ? 'Concluído' : (progresso?.status === 'em_andamento' ? 'Em andamento' : 'Não iniciado');
-              const percentual = progresso?.percentual_concluido ?? 0;
-              return (
-                <Card key={modulo.id} className={`border-2 ${selectedModule?.id === modulo.id ? 'border-era-lime' : 'border-era-lime/30'} rounded-xl shadow-sm transition-all`}>
-                  <CardHeader>
-                    <CardTitle className="text-lg font-bold text-era-dark-blue flex items-center gap-2">
-                      <Play className="w-5 h-5 text-era-lime" />
-                      {modulo.nome_modulo}
-                    </CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Badge 
-                        variant={status === 'Concluído' ? 'default' : 'secondary'}
-                        className={status === 'Concluído' ? 'bg-green-100 text-green-800' : ''}
+            {/* Seção principal com todos os vídeos do curso */}
+            <Card className="border-2 border-era-lime rounded-xl shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-bold text-era-dark-blue flex items-center gap-2">
+                  <Video className="w-5 h-5 text-era-lime" />
+                  Vídeos do Curso
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-era-lime/20 text-era-dark-blue">
+                    {videos.length} vídeo(s) disponível(is)
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {videos.length > 0 ? (
+                  <div className="space-y-2">
+                    {videos.map(video => (
+                      <div
+                        key={video.id}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-era-lime/10 ${selectedVideo?.id === video.id ? 'border-era-lime bg-era-lime/10' : 'border-gray-200 bg-white'}`}
+                        onClick={() => {
+                          setSelectedVideo(video);
+                          setSelectedModule(null);
+                        }}
                       >
-                        {status}
-                      </Badge>
-                      <span className="text-sm text-gray-600">{percentual}% completo</span>
-                    </div>
-                    <Progress value={percentual} className="h-2" />
-                  </CardHeader>
-                  <CardContent>
-                    {videosDoModulo.length > 0 ? (
-                      <div className="space-y-2">
-                        {videosDoModulo.map(video => (
-                          <div
-                            key={video.id}
-                            className={`p-3 rounded-lg border cursor-pointer transition-all hover:bg-era-lime/10 ${selectedVideo?.id === video.id ? 'border-era-lime bg-era-lime/10' : 'border-gray-200 bg-white'}`}
-                            onClick={() => {
-                              setSelectedVideo(video);
-                              setSelectedModule(modulo);
-                            }}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="flex-shrink-0">
-                                {progresso?.status === 'concluido' ? (
-                                  <CheckCircle className="w-5 h-5 text-green-500" />
-                                ) : (
-                                  <Play className="w-5 h-5 text-era-lime" />
-                                )}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-gray-900 truncate">
-                                  {video.titulo}
-                                </h4>
-                                {video.descricao && (
-                                  <p className="text-sm text-gray-600 truncate">
-                                    {video.descricao}
-                                  </p>
-                                )}
-                              </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0">
+                            <Play className="w-5 h-5 text-era-lime" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900 truncate">
+                              {video.titulo}
+                            </h4>
+                            {video.descricao && (
+                              <p className="text-sm text-gray-600 truncate">
+                                {video.descricao}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-500">
+                                {video.duracao} min
+                              </span>
+                              {video.categoria && (
+                                <Badge variant="outline" className="text-xs">
+                                  {video.categoria}
+                                </Badge>
+                              )}
                             </div>
                           </div>
-                        ))}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="text-center py-4 text-gray-500">
-                        <Clock className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                        <p className="text-sm">Nenhum vídeo disponível</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Clock className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p className="text-sm">Nenhum vídeo disponível neste curso</p>
+                    <p className="text-xs text-gray-400 mt-1">Entre em contato com o administrador</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Seção de módulos (se existirem) */}
+            {modules.length > 0 && (
+              <Card className="border-2 border-blue-300 rounded-xl shadow-sm">
+                <CardHeader>
+                  <CardTitle className="text-lg font-bold text-era-dark-blue flex items-center gap-2">
+                    <BookOpen className="w-5 h-5 text-blue-500" />
+                    Módulos do Curso
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {modules.map((modulo) => {
+                      const videosDoModulo = videos.filter(v => v.modulo_id === modulo.id);
+                      return (
+                        <div key={modulo.id} className="p-3 border border-gray-200 rounded-lg">
+                          <h4 className="font-medium text-gray-900 mb-2">{modulo.nome_modulo}</h4>
+                          {videosDoModulo.length > 0 ? (
+                            <div className="space-y-1">
+                              {videosDoModulo.map(video => (
+                                <div
+                                  key={video.id}
+                                  className={`p-2 rounded cursor-pointer transition-all hover:bg-blue-50 ${selectedVideo?.id === video.id ? 'bg-blue-100 border-blue-300' : 'border border-gray-100'}`}
+                                  onClick={() => {
+                                    setSelectedVideo(video);
+                                    setSelectedModule(modulo);
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Play className="w-4 h-4 text-blue-500" />
+                                    <span className="text-sm text-gray-700 truncate">{video.titulo}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-gray-500">Nenhum vídeo neste módulo</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>
