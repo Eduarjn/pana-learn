@@ -4,14 +4,16 @@ import { supabase } from '@/integrations/supabase/client';
 interface QuizQuestion {
   id: string;
   pergunta: string;
-  tipo: 'multipla_escolha' | 'verdadeiro_falso';
-  alternativas: string[];
+  opcoes: string[];
   resposta_correta: number;
   explicacao?: string;
+  ordem: number;
 }
 
 interface QuizConfig {
   id: string;
+  titulo: string;
+  descricao?: string;
   categoria_id: string;
   nota_minima: number;
   perguntas: QuizQuestion[];
@@ -46,16 +48,50 @@ export function useQuiz(userId: string | undefined, categoriaId: string | undefi
       setError(null);
 
       const { data, error } = await supabase
-        .from('quiz_config')
-        .select('*')
-        .eq('categoria_id', categoriaId)
+        .from('quizzes')
+        .select(`
+          id, 
+          titulo, 
+          descricao,
+          nota_minima,
+          quiz_perguntas(
+            id, 
+            pergunta, 
+            opcoes, 
+            resposta_correta, 
+            explicacao, 
+            ordem
+          )
+        `)
+        .eq('categoria', categoriaId)
+        .eq('ativo', true)
         .single();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
-      setQuizConfig(data);
+      if (data) {
+        // Ordenar perguntas por ordem
+        const sortedPerguntas = data.quiz_perguntas?.sort((a, b) => a.ordem - b.ordem) || [];
+        setQuizConfig({
+          id: data.id,
+          titulo: data.titulo,
+          descricao: data.descricao,
+          categoria_id: categoriaId,
+          nota_minima: data.nota_minima,
+          perguntas: sortedPerguntas.map(p => ({
+            id: p.id,
+            pergunta: p.pergunta,
+            opcoes: p.opcoes,
+            resposta_correta: p.resposta_correta,
+            explicacao: p.explicacao,
+            ordem: p.ordem
+          })),
+          mensagem_sucesso: 'Parabéns! Você foi aprovado no quiz!',
+          mensagem_reprova: 'Continue estudando e tente novamente!'
+        });
+      }
     } catch (err) {
       console.error('Erro ao carregar quiz config:', err);
       setError('Erro ao carregar configuração do quiz');
@@ -171,6 +207,96 @@ export function useQuiz(userId: string | undefined, categoriaId: string | undefi
     }
   }, [userId, categoriaId, quizConfig]);
 
+  // Buscar quiz específico do curso
+  const fetchCourseQuiz = useCallback(async (courseId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Primeiro, buscar a categoria do curso
+      const { data: cursoData, error: cursoError } = await supabase
+        .from('cursos')
+        .select('categoria')
+        .eq('id', courseId)
+        .single();
+
+      if (cursoError) {
+        throw cursoError;
+      }
+
+      if (!cursoData?.categoria) {
+        throw new Error('Categoria do curso não encontrada');
+      }
+
+      // Buscar quiz pela categoria
+      const { data: quiz, error } = await supabase
+        .from('quizzes')
+        .select(`
+          id, 
+          titulo, 
+          descricao,
+          nota_minima,
+          quiz_perguntas(
+            id, 
+            pergunta, 
+            opcoes, 
+            resposta_correta, 
+            explicacao, 
+            ordem
+          )
+        `)
+        .eq('categoria', cursoData.categoria)
+        .eq('ativo', true)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        throw error;
+      }
+
+      if (quiz) {
+        // Ordenar perguntas por ordem
+        const sortedPerguntas = quiz.quiz_perguntas?.sort((a, b) => a.ordem - b.ordem) || [];
+        return {
+          ...quiz,
+          quiz_perguntas: sortedPerguntas
+        };
+      }
+
+      return null;
+    } catch (err) {
+      console.error('Erro ao buscar quiz do curso:', err);
+      setError('Erro ao carregar quiz do curso');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Salvar respostas do quiz
+  const saveQuizAnswers = useCallback(async (quizId: string, answers: Record<string, number>, nota: number) => {
+    if (!userId) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('progresso_quiz')
+        .insert({
+          usuario_id: userId,
+          quiz_id: quizId,
+          respostas: answers,
+          nota: nota,
+          data_conclusao: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (err) {
+      console.error('Erro ao salvar respostas do quiz:', err);
+      throw new Error('Erro ao salvar respostas do quiz');
+    }
+  }, [userId]);
+
   // Carregar dados iniciais
   useEffect(() => {
     loadQuizConfig();
@@ -187,6 +313,8 @@ export function useQuiz(userId: string | undefined, categoriaId: string | undefi
     isCourseCompleted,
     certificate,
     generateCertificate,
-    checkCourseCompletion
+    checkCourseCompletion,
+    fetchCourseQuiz,
+    saveQuizAnswers
   };
 } 

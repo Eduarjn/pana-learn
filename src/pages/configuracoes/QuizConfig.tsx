@@ -21,10 +21,10 @@ import { toast } from '@/hooks/use-toast';
 interface QuizQuestion {
   id: string;
   pergunta: string;
-  tipo: 'multipla_escolha' | 'verdadeiro_falso';
-  alternativas: string[];
+  opcoes: string[];
   resposta_correta: number;
   explicacao?: string;
+  ordem: number;
 }
 
 interface QuizConfig {
@@ -107,9 +107,23 @@ const QuizConfig: React.FC = () => {
       setLoading(true);
       
       const { data, error } = await supabase
-        .from('quiz_config')
-        .select('*')
-        .eq('categoria_id', categoriaId)
+        .from('quizzes')
+        .select(`
+          id, 
+          titulo, 
+          descricao,
+          nota_minima,
+          quiz_perguntas(
+            id, 
+            pergunta, 
+            opcoes, 
+            resposta_correta, 
+            explicacao, 
+            ordem
+          )
+        `)
+        .eq('categoria', categoriaId)
+        .eq('ativo', true)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -118,13 +132,22 @@ const QuizConfig: React.FC = () => {
       }
 
       if (data) {
+        // Ordenar perguntas por ordem
+        const sortedPerguntas = data.quiz_perguntas?.sort((a, b) => a.ordem - b.ordem) || [];
         setQuizConfig({
           id: data.id,
-          categoria_id: data.categoria_id,
+          categoria_id: categoriaId,
           nota_minima: data.nota_minima,
-          perguntas: data.perguntas || [],
-          mensagem_sucesso: data.mensagem_sucesso,
-          mensagem_reprova: data.mensagem_reprova
+          perguntas: sortedPerguntas.map(p => ({
+            id: p.id,
+            pergunta: p.pergunta,
+            opcoes: p.opcoes,
+            resposta_correta: p.resposta_correta,
+            explicacao: p.explicacao,
+            ordem: p.ordem
+          })) as QuizQuestion[],
+          mensagem_sucesso: 'Parabéns! Você foi aprovado no quiz!',
+          mensagem_reprova: 'Continue estudando e tente novamente!'
         });
       } else {
         // Criar nova configuração
@@ -147,9 +170,9 @@ const QuizConfig: React.FC = () => {
     const newQuestion: QuizQuestion = {
       id: `q_${Date.now()}`,
       pergunta: '',
-      tipo: 'multipla_escolha',
-      alternativas: ['', '', '', ''],
-      resposta_correta: 0
+      opcoes: ['', '', '', ''],
+      resposta_correta: 0,
+      ordem: quizConfig.perguntas.length + 1
     };
 
     setQuizConfig(prev => ({
@@ -179,7 +202,7 @@ const QuizConfig: React.FC = () => {
       ...prev,
       perguntas: prev.perguntas.map((q, i) => 
         i === questionIndex 
-          ? { ...q, alternativas: [...q.alternativas, ''] }
+          ? { ...q, opcoes: [...q.opcoes, ''] }
           : q
       )
     }));
@@ -192,7 +215,7 @@ const QuizConfig: React.FC = () => {
         i === questionIndex 
           ? { 
               ...q, 
-              alternativas: q.alternativas.map((alt, j) => 
+              opcoes: q.opcoes.map((alt, j) => 
                 j === altIndex ? value : alt
               )
             }
@@ -208,7 +231,7 @@ const QuizConfig: React.FC = () => {
         i === questionIndex 
           ? { 
               ...q, 
-              alternativas: q.alternativas.filter((_, j) => j !== altIndex)
+              opcoes: q.opcoes.filter((_, j) => j !== altIndex)
             }
           : q
       )
@@ -246,7 +269,7 @@ const QuizConfig: React.FC = () => {
         return false;
       }
 
-      if (q.alternativas.length < 2) {
+      if (q.opcoes.length < 2) {
         toast({
           title: "Erro de validação",
           description: `A pergunta ${i + 1} deve ter pelo menos 2 alternativas.`,
@@ -255,8 +278,8 @@ const QuizConfig: React.FC = () => {
         return false;
       }
 
-      for (let j = 0; j < q.alternativas.length; j++) {
-        if (!q.alternativas[j].trim()) {
+      for (let j = 0; j < q.opcoes.length; j++) {
+        if (!q.opcoes[j].trim()) {
           toast({
             title: "Erro de validação",
             description: `A alternativa ${j + 1} da pergunta ${i + 1} não pode estar vazia.`,
@@ -266,7 +289,7 @@ const QuizConfig: React.FC = () => {
         }
       }
 
-      if (q.resposta_correta < 0 || q.resposta_correta >= q.alternativas.length) {
+      if (q.resposta_correta < 0 || q.resposta_correta >= q.opcoes.length) {
         toast({
           title: "Erro de validação",
           description: `A resposta correta da pergunta ${i + 1} é inválida.`,
@@ -281,56 +304,95 @@ const QuizConfig: React.FC = () => {
 
   const saveQuizConfig = async () => {
     if (!validateQuiz()) return;
-
+    
     try {
-      setSaving(true);
+      setLoading(true);
 
-      const configData = {
-        categoria_id: quizConfig.categoria_id,
-        nota_minima: quizConfig.nota_minima,
-        perguntas: quizConfig.perguntas,
-        mensagem_sucesso: quizConfig.mensagem_sucesso,
-        mensagem_reprova: quizConfig.mensagem_reprova
-      };
-
-      let result;
       if (quizConfig.id) {
-        // Atualizar
-        result = await supabase
-          .from('quiz_config')
-          .update(configData)
-          .eq('id', quizConfig.id)
-          .select()
-          .single();
+        // Atualizar quiz existente
+        const { error: quizError } = await supabase
+          .from('quizzes')
+          .update({
+            titulo: `Quiz de Conclusão - ${selectedCategoria}`,
+            descricao: `Quiz para avaliar o conhecimento sobre ${selectedCategoria}`,
+            nota_minima: quizConfig.nota_minima
+          })
+          .eq('id', quizConfig.id);
+
+        if (quizError) throw quizError;
+
+        // Deletar perguntas existentes
+        await supabase
+          .from('quiz_perguntas')
+          .delete()
+          .eq('quiz_id', quizConfig.id);
+
+        // Inserir novas perguntas
+        for (let i = 0; i < quizConfig.perguntas.length; i++) {
+          const pergunta = quizConfig.perguntas[i];
+          const { error: perguntaError } = await supabase
+            .from('quiz_perguntas')
+            .insert({
+              quiz_id: quizConfig.id,
+              pergunta: pergunta.pergunta,
+              opcoes: pergunta.opcoes,
+              resposta_correta: pergunta.resposta_correta,
+              explicacao: pergunta.explicacao,
+              ordem: i + 1
+            });
+
+          if (perguntaError) throw perguntaError;
+        }
       } else {
-        // Criar novo
-        result = await supabase
-          .from('quiz_config')
-          .insert(configData)
+        // Criar novo quiz
+        const { data: newQuiz, error: quizError } = await supabase
+          .from('quizzes')
+          .insert({
+            categoria: selectedCategoria,
+            titulo: `Quiz de Conclusão - ${selectedCategoria}`,
+            descricao: `Quiz para avaliar o conhecimento sobre ${selectedCategoria}`,
+            nota_minima: quizConfig.nota_minima
+          })
           .select()
           .single();
-      }
 
-      if (result.error) {
-        throw result.error;
-      }
+        if (quizError) throw quizError;
 
-      setQuizConfig(prev => ({ ...prev, id: result.data.id }));
+        // Inserir perguntas
+        for (let i = 0; i < quizConfig.perguntas.length; i++) {
+          const pergunta = quizConfig.perguntas[i];
+          const { error: perguntaError } = await supabase
+            .from('quiz_perguntas')
+            .insert({
+              quiz_id: newQuiz.id,
+              pergunta: pergunta.pergunta,
+              opcoes: pergunta.opcoes,
+              resposta_correta: pergunta.resposta_correta,
+              explicacao: pergunta.explicacao,
+              ordem: i + 1
+            });
+
+          if (perguntaError) throw perguntaError;
+        }
+      }
 
       toast({
-        title: "Sucesso!",
-        description: "Configuração do quiz salva com sucesso.",
+        title: "Quiz salvo com sucesso!",
+        description: "As configurações foram atualizadas.",
         variant: "default"
       });
+
+      // Recarregar configuração
+      await loadQuizConfig(selectedCategoria);
     } catch (error) {
       console.error('Erro ao salvar quiz:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível salvar a configuração do quiz.",
+        title: "Erro ao salvar quiz",
+        description: "Tente novamente.",
         variant: "destructive"
       });
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
@@ -500,20 +562,9 @@ const QuizConfig: React.FC = () => {
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                               Tipo de Questão
                             </label>
-                            <Select
-                              value={question.tipo}
-                              onValueChange={(value: 'multipla_escolha' | 'verdadeiro_falso') => 
-                                updateQuestion(qIndex, 'tipo', value)
-                              }
-                            >
-                              <SelectTrigger className="max-w-xs">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="multipla_escolha">Múltipla Escolha</SelectItem>
-                                <SelectItem value="verdadeiro_falso">Verdadeiro ou Falso</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            <div className="text-sm text-gray-500 p-2 border rounded bg-gray-50">
+                              Múltipla Escolha
+                            </div>
                           </div>
 
                           {/* Alternativas */}
@@ -532,7 +583,7 @@ const QuizConfig: React.FC = () => {
                             </div>
                             
                             <div className="space-y-2">
-                              {question.alternativas.map((alt, altIndex) => (
+                              {question.opcoes.map((alt, altIndex) => (
                                 <div key={altIndex} className="flex items-center gap-2">
                                   <input
                                     type="radio"
@@ -547,7 +598,7 @@ const QuizConfig: React.FC = () => {
                                     placeholder={`Alternativa ${altIndex + 1}`}
                                     className="flex-1"
                                   />
-                                  {question.alternativas.length > 2 && (
+                                  {question.opcoes.length > 2 && (
                                     <Button
                                       onClick={() => removeAlternative(qIndex, altIndex)}
                                       variant="outline"
@@ -586,10 +637,10 @@ const QuizConfig: React.FC = () => {
             <div className="flex justify-end">
               <Button
                 onClick={saveQuizConfig}
-                disabled={saving}
+                disabled={loading}
                 className="bg-blue-600 hover:bg-blue-700 px-8 py-3"
               >
-                {saving ? (
+                {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                     Salvando...

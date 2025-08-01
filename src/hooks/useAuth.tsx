@@ -16,10 +16,14 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   userProfile: UserProfile | null;
+  initialized: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | { message: string } | null }>;
   signUp: (email: string, password: string, nome: string, tipo_usuario: 'admin' | 'cliente', senha_validacao: string) => Promise<{ error: Error | { message: string } | null }>;
   signOut: () => Promise<void>;
   createTestUsers: () => Promise<void>;
+  updateProfile: (updates: Partial<UserProfile>) => Promise<{ error: Error | { message: string } | null }>;
+  updatePassword: (currentPassword: string, newPassword: string) => Promise<{ error: Error | { message: string } | null }>;
+  updateAvatar: (avatarUrl: string) => Promise<{ error: Error | { message: string } | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [tipoUsuario, setTipoUsuario] = useState("cliente");
   const [senhaValidacao, setSenhaValidacao] = useState("");
+  const [initialized, setInitialized] = useState(false);
 
   // Usuários de teste
   const testUsers = [
@@ -100,7 +105,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (event === 'SIGNED_OUT') {
           setUserProfile(null);
         }
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setInitialized(true);
+        }
       }
     );
 
@@ -110,6 +118,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (mounted && !error) {
           setSession(session);
           setUser(session?.user ?? null);
+          
+          // Carregar perfil do usuário se houver sessão
+          if (session?.user) {
+            try {
+              const { data: profile, error: profileError } = await supabase
+                .from('usuarios')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (!profileError && profile) {
+                console.log('✅ Perfil carregado:', profile);
+                setUserProfile(profile);
+              } else {
+                console.log('⚠️ Erro ao carregar perfil:', profileError);
+                // Verificar se é um usuário de teste
+                const testUser = testUsers.find(u => u.email === session.user.email);
+                if (testUser) {
+                  console.log('✅ Usando perfil de teste:', testUser);
+                  setUserProfile({
+                    id: testUser.id,
+                    email: testUser.email,
+                    nome: testUser.nome,
+                    tipo_usuario: testUser.tipo_usuario,
+                    status: testUser.status
+                  });
+                }
+              }
+            } catch (err) {
+              console.log('⚠️ Erro ao buscar perfil:', err);
+            }
+          }
         }
         if (mounted) setLoading(false);
       } catch (error) {
@@ -202,20 +242,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               email: email,
               nome: nome.trim(),
               tipo_usuario,
-              status: 'ativo',
-              senha_validacao: tipo_usuario === 'admin' ? senha_validacao : ''
+              status: 'ativo'
             });
           if (insertError) {
-            // Não tente deletar o usuário do Auth aqui
-            return { error: { message: 'Erro ao criar perfil do usuário' } };
+            console.error('Erro ao inserir usuário:', insertError);
+            return { error: { message: 'Erro ao criar perfil do usuário: ' + insertError.message } };
           }
         } catch (e) {
-          // Falha inesperada ao inserir usuário
+          console.error('Erro inesperado ao inserir usuário:', e);
           return { error: { message: 'Erro interno ao criar usuário' } };
         }
       }
       return { error: null };
     } catch (error) {
+      console.error('Erro no signUp:', error);
       return { error: { message: 'Erro interno no sistema' } };
     } finally {
       setLoading(false);
@@ -233,15 +273,99 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateProfile = async (updates: Partial<UserProfile>) => {
+    try {
+      if (!userProfile?.id) {
+        return { error: { message: 'Usuário não encontrado' } };
+      }
+
+      const { error } = await supabase
+        .from('usuarios')
+        .update(updates)
+        .eq('id', userProfile.id);
+
+      if (error) {
+        return { error: { message: 'Erro ao atualizar perfil: ' + error.message } };
+      }
+
+      // Atualizar o estado local
+      setUserProfile(prev => prev ? { ...prev, ...updates } : null);
+
+      return { error: null };
+    } catch (error) {
+      console.error('Erro ao atualizar perfil:', error);
+      return { error: { message: 'Erro interno ao atualizar perfil' } };
+    }
+  };
+
+  const updatePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      if (!userProfile?.email) {
+        return { error: { message: 'Usuário não encontrado' } };
+      }
+
+      // Verificar senha atual
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: userProfile.email,
+        password: currentPassword
+      });
+
+      if (signInError) {
+        return { error: { message: 'Senha atual incorreta' } };
+      }
+
+      // Atualizar senha
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+      if (error) {
+        return { error: { message: 'Erro ao alterar senha: ' + error.message } };
+      }
+
+      return { error: null };
+    } catch (error) {
+      console.error('Erro ao alterar senha:', error);
+      return { error: { message: 'Erro interno ao alterar senha' } };
+    }
+  };
+
+  const updateAvatar = async (avatarUrl: string) => {
+    try {
+      if (!userProfile?.id) {
+        return { error: { message: 'Usuário não encontrado' } };
+      }
+
+      const { error } = await supabase
+        .from('usuarios')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', userProfile.id);
+
+      if (error) {
+        return { error: { message: 'Erro ao atualizar avatar: ' + error.message } };
+      }
+
+      // Atualizar o estado local
+      setUserProfile(prev => prev ? { ...prev, avatar_url: avatarUrl } : null);
+
+      return { error: null };
+    } catch (error) {
+      console.error('Erro ao atualizar avatar:', error);
+      return { error: { message: 'Erro interno ao atualizar avatar' } };
+    }
+  };
+
   const value = {
     user,
     session,
     loading,
     userProfile,
+    initialized,
     signIn,
     signUp,
     signOut,
-    createTestUsers
+    createTestUsers,
+    updateProfile,
+    updatePassword,
+    updateAvatar
   };
 
   return (

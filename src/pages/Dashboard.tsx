@@ -101,60 +101,101 @@ const Dashboard = () => {
 
   return (
     <ERALayout>
-      <div className="space-y-6 p-6">
-        {/* Banner de Boas-vindas Verde */}
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-8 text-white relative overflow-hidden">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold mb-2">Bem-vindo de volta!</h1>
-              <p className="text-green-100 text-lg mb-6">
-                Você tem {featuredCourses.length} cursos em andamento. Continue aprendendo!
-              </p>
-              <Button 
-                onClick={handleViewAllCourses}
-                className="bg-white text-green-600 hover:bg-green-50 font-semibold px-6 py-3 rounded-lg flex items-center gap-2"
-              >
-                <BookOpen className="h-5 w-5" />
-                Ver meus cursos
-              </Button>
-            </div>
-            <div className="hidden md:block">
-              <GraduationCap className="h-32 w-32 text-white/20" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-green-50">
+        {/* Hero Section com gradiente */}
+        <div className="page-hero w-full rounded-xl lg:rounded-2xl flex flex-col md:flex-row justify-between items-center p-4 lg:p-8 mb-6 lg:mb-8 shadow-md" style={{background: 'linear-gradient(90deg, #7C3AED 0%, #2563EB 40%, #CCFF00 100%)'}}>
+          <div className="px-4 lg:px-6 py-6 lg:py-8 md:py-12 w-full">
+            <div className="max-w-7xl mx-auto">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 lg:gap-6">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                    <span className="text-xs lg:text-sm font-medium text-yellow-200">Plataforma de Ensino</span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 lg:mb-3 bg-gradient-to-r from-white to-yellow-200 bg-clip-text text-transparent">
+                    Bem-vindo de volta!
+                  </h1>
+                  <p className="text-sm sm:text-base lg:text-lg md:text-xl text-blue-100 max-w-2xl">
+                    Você tem {featuredCourses.length} cursos em andamento. Continue aprendendo!
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2 lg:gap-4 mt-3 lg:mt-4">
+                    <div className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+                      <BookOpen className="h-3 w-3 lg:h-4 lg:w-4 text-yellow-300" />
+                      <span>Cursos disponíveis</span>
+                    </div>
+                    <div className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+                      <Clock className="h-3 w-3 lg:h-4 lg:w-4 text-yellow-300" />
+                      <span>Progresso contínuo</span>
+                    </div>
+                    <div className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+                      <Award className="h-3 w-3 lg:h-4 lg:w-4 text-yellow-300" />
+                      <span>Certificações</span>
+                    </div>
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleViewAllCourses}
+                  className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm font-medium px-4 lg:px-6 py-2 lg:py-3 rounded-lg lg:rounded-xl text-sm lg:text-base transition-all duration-300 hover:scale-105 shadow-lg"
+                >
+                  <BookOpen className="h-4 w-4 lg:h-5 lg:w-5 mr-1 lg:mr-2" />
+                  Ver meus cursos
+                </Button>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Navegação e Botão Novo Treinamento */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <Tabs defaultValue="relatorios" className="w-full sm:w-auto">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
-              <TabsTrigger value="estatisticas">Estatísticas</TabsTrigger>
-              <TabsTrigger value="treinamentos">Próximos Treinamentos</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          
-          {isAdmin && (
-            <Button className="bg-green-500 hover:bg-green-600 text-white font-semibold px-6 py-2 rounded-lg flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Novo Treinamento
-            </Button>
-          )}
-        </div>
+        <div className="px-4 lg:px-6 py-6 lg:py-8">
+          <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
 
-        {/* Conteúdo Principal */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Atividade Recente */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-gray-900 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-gray-600" />
-                Atividade Recente
-              </CardTitle>
-              <CardDescription className="text-gray-600">
-                Últimas ações dos usuários na plataforma
-              </CardDescription>
-            </CardHeader>
+            {/* Navegação e Botão Novo Treinamento */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <Tabs defaultValue="relatorios" className="w-full sm:w-auto">
+                <TabsList className="grid w-full grid-cols-3 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-lg">
+                  <TabsTrigger 
+                    value="relatorios"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+                  >
+                    Relatórios
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="estatisticas"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+                  >
+                    Estatísticas
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="treinamentos"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+                  >
+                    Próximos Treinamentos
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              
+              {isAdmin && (
+                <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-semibold px-6 py-2 rounded-lg flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-lg">
+                  <Settings className="h-4 w-4" />
+                  Novo Treinamento
+                </Button>
+              )}
+            </div>
+
+            {/* Conteúdo Principal */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Atividade Recente */}
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                  <CardTitle className="flex items-center gap-3 text-white font-bold text-xl">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <Clock className="h-6 w-6" />
+                    </div>
+                    <span>Atividade Recente</span>
+                  </CardTitle>
+                  <CardDescription className="text-blue-100 mt-2">
+                    Últimas ações dos usuários na plataforma
+                  </CardDescription>
+                </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {activitiesLoading ? (
@@ -183,17 +224,19 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Progresso por Categoria */}
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-gray-900 flex items-center gap-2">
-                <TrendingUp className="h-5 w-5 text-gray-600" />
-                Progresso por Categoria
-              </CardTitle>
-              <CardDescription className="text-gray-600">
-                Acompanhe o progresso dos seus cursos
-              </CardDescription>
-            </CardHeader>
+              {/* Progresso por Categoria */}
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                  <CardTitle className="flex items-center gap-3 text-white font-bold text-xl">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <TrendingUp className="h-6 w-6" />
+                    </div>
+                    <span>Progresso por Categoria</span>
+                  </CardTitle>
+                  <CardDescription className="text-blue-100 mt-2">
+                    Acompanhe o progresso dos seus cursos
+                  </CardDescription>
+                </CardHeader>
             <CardContent>
               <div className="space-y-6">
                 {progressLoading ? (
@@ -235,9 +278,17 @@ const Dashboard = () => {
             <DashboardStats />
             
             <Tabs defaultValue="overview" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-3">
-                <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-                <TabsTrigger value="tests">
+              <TabsList className="grid w-full grid-cols-2 lg:w-auto lg:grid-cols-3 bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-lg">
+                <TabsTrigger 
+                  value="overview"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+                >
+                  Visão Geral
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="tests"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white"
+                >
                   <Settings className="h-4 w-4 mr-2" />
                   Testes
                 </TabsTrigger>
@@ -280,7 +331,7 @@ const Dashboard = () => {
                 </div>
               </div>
             ) : (
-              <Card className="bg-gray-50 border-gray-200">
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
                 <CardContent className="p-6 text-center">
                   <div className="text-gray-600">
                     {coursesLoading ? (
@@ -297,10 +348,15 @@ const Dashboard = () => {
 
             {/* Progresso do Cliente */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-gray-900">Seu Progresso</CardTitle>
-                  <CardDescription className="text-gray-600">
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                  <CardTitle className="flex items-center gap-3 text-white font-bold text-xl">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <User className="h-6 w-6" />
+                    </div>
+                    <span>Seu Progresso</span>
+                  </CardTitle>
+                  <CardDescription className="text-blue-100 mt-2">
                     Acompanhe seu desenvolvimento
                   </CardDescription>
                 </CardHeader>
@@ -332,10 +388,15 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-gray-900">Categorias Disponíveis</CardTitle>
-                  <CardDescription className="text-gray-600">
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
+                <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                  <CardTitle className="flex items-center gap-3 text-white font-bold text-xl">
+                    <div className="p-2 bg-white/20 rounded-lg">
+                      <BookOpen className="h-6 w-6" />
+                    </div>
+                    <span>Categorias Disponíveis</span>
+                  </CardTitle>
+                  <CardDescription className="text-blue-100 mt-2">
                     Explore diferentes áreas de conhecimento
                   </CardDescription>
                 </CardHeader>
@@ -358,14 +419,16 @@ const Dashboard = () => {
           </div>
         )}
 
-        {/* Debug Info - apenas para desenvolvimento */}
-        {process.env.NODE_ENV === 'development' && isAdmin && (
-          <div className="flex flex-wrap gap-4">
-            <Button variant="outline" onClick={testCoursesLoading} className="bg-yellow-100 text-yellow-800">
-              🧪 Testar Cursos
-            </Button>
+            {/* Debug Info - apenas para desenvolvimento */}
+            {process.env.NODE_ENV === 'development' && isAdmin && (
+              <div className="flex flex-wrap gap-4">
+                <Button variant="outline" onClick={testCoursesLoading} className="bg-yellow-100 text-yellow-800">
+                  🧪 Testar Cursos
+                </Button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </ERALayout>
   );

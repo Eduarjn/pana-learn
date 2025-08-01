@@ -1,13 +1,20 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useBranding } from '@/context/BrandingContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Eye, EyeOff, GraduationCap } from 'lucide-react';
+import LinkedInLogin from './LinkedInLogin';
 
 export function AuthForm() {
   const { signIn, signUp } = useAuth();
+  const { branding } = useBranding();
+  
+  // Debug: verificar se o contexto está funcionando
+  console.log('🔍 AuthForm - branding:', branding);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [message, setMessage] = useState<string>('');
@@ -103,34 +110,35 @@ export function AuthForm() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background com livros e laptop desfocados */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-purple-900/20 to-indigo-900/20">
-        {/* Livro no lado esquerdo */}
-        <div className="absolute left-10 top-1/4 w-32 h-40 bg-white/20 backdrop-blur-sm rounded-lg transform rotate-12 shadow-2xl"></div>
-        
-        {/* Estantes de livros desfocadas */}
-        <div className="absolute left-20 top-1/3 w-48 h-64 bg-gradient-to-b from-amber-200/30 to-orange-300/30 backdrop-blur-md rounded-lg transform -rotate-6 shadow-xl"></div>
-        
-        {/* Laptop no lado direito */}
-        <div className="absolute right-20 top-1/3 w-56 h-40 bg-gray-800/30 backdrop-blur-sm rounded-lg transform rotate-3 shadow-2xl">
-          <div className="absolute inset-2 bg-blue-400/20 rounded"></div>
-        </div>
-        
-        {/* Elementos decorativos adicionais */}
-        <div className="absolute left-1/4 top-1/2 w-24 h-32 bg-green-200/20 backdrop-blur-sm rounded-lg transform -rotate-12"></div>
-        <div className="absolute right-1/4 bottom-1/4 w-20 h-28 bg-red-200/20 backdrop-blur-sm rounded-lg transform rotate-6"></div>
+      {/* Background com imagem do escritório moderno */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: 'url(/lovable-uploads/aafcc16a-d43c-4f66-9fa4-70da46d38ccb.png)'
+        }}
+      >
+        {/* Overlay escuro para contraste */}
+        <div className="absolute inset-0 bg-black/50"></div>
       </div>
-
-      {/* Overlay escuro para contraste */}
-      <div className="absolute inset-0 bg-black/40"></div>
 
       {/* Container principal */}
       <div className="relative z-10 w-full max-w-md">
         {/* Logo e título */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            ERA <span className="text-green-400">Learn</span>
-          </h1>
+          <div className="flex justify-center mb-4">
+            <img 
+              src={branding.mainLogoUrl} 
+              alt="ERA Learn Logo" 
+              className="w-32 h-32 object-contain rounded-full shadow-2xl border-4 border-white/20"
+              onError={(e) => {
+                console.error('❌ Erro ao carregar logo:', e);
+                e.currentTarget.src = "/lovable-uploads/92441561-a944-48ee-930e-7e3b16318673.png";
+              }}
+              onLoad={() => {
+                console.log('✅ Logo carregado com sucesso:', branding.mainLogoUrl);
+              }}
+            />
+          </div>
           <p className="text-white/80 text-sm">Plataforma de Ensino Online</p>
         </div>
 
@@ -198,7 +206,7 @@ export function AuthForm() {
                   placeholder="seu@email.com"
                 />
               </div>
-              <div>
+              <div className="relative">
                 <Input
                   name="password"
                   type={showPassword ? "text" : "password"}
@@ -228,6 +236,28 @@ export function AuthForm() {
                   'Entrar'
                 )}
               </Button>
+              
+              {/* Separador */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-white/20" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-transparent px-2 text-white/60">ou</span>
+                </div>
+              </div>
+              
+              {/* Login com LinkedIn */}
+              <LinkedInLogin 
+                onSuccess={(user) => {
+                  console.log('✅ Login LinkedIn realizado:', user);
+                }}
+                onError={(error) => {
+                  console.error('❌ Erro no login LinkedIn:', error);
+                  setError('Erro no login com LinkedIn');
+                }}
+                className="w-full"
+              />
             </form>
           )}
 
@@ -263,15 +293,15 @@ export function AuthForm() {
                 />
               </div>
               <div>
-                                  <select
-                    name="tipo_usuario"
-                    value={tipoUsuario}
-                    onChange={e => setTipoUsuario(e.target.value as 'admin' | 'cliente')}
-                    className="w-full bg-white/10 border-white/20 text-white rounded-lg px-4 py-3 focus:bg-white/15 focus:border-white/40 transition-all duration-200"
-                  >
-                    <option value="cliente" className="bg-gray-800 text-white">Cliente</option>
-                    <option value="admin" className="bg-gray-800 text-white">Administrador</option>
-                  </select>
+                <select
+                  name="tipo_usuario"
+                  value={tipoUsuario}
+                  onChange={e => setTipoUsuario(e.target.value as 'admin' | 'cliente')}
+                  className="w-full bg-white/10 border-white/20 text-white rounded-lg px-4 py-3 focus:bg-white/15 focus:border-white/40 transition-all duration-200"
+                >
+                  <option value="cliente" className="bg-gray-800 text-white">Cliente</option>
+                  <option value="admin" className="bg-gray-800 text-white">Administrador</option>
+                </select>
               </div>
               {tipoUsuario === 'admin' && (
                 <div>

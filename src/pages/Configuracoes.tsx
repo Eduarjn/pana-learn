@@ -10,7 +10,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Routes, Route, Outlet } from 'react-router-dom';
 import { usePreferences, FontSize, Language } from '../../frontend/src/context/PreferencesContext';
-import QuizConfig from './configuracoes/QuizConfig';
+import { useBranding } from '@/context/BrandingContext';
+
 
 // Componente Preferências
 const Preferencias = () => {
@@ -91,7 +92,7 @@ const Preferencias = () => {
 
 // Componente Conta
 const Conta = () => {
-  const { userProfile } = useAuth();
+  const { userProfile, updatePassword, updateAvatar, updateProfile } = useAuth();
   const { toast } = useToast();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -110,40 +111,87 @@ const Conta = () => {
       toast({ title: 'As senhas não coincidem', variant: 'destructive' });
       return;
     }
-    setChangingPassword(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email: userProfile.email, password: currentPassword });
-    if (signInError) {
-      toast({ title: 'Senha atual incorreta', variant: 'destructive' });
-      setChangingPassword(false);
+    if (newPassword.length < 6) {
+      toast({ title: 'Nova senha deve ter pelo menos 6 caracteres', variant: 'destructive' });
       return;
     }
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    
+    setChangingPassword(true);
+    const { error } = await updatePassword(currentPassword, newPassword);
     setChangingPassword(false);
+    
     if (error) {
       toast({ title: 'Erro ao alterar senha', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Senha alterada com sucesso!' });
-      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+      setCurrentPassword(''); 
+      setNewPassword(''); 
+      setConfirmPassword('');
     }
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    const fileExt = file.name.split('.').pop();
-    const filePath = `avatars/${userProfile.id}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file, { upsert: true });
-    if (uploadError) {
-      toast({ title: 'Erro ao fazer upload da foto', description: uploadError.message, variant: 'destructive' });
-      setUploading(false);
+    
+    // Validar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Arquivo inválido', description: 'Selecione apenas imagens', variant: 'destructive' });
       return;
     }
-    const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
-    setAvatarUrl(data.publicUrl);
-    await supabase.from('usuarios').update({ avatar_url: data.publicUrl }).eq('id', userProfile.id);
-    toast({ title: 'Foto de perfil atualizada!' });
-    setUploading(false);
+    
+    // Validar tamanho (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Arquivo muito grande', description: 'Selecione uma imagem menor que 5MB', variant: 'destructive' });
+      return;
+    }
+    
+    setUploading(true);
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `avatars/${userProfile?.id}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+        
+      if (uploadError) {
+        toast({ 
+          title: 'Erro ao fazer upload da foto', 
+          description: uploadError.message, 
+          variant: 'destructive' 
+        });
+        return;
+      }
+      
+      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath);
+      const newAvatarUrl = data.publicUrl;
+      
+      // Atualizar avatar usando a função do useAuth
+      const { error: updateError } = await updateAvatar(newAvatarUrl);
+      
+      if (updateError) {
+        toast({ 
+          title: 'Erro ao atualizar avatar', 
+          description: updateError.message, 
+          variant: 'destructive' 
+        });
+      } else {
+        setAvatarUrl(newAvatarUrl);
+        toast({ title: 'Foto atualizada com sucesso!' });
+      }
+      
+    } catch (error) {
+      console.error('Erro ao fazer upload:', error);
+      toast({ 
+        title: 'Erro inesperado', 
+        description: 'Tente novamente', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -199,6 +247,12 @@ const Conta = () => {
               id="nome" 
               defaultValue={userProfile?.nome || ''} 
               className="mt-1"
+              onChange={(e) => {
+                // Atualizar nome em tempo real
+                if (userProfile) {
+                  updateProfile({ nome: e.target.value });
+                }
+              }}
             />
           </div>
           <div>
@@ -265,10 +319,77 @@ const Conta = () => {
 // Componente WhiteLabel
 const WhiteLabel = () => {
   const { toast } = useToast();
+  const { branding, updateSubLogo, updateMainLogo, updateFavicon, updateColors } = useBranding();
+  const [subLogoFile, setSubLogoFile] = useState<File | null>(null);
+  const [subLogoPreview, setSubLogoPreview] = useState<string | null>(null);
+  const [mainLogoFile, setMainLogoFile] = useState<File | null>(null);
+  const [mainLogoPreview, setMainLogoPreview] = useState<string | null>(null);
+  const [faviconFile, setFaviconFile] = useState<File | null>(null);
+  const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+  const [primaryColor, setPrimaryColor] = useState(branding.primaryColor);
+  const [secondaryColor, setSecondaryColor] = useState(branding.secondaryColor);
   
+  const handleSubLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSubLogoFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSubLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleMainLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setMainLogoFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setMainLogoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFaviconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFaviconFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setFaviconPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSave = async () => {
     try {
-      localStorage.setItem('pana-learn-config', JSON.stringify({}));
+      if (subLogoFile) {
+        // Aqui você pode implementar o upload para o servidor
+        // Por enquanto, vamos usar o preview como URL
+        updateSubLogo(subLogoPreview || branding.subLogoUrl);
+      }
+      
+      if (mainLogoFile) {
+        // Aqui você pode implementar o upload para o servidor
+        // Por enquanto, vamos usar o preview como URL
+        updateMainLogo(mainLogoPreview || branding.mainLogoUrl);
+      }
+
+      if (faviconFile) {
+        // Aqui você pode implementar o upload para o servidor
+        // Por enquanto, vamos usar o preview como URL
+        updateFavicon(faviconPreview || branding.faviconUrl);
+      }
+
+      // Atualizar cores se foram alteradas
+      if (primaryColor !== branding.primaryColor || secondaryColor !== branding.secondaryColor) {
+        updateColors(primaryColor, secondaryColor);
+      }
+      
       toast({ 
         title: 'Configurações salvas com sucesso!', 
         description: 'As alterações foram aplicadas ao sistema.' 
@@ -287,49 +408,188 @@ const WhiteLabel = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Palette className="h-5 w-5" />
-          White-Label / Branding
+          White-Label / Branding da Empresa
         </CardTitle>
         <CardDescription>
-          Personalize a aparência da plataforma com sua marca
+          Personalize a aparência da plataforma com sua marca e identidade visual
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <Label className="text-sm font-medium">Logo da Empresa</Label>
-              <div className="mt-2">
-                <Button variant="outline" className="w-full">
-                  Upload Logo
+      <CardContent className="space-y-8">
+        {/* Logo Principal */}
+        <div className="space-y-4">
+          <div>
+            <Label className="text-sm font-medium">Logo Principal da Empresa</Label>
+            <div className="mt-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleMainLogoUpload}
+                className="hidden"
+                id="mainLogoUpload"
+              />
+              <label htmlFor="mainLogoUpload">
+                <Button variant="outline" className="w-full cursor-pointer">
+                  Upload Logo Principal
                 </Button>
-              </div>
-            </div>
-            <div>
-              <Label className="text-sm font-medium">Favicon</Label>
-              <div className="mt-2">
-                <Button variant="outline" className="w-full">
-                  Upload Favicon
-                </Button>
-              </div>
+              </label>
+              {(mainLogoPreview || branding.mainLogoUrl) && (
+                <div className="mt-2 flex items-center gap-4">
+                  <img 
+                    src={mainLogoPreview || branding.mainLogoUrl} 
+                    alt="Logo Principal" 
+                    className="w-20 h-20 object-contain rounded border bg-gray-50"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Logo Atual</p>
+                    <p className="text-xs text-gray-500">Aparece no cabeçalho, sidebar e tela de login</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-          <div className="space-y-4">
-            <div>
-              <Label className="text-sm font-medium">Cor Primária</Label>
-              <div className="mt-2">
-                <Input type="color" defaultValue="#3B82F6" className="w-full h-10" />
-              </div>
+        </div>
+
+        {/* Sublogotipo */}
+        <div className="space-y-4">
+          <div>
+            <Label className="text-sm font-medium">Sublogotipo ERA LEARN</Label>
+            <div className="mt-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleSubLogoUpload}
+                className="hidden"
+                id="subLogoUpload"
+              />
+              <label htmlFor="subLogoUpload">
+                <Button variant="outline" className="w-full cursor-pointer">
+                  Upload Sublogotipo
+                </Button>
+              </label>
+              {(subLogoPreview || branding.subLogoUrl) && (
+                <div className="mt-2 flex items-center gap-4">
+                  <img 
+                    src={subLogoPreview || branding.subLogoUrl} 
+                    alt="Sublogotipo" 
+                    className="w-12 h-12 object-contain rounded border bg-gray-50"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Sublogotipo Atual</p>
+                    <p className="text-xs text-gray-500">Aparece ao lado de "Smart Training" e "Plataforma de Ensino"</p>
+                  </div>
+                </div>
+              )}
             </div>
-            <div>
-              <Label className="text-sm font-medium">Cor Secundária</Label>
-              <div className="mt-2">
-                <Input type="color" defaultValue="#10B981" className="w-full h-10" />
+          </div>
+        </div>
+
+        {/* Favicon */}
+        <div className="space-y-4">
+          <div>
+            <Label className="text-sm font-medium">Favicon (Ícone da Aba)</Label>
+            <div className="mt-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFaviconUpload}
+                className="hidden"
+                id="faviconUpload"
+              />
+              <label htmlFor="faviconUpload">
+                <Button variant="outline" className="w-full cursor-pointer">
+                  Upload Favicon
+                </Button>
+              </label>
+              {(faviconPreview || branding.faviconUrl) && (
+                <div className="mt-2 flex items-center gap-4">
+                  <img 
+                    src={faviconPreview || branding.faviconUrl} 
+                    alt="Favicon" 
+                    className="w-8 h-8 object-contain rounded border bg-gray-50"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Favicon Atual</p>
+                    <p className="text-xs text-gray-500">Ícone que aparece na aba do navegador</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Cores */}
+        <div className="space-y-4">
+          <div>
+            <Label className="text-sm font-medium">Cores da Marca</Label>
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-gray-500">Cor Primária</Label>
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="w-10 h-10 rounded border cursor-pointer"
+                  />
+                  <Input
+                    value={primaryColor}
+                    onChange={(e) => setPrimaryColor(e.target.value)}
+                    className="flex-1"
+                    placeholder="#3B82F6"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Cor Secundária</Label>
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                    className="w-10 h-10 rounded border cursor-pointer"
+                  />
+                  <Input
+                    value={secondaryColor}
+                    onChange={(e) => setSecondaryColor(e.target.value)}
+                    className="flex-1"
+                    placeholder="#10B981"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Preview */}
+        <div className="space-y-4">
+          <div>
+            <Label className="text-sm font-medium">Preview das Configurações</Label>
+            <div className="mt-2 p-4 border rounded-lg bg-gray-50">
+              <div className="flex items-center gap-3 mb-2">
+                <img 
+                  src={mainLogoPreview || branding.mainLogoUrl} 
+                  alt="Preview Logo" 
+                  className="w-8 h-8 object-contain"
+                />
+                <span className="text-sm font-medium">ERA Learn</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-gray-600">
+                <span>Smart Training</span>
+                <img 
+                  src={subLogoPreview || branding.subLogoUrl} 
+                  alt="Preview Sub Logo" 
+                  className="w-4 h-4 object-contain"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Botão Salvar */}
         <div className="flex justify-end">
-          <Button onClick={handleSave}>Salvar Branding</Button>
+          <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">
+            Salvar Configurações de Branding
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -366,6 +626,7 @@ const Certificado = () => {
       try {
         // Simular busca de configurações existentes
         const mockConfig = {
+          templateFile: null,
           validade: 365,
           assinaturaDigital: true,
           qrCode: true,
@@ -934,8 +1195,8 @@ const Configuracoes = () => {
           <Route path="/preferencias" element={<Preferencias />} />
           <Route path="/conta" element={<Conta />} />
           <Route path="/whitelabel" element={<WhiteLabel />} />
-          <Route path="/certificado" element={<Certificado />} />
-          <Route path="/quiz" element={<QuizConfig />} />
+
+
           <Route path="/integracoes" element={<Integracoes />} />
           <Route path="/seguranca" element={<Seguranca />} />
         </Routes>

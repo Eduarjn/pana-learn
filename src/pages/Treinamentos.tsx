@@ -3,13 +3,14 @@ import { CourseCard } from '@/components/CourseCard';
 import { VideoUpload } from '@/components/VideoUpload';
 import { YouTubeEmbed } from '@/components/YouTubeEmbed';
 import { useCourses } from '@/hooks/useCourses';
+import type { Course } from '@/hooks/useCourses';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Filter, Plus, Video, Eye, Download, Youtube, Trash, BookOpen, Clock, Users, TrendingUp, Star, Award, Zap } from 'lucide-react';
+import { Search, Filter, Plus, Video, Eye, Download, Youtube, Trash, BookOpen, Clock, Users, TrendingUp, Star, Award, Zap, ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -30,6 +31,24 @@ type Video = Database['public']['Tables']['videos']['Row'] & {
     nome_modulo: string;
   };
 };
+
+interface CategoryGroup {
+  categoria: string;
+  cursos: Array<{
+    id: string;
+    nome: string;
+    descricao?: string;
+    categoria: string;
+    status: string;
+    imagem_url?: string | null;
+    categorias?: { nome: string; cor: string };
+    categoria_id?: string;
+    ordem?: number;
+  }>;
+  totalHoras: number;
+  niveis: string[];
+  cursosAtivos: number;
+}
 
 const Treinamentos = () => {
   const { data: courses = [], isLoading, error, refetch } = useCourses();
@@ -192,6 +211,51 @@ const Treinamentos = () => {
 
   // Obter categorias únicas
   const categories = Array.from(new Set(courses.map(course => course.categoria)));
+
+  const getCoursesByCategory = (): CategoryGroup[] => {
+    const categoryGroups: { [key: string]: CategoryGroup } = {};
+
+    filteredCourses.forEach(course => {
+      if (!categoryGroups[course.categoria]) {
+        categoryGroups[course.categoria] = {
+          categoria: course.categoria,
+          cursos: [],
+          totalHoras: 0,
+          niveis: [],
+          cursosAtivos: 0
+        };
+      }
+
+      categoryGroups[course.categoria].cursos.push(course);
+      
+      // Calcular horas estimadas baseado no nível
+      const level = getVisualProp(course, 'level', 'Iniciante');
+      const horas = level === 'Avançado' ? 5 : level === 'Intermediário' ? 3 : 2;
+      categoryGroups[course.categoria].totalHoras += horas;
+
+      // Adicionar nível se não existir
+      if (!categoryGroups[course.categoria].niveis.includes(level)) {
+        categoryGroups[course.categoria].niveis.push(level);
+      }
+
+      // Contar cursos ativos
+      if (course.status === 'ativo') {
+        categoryGroups[course.categoria].cursosAtivos++;
+      }
+    });
+
+    return Object.values(categoryGroups).sort((a, b) => 
+      b.cursos.length - a.cursos.length
+    );
+  };
+
+  const handleViewCategoryCourses = (categoryGroup: CategoryGroup) => {
+    // Filtrar cursos apenas desta categoria
+    setSelectedCategory(categoryGroup.categoria);
+    setSearchTerm('');
+    
+    // Removido o scroll automático para deixar a transição mais suave
+  };
 
   const handleStartCourse = (courseId: string) => {
     // Se for um curso mock, não navegar
@@ -373,8 +437,11 @@ const Treinamentos = () => {
   if (isLoading) {
     return (
       <ERALayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-green-50 flex items-center justify-center p-4">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-10 w-10 lg:h-12 lg:w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-3 lg:mb-4"></div>
+            <p className="text-gray-600 text-sm lg:text-base">Carregando treinamentos...</p>
+          </div>
         </div>
       </ERALayout>
     );
@@ -383,8 +450,14 @@ const Treinamentos = () => {
   if (error) {
     return (
       <ERALayout>
-        <div className="text-center py-8">
-          <p className="text-red-500">Erro ao carregar treinamentos. Tente novamente.</p>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-green-50 flex items-center justify-center p-4">
+          <div className="text-center py-6 lg:py-8">
+            <div className="w-16 h-16 lg:w-20 lg:h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BookOpen className="h-8 w-8 lg:h-10 lg:w-10 text-red-500" />
+            </div>
+            <p className="text-red-500 text-sm lg:text-base mb-2">Erro ao carregar treinamentos.</p>
+            <p className="text-gray-500 text-xs lg:text-sm">Tente recarregar a página ou entre em contato com o suporte.</p>
+          </div>
         </div>
       </ERALayout>
     );
@@ -403,82 +476,81 @@ const Treinamentos = () => {
         )}
 
         {/* Hero Section com gradiente */}
-        <div className="page-hero w-full rounded-2xl flex flex-col md:flex-row justify-between items-center p-8 mb-8 shadow-md" style={{background: 'linear-gradient(90deg, #7C3AED 0%, #2563EB 40%, #CCFF00 100%)'}}>
-          <div className="px-6 py-8 md:py-12 w-full">
+        <div className="page-hero w-full rounded-xl lg:rounded-2xl flex flex-col md:flex-row justify-between items-center p-4 lg:p-8 mb-6 lg:mb-8 shadow-md" style={{background: 'linear-gradient(90deg, #7C3AED 0%, #2563EB 40%, #CCFF00 100%)'}}>
+          <div className="px-4 lg:px-6 py-6 lg:py-8 md:py-12 w-full">
             <div className="max-w-7xl mx-auto">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 lg:gap-6">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-yellow-200">Plataforma de Ensino</span>
+                    <span className="text-xs lg:text-sm font-medium text-yellow-200">Plataforma de Ensino</span>
                   </div>
-                  <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 bg-gradient-to-r from-white to-yellow-200 bg-clip-text text-transparent">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 lg:mb-3 bg-gradient-to-r from-white to-yellow-200 bg-clip-text text-transparent">
                     Treinamentos
                   </h1>
-                  <p className="text-lg md:text-xl text-blue-100 max-w-2xl">
+                  <p className="text-sm sm:text-base lg:text-lg md:text-xl text-blue-100 max-w-2xl">
                     Explore nossos cursos de PABX e Omnichannel com conteúdo exclusivo e atualizado
                   </p>
-                  <div className="flex items-center gap-4 mt-4">
-                    <div className="flex items-center gap-2 text-sm">
-                      <BookOpen className="h-4 w-4 text-yellow-300" />
+                  <div className="flex flex-wrap items-center gap-2 lg:gap-4 mt-3 lg:mt-4">
+                    <div className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+                      <BookOpen className="h-3 w-3 lg:h-4 lg:w-4 text-yellow-300" />
                       <span>{filteredCourses.length} cursos disponíveis</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-yellow-300" />
+                    <div className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+                      <Clock className="h-3 w-3 lg:h-4 lg:w-4 text-yellow-300" />
                       <span>+50 horas de conteúdo</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <Users className="h-4 w-4 text-yellow-300" />
+                    <div className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
+                      <Users className="h-3 w-3 lg:h-4 lg:w-4 text-yellow-300" />
                       <span>1000+ alunos</span>
                     </div>
                   </div>
                 </div>
                 {isAdmin && (
                   <Button 
-                    className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm font-medium px-6 py-3 rounded-xl text-base transition-all duration-300 hover:scale-105 shadow-lg"
+                    className="bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm font-medium px-4 lg:px-6 py-2 lg:py-3 rounded-lg lg:rounded-xl text-sm lg:text-base transition-all duration-300 hover:scale-105 shadow-lg w-full sm:w-auto"
                     onClick={() => setShowUpload(true)}
                   >
-                    <Plus className="h-5 w-5 mr-2" />
+                    <Plus className="h-4 w-4 lg:h-5 lg:w-5 mr-1 lg:mr-2" />
                     Importar Vídeo
                   </Button>
                 )}
               </div>
             </div>
           </div>
-          
         </div>
 
-        <div className="px-6 py-8">
-          <div className="max-w-7xl mx-auto space-y-8">
+        <div className="px-4 lg:px-6 py-6 lg:py-8">
+          <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
             {/* Tabs com design melhorado */}
             <Tabs defaultValue="courses" className="w-full">
-              <TabsList className="w-full lg:w-auto bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl p-1 shadow-lg">
+              <TabsList className="w-full lg:w-auto bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg lg:rounded-xl p-1 shadow-lg">
                 <TabsTrigger 
                   value="courses" 
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-lg transition-all duration-300"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white rounded-md lg:rounded-lg transition-all duration-300 text-sm lg:text-base"
                 >
-                  <BookOpen className="h-4 w-4 mr-2" />
+                  <BookOpen className="h-3 w-3 lg:h-4 lg:w-4 mr-1 lg:mr-2" />
                   Cursos Disponíveis
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="courses" className="space-y-6 mt-6">
+              <TabsContent value="courses" className="space-y-4 lg:space-y-6 mt-4 lg:mt-6">
                 {/* Filtros com design melhorado */}
                 <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col sm:flex-row gap-4">
+                  <CardContent className="p-4 lg:p-6">
+                    <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
                       <div className="relative flex-1">
-                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                        <Search className="absolute left-3 lg:left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 lg:h-5 lg:w-5" />
                         <Input
                           placeholder="Pesquisar cursos..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-12 h-12 text-base border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-all duration-300"
+                          className="pl-10 lg:pl-12 h-10 lg:h-12 text-sm lg:text-base border-2 border-gray-200 focus:border-blue-500 rounded-lg lg:rounded-xl transition-all duration-300"
                         />
                       </div>
                       <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                        <SelectTrigger className="w-full sm:w-56 h-12 border-2 border-gray-200 focus:border-blue-500 rounded-xl transition-all duration-300">
-                          <Filter className="h-5 w-5 mr-2 text-gray-400" />
+                        <SelectTrigger className="w-full sm:w-48 lg:w-56 h-10 lg:h-12 border-2 border-gray-200 focus:border-blue-500 rounded-lg lg:rounded-xl transition-all duration-300">
+                          <Filter className="h-4 w-4 lg:h-5 lg:w-5 mr-2 text-gray-400" />
                           <SelectValue placeholder="Categoria" />
                         </SelectTrigger>
                         <SelectContent>
@@ -622,13 +694,13 @@ const Treinamentos = () => {
                   </Card>
                 )}
 
-                {/* Cursos com design melhorado */}
+                {/* Cursos agrupados por categoria */}
                 {filteredCourses.length === 0 ? (
-                  <div className="text-center py-16">
-                    <div className="w-24 h-24 bg-gradient-to-r from-gray-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                      <BookOpen className="h-12 w-12 text-gray-400" />
+                  <div className="text-center py-12 px-4">
+                    <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <BookOpen className="h-10 w-10 text-gray-400" />
                     </div>
-                    <p className="text-gray-500 text-lg mb-2">
+                    <p className="text-gray-500 text-base mb-2">
                       {courses.length === 0 
                         ? 'Nenhum curso disponível no momento.' 
                         : 'Nenhum curso encontrado com os filtros aplicados.'}
@@ -636,63 +708,187 @@ const Treinamentos = () => {
                     <p className="text-gray-400 text-sm">Tente ajustar os filtros de pesquisa</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredCourses.map((course, index) => {
-                      // Garantir que todos os campos obrigatórios de Course existem
-                      const safeCourse = {
-                        id: course.id,
-                        nome: course.nome,
-                        descricao: course.descricao || '',
-                        categoria: course.categoria || '',
-                        status: course.status || 'ativo',
-                        imagem_url: course.imagem_url || null,
-                        categorias: course.categorias || { nome: '', cor: '' },
-                        categoria_id: course.categoria_id || '',
-                        ordem: course.ordem || 0,
-                        // ...outros campos obrigatórios do tipo Course, se houver
-                      };
-                      return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                    {getCoursesByCategory().map((categoryGroup) => (
+                      <Card key={categoryGroup.categoria} className="hover:shadow-lg transition-shadow h-full">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-base lg:text-lg font-semibold text-gray-900 mb-2 truncate">
+                                {categoryGroup.categoria}
+                              </CardTitle>
+                              <div className="flex flex-wrap items-center gap-1 mb-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {categoryGroup.cursos.length} curso{categoryGroup.cursos.length !== 1 ? 's' : ''}
+                                </Badge>
+                                <Badge variant="outline" className="text-xs">
+                                  {categoryGroup.totalHoras}+ horas
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0 ml-2">
+                              <BookOpen className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
+                            </div>
+                          </div>
+                        </CardHeader>
+
+                        <CardContent className="space-y-3">
+                          <div className="space-y-2">
+                            <div className="flex items-center text-xs lg:text-sm text-gray-600">
+                              <BookOpen className="h-3 w-3 lg:h-4 lg:w-4 mr-2 flex-shrink-0" />
+                              <span className="font-medium">Categoria:</span>
+                              <span className="ml-1 truncate">{categoryGroup.categoria}</span>
+                            </div>
+
+                            <div className="flex items-center text-xs lg:text-sm text-gray-600">
+                              <Clock className="h-3 w-3 lg:h-4 lg:w-4 mr-2 flex-shrink-0" />
+                              <span className="font-medium">Total de horas:</span>
+                              <span className="ml-1">{categoryGroup.totalHoras}+ horas</span>
+                            </div>
+
+                            <div className="flex items-center text-xs lg:text-sm text-gray-600">
+                              <Users className="h-3 w-3 lg:h-4 lg:w-4 mr-2 flex-shrink-0" />
+                              <span className="font-medium">Níveis:</span>
+                              <span className="ml-1 truncate">{categoryGroup.niveis.join(', ')}</span>
+                            </div>
+
+                            <div className="flex items-center text-xs lg:text-sm text-gray-600">
+                              <Star className="h-3 w-3 lg:h-4 lg:w-4 mr-2 flex-shrink-0" />
+                              <span className="font-medium">Status:</span>
+                              <span className="ml-1">{categoryGroup.cursosAtivos} ativos</span>
+                            </div>
+                          </div>
+
+                          {/* Lista de cursos da categoria */}
+                          <div className="bg-gray-50 p-2 lg:p-3 rounded-lg">
+                            <div className="text-xs lg:text-sm font-medium text-gray-700 mb-2">Cursos disponíveis:</div>
+                            <div className="space-y-1 lg:space-y-2">
+                              {categoryGroup.cursos.slice(0, 3).map((course) => (
+                                <div key={course.id} className="flex items-center justify-between text-xs lg:text-sm">
+                                  <span className="text-gray-600 truncate flex-1 mr-2">{course.nome}</span>
+                                  <Badge className="text-xs flex-shrink-0" variant="outline">
+                                    {getVisualProp(course, 'level', 'Iniciante')}
+                                  </Badge>
+                                </div>
+                              ))}
+                              {categoryGroup.cursos.length > 3 && (
+                                <div className="text-xs text-gray-500 text-center pt-1">
+                                  +{categoryGroup.cursos.length - 3} mais cursos
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="pt-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewCategoryCourses(categoryGroup)}
+                              className="w-full text-xs lg:text-sm"
+                            >
+                              <Eye className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                              Ver Cursos
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+
+                    {/* Card para Adicionar Novo Curso - Apenas para admins */}
+                    {isAdmin && (
+                      <Card className="hover:shadow-lg transition-shadow border-2 border-dashed border-gray-300 bg-gray-50 h-full">
+                        <CardContent className="p-6 lg:p-8 text-center">
+                          <div className="flex flex-col items-center justify-center h-full">
+                            <div className="w-12 h-12 lg:w-16 lg:h-16 bg-green-100 rounded-full flex items-center justify-center mb-3 lg:mb-4">
+                              <Plus className="h-6 w-6 lg:h-8 lg:w-8 text-green-600" />
+                            </div>
+                            <h3 className="text-sm lg:text-lg font-semibold text-gray-900 mb-2">
+                              Adicionar Novo Curso
+                            </h3>
+                            <p className="text-xs lg:text-sm text-gray-600 mb-3 lg:mb-4">
+                              Crie um novo curso de treinamento
+                            </p>
+                            <Button
+                              variant="outline"
+                              className="border-green-300 text-green-700 hover:bg-green-50 text-xs lg:text-sm"
+                              disabled
+                            >
+                              <Plus className="h-3 w-3 lg:h-4 lg:w-4 mr-1" />
+                              Criar Curso
+                            </Button>
+                            <p className="text-xs text-gray-500 mt-2">
+                              Disponível para administradores
+                            </p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                )}
+
+                {/* Cursos individuais quando categoria está filtrada */}
+                {selectedCategory !== 'all' && filteredCourses.length > 0 && (
+                  <div className="mt-6">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+                      <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
+                        Cursos - {selectedCategory}
+                      </h2>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setSelectedCategory('all');
+                          setSearchTerm('');
+                        }}
+                        className="flex items-center gap-2 w-full sm:w-auto"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Voltar para Categorias
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                      {filteredCourses.map((course, index) => (
                         <CourseCard
-                          key={safeCourse.id}
-                          course={safeCourse}
+                          key={course.id}
+                          course={course as unknown as Course}
                           onStartCourse={handleStartCourse}
                         />
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
                 )}
               </TabsContent>
             </Tabs>
 
             {/* Estatísticas com design melhorado */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-xl">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <BookOpen className="h-8 w-8 text-white" />
+                <CardContent className="p-4 lg:p-6 text-center">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                    <BookOpen className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
                   </div>
-                  <div className="text-3xl font-bold text-yellow-300 mb-2">{courses.length}</div>
-                  <p className="text-blue-100 font-medium">Cursos Disponíveis</p>
+                  <div className="text-2xl lg:text-3xl font-bold text-yellow-300 mb-1 lg:mb-2">{courses.length}</div>
+                  <p className="text-blue-100 font-medium text-sm lg:text-base">Cursos Disponíveis</p>
                 </CardContent>
               </Card>
 
               <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0 shadow-xl">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <TrendingUp className="h-8 w-8 text-white" />
+                <CardContent className="p-4 lg:p-6 text-center">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                    <TrendingUp className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
                   </div>
-                  <div className="text-3xl font-bold text-yellow-300 mb-2">{categories.length}</div>
-                  <p className="text-purple-100 font-medium">Categorias</p>
+                  <div className="text-2xl lg:text-3xl font-bold text-yellow-300 mb-1 lg:mb-2">{categories.length}</div>
+                  <p className="text-purple-100 font-medium text-sm lg:text-base">Categorias</p>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-xl">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Clock className="h-8 w-8 text-white" />
+              <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0 shadow-xl sm:col-span-2 lg:col-span-1">
+                <CardContent className="p-4 lg:p-6 text-center">
+                  <div className="w-12 h-12 lg:w-16 lg:h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                    <Clock className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
                   </div>
-                  <div className="text-3xl font-bold text-yellow-300 mb-2">{isAdmin ? videos.length : '50+'}</div>
-                  <p className="text-green-100 font-medium">
+                  <div className="text-2xl lg:text-3xl font-bold text-yellow-300 mb-1 lg:mb-2">{isAdmin ? videos.length : '50+'}</div>
+                  <p className="text-green-100 font-medium text-sm lg:text-base">
                     {isAdmin ? 'Vídeos Importados' : 'Horas de Conteúdo'}
                   </p>
                 </CardContent>

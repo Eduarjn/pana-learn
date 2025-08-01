@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --primary-color: #3B82F6;
+  --secondary-color: #10B981;
+}
+
+/* Aplicar cores de branding */
+.bg-brand-primary {
+  background-color: var(--primary-color);
+}
+
+.bg-brand-secondary {
+  background-color: var(--secondary-color);
+}
+
+.text-brand-primary {
+  color: var(--primary-color);
+}
+
+.text-brand-secondary {
+  color: var(--secondary-color);
+}
+
+.border-brand-primary {
+  border-color: var(--primary-color);
+}
+
+.border-brand-secondary {
+  border-color: var(--secondary-color);
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
 
 @layer base {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { useBranding } from '@/context/BrandingContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,6 +43,7 @@ interface CertificateData {
 const Certificado: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { userProfile } = useAuth();
+  const { branding } = useBranding();
   const navigate = useNavigate();
   const [certificate, setCertificate] = useState<CertificateData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -113,7 +115,7 @@ const Certificado: React.FC = () => {
     if (!certificate) return;
 
     const shareUrl = `${window.location.origin}/certificado/${certificate.id}`;
-    const shareText = `🎉 ${certificate.usuario?.nome} concluiu o curso ${certificate.categoria_nome} na ERA Learn com ${certificate.nota}% de aproveitamento!`;
+    const shareText = `🎉 ${certificate.usuario?.nome} concluiu o curso ${certificate.categoria_nome} com ${certificate.nota}% de aproveitamento!`;
     
     try {
       switch (platform) {
@@ -223,8 +225,11 @@ const Certificado: React.FC = () => {
               {/* Cabeçalho */}
               <div className="text-center mb-8 relative z-10">
                 <div className="flex items-center justify-center gap-3 mb-4">
-                  <Award className="w-12 h-12 text-blue-600" />
-                  <h1 className="text-3xl font-bold text-blue-800">ERA Learn</h1>
+                  <img 
+                    src={branding.mainLogoUrl} 
+                    alt="ERA Learn Logo" 
+                    className="h-16 w-auto object-contain"
+                  />
                 </div>
                 <h2 className="text-2xl font-semibold text-gray-800 mb-2">
                   Certificado de Conclusão

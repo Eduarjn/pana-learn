@@ -1,4 +1,5 @@
 import { useAuth } from '@/hooks/useAuth';
+import { useBranding } from '@/context/BrandingContext';
 import { ERALayout } from '@/components/ERALayout';
 import { AuthForm } from '@/components/AuthForm';
 import { useEffect } from 'react';
@@ -6,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
   const { user, loading, userProfile } = useAuth();
+  const { branding } = useBranding();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,17 +49,17 @@ const Index = () => {
     <ERALayout>
       <div className="space-y-6">
         <div className="text-center">
-          <div className="flex items-center justify-center gap-3 mb-4">
+                      <div className="flex items-center justify-center gap-3 mb-4">
             <div className="w-12 h-12 bg-era-lime rounded-lg flex items-center justify-center">
               <img 
-                src="/lovable-uploads/92441561-a944-48ee-930e-7e3b16318673.png" 
+                src={branding.mainLogoUrl} 
                 alt="Platform Symbol" 
-                className="w-8 h-8"
+                className="w-8 h-8 object-contain"
               />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-high-contrast">
-                Bem-vindo ao ERA Learn
+                Bem-vindo
               </h1>
               <p className="text-era-lime text-base font-semibold mt-2">
                 Aprenda com seu parceiro de confiança, usando métodos modernos e inteligentes.

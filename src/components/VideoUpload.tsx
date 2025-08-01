@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Video, X } from 'lucide-react';
+import { Upload, Video, X, Youtube } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
@@ -16,6 +16,8 @@ interface VideoUploadProps {
   onSuccess: () => void;
 }
 
+type VideoSource = 'upload' | 'youtube';
+
 export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
   const { userProfile } = useAuth();
   const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useCourses();
@@ -23,6 +25,7 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
   const { data: modules = [], isLoading: modulesLoading } = useCourseModules(selectedCourseId);
   const [selectedModuleId, setSelectedModuleId] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<VideoSource>('upload');
   const [videoData, setVideoData] = useState({
     titulo: '',
     descricao: '',
@@ -30,6 +33,7 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
   });
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState('');
 
   // Debug logs
   console.log('🔍 VideoUpload - Estado dos cursos:', {
@@ -218,15 +222,6 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!videoFile) {
-      toast({
-        title: "Erro",
-        description: "Selecione um arquivo de vídeo.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     if (!selectedCourseId) {
       toast({
         title: "Erro",
@@ -236,12 +231,40 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
       return;
     }
 
+    if (activeTab === 'upload' && !videoFile) {
+      toast({
+        title: "Erro",
+        description: "Selecione um arquivo de vídeo.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (activeTab === 'youtube' && !youtubeUrl) {
+      toast({
+        title: "Erro",
+        description: "Insira a URL do vídeo do YouTube.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setUploading(true);
 
     try {
-      // Upload do vídeo
-      const videoPath = `videos/${Date.now()}_${videoFile.name}`;
-      const videoUrl = await uploadFile(videoFile, 'training-videos', videoPath);
+      let videoUrl = '';
+      let storagePath = '';
+
+      if (activeTab === 'upload') {
+        // Upload do vídeo
+        const videoPath = `videos/${Date.now()}_${videoFile!.name}`;
+        videoUrl = await uploadFile(videoFile!, 'training-videos', videoPath);
+        storagePath = videoPath;
+      } else {
+        // YouTube URL
+        videoUrl = youtubeUrl;
+        storagePath = `youtube/${Date.now()}_${videoData.titulo.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      }
 
       // Upload da thumbnail (se fornecida)
       let thumbnailUrl = '';
@@ -262,14 +285,15 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
           categoria: courseCategory,
           curso_id: selectedCourseId,
           modulo_id: selectedModuleId || null,
-          storage_path: videoPath
+          storage_path: storagePath,
+          source: activeTab
         });
 
       if (insertError) throw insertError;
 
       toast({
         title: "Sucesso",
-        description: "Vídeo enviado com sucesso!",
+        description: `Vídeo ${activeTab === 'upload' ? 'enviado' : 'importado'} com sucesso!`,
       });
 
       onSuccess();
@@ -278,7 +302,7 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
       console.error('Erro no upload:', error);
       toast({
         title: "Erro",
-        description: "Erro ao enviar o vídeo. Tente novamente.",
+        description: `Erro ao ${activeTab === 'upload' ? 'enviar' : 'importar'} o vídeo. Tente novamente.`,
         variant: "destructive"
       });
     } finally {
@@ -303,6 +327,34 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Abas */}
+        <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('upload')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+              activeTab === 'upload'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Upload className="h-4 w-4" />
+            Upload
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('youtube')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+              activeTab === 'youtube'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Youtube className="h-4 w-4" />
+            YouTube
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -380,50 +432,105 @@ export function VideoUpload({ onClose, onSuccess }: VideoUploadProps) {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="video">Arquivo de Vídeo *</Label>
-              <div className="flex items-center gap-2">
+          {/* Aba Upload */}
+          {activeTab === 'upload' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="video">Arquivo de Vídeo *</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="video"
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => handleFileChange(e, 'video')}
+                    required
+                  />
+                  {videoFile && (
+                    <span className="text-sm text-green-600">✓</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">Formatos aceitos: MP4, MOV, AVI, etc.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="thumbnail">Thumbnail (opcional)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="thumbnail"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e, 'thumbnail')}
+                  />
+                  {thumbnailFile && (
+                    <span className="text-sm text-green-600">✓</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">Imagem de capa do vídeo</p>
+              </div>
+            </div>
+          )}
+
+          {/* Aba YouTube */}
+          {activeTab === 'youtube' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="youtube-url">URL do Vídeo do YouTube *</Label>
                 <Input
-                  id="video"
-                  type="file"
-                  accept="video/*"
-                  onChange={(e) => handleFileChange(e, 'video')}
+                  id="youtube-url"
+                  type="url"
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
                   required
                 />
-                {videoFile && (
-                  <span className="text-sm text-green-600">✓</span>
-                )}
+                <p className="text-xs text-gray-500">Cole a URL completa do vídeo do YouTube</p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="thumbnail-youtube">Thumbnail (opcional)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="thumbnail-youtube"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e, 'thumbnail')}
+                  />
+                  {thumbnailFile && (
+                    <span className="text-sm text-green-600">✓</span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">Imagem de capa personalizada (opcional)</p>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="thumbnail">Thumbnail (opcional)</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="thumbnail"
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleFileChange(e, 'thumbnail')}
-                />
-                {thumbnailFile && (
-                  <span className="text-sm text-green-600">✓</span>
-                )}
-              </div>
-            </div>
-          </div>
+          )}
 
           <div className="flex gap-2 pt-4">
             <Button
               type="submit"
-              disabled={uploading || !selectedCourseId || !videoData.titulo || !videoData.duracao || !videoFile}
+              disabled={
+                uploading || 
+                !selectedCourseId || 
+                !videoData.titulo || 
+                !videoData.duracao || 
+                (activeTab === 'upload' && !videoFile) ||
+                (activeTab === 'youtube' && !youtubeUrl)
+              }
               className="era-lime-button flex-1"
             >
               {uploading ? (
                 <>Enviando...</>
               ) : (
                 <>
-                  <Upload className="mr-2 h-4 w-4" />
-                  Importar Vídeo
+                  {activeTab === 'upload' ? (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Importar Vídeo
+                    </>
+                  ) : (
+                    <>
+                      <Youtube className="mr-2 h-4 w-4" />
+                      Importar do YouTube
+                    </>
+                  )}
                 </>
               )}
             </Button>

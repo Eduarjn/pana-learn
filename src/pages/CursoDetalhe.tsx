@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCourseModules, useCourses } from '@/hooks/useCourses';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import type { Module } from '@/hooks/useCourses';
+import type { Module, Course } from '@/hooks/useCourses';
 import type { Database } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, CheckCircle, Play, Clock, PlusCircle } from 'lucide-react';
@@ -13,12 +13,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { VideoPlayerWithProgress } from '@/components/VideoPlayerWithProgress';
 import { VideoChecklist } from '@/components/VideoChecklist';
 import { QuizModal } from '@/components/QuizModal';
+import { CourseQuizModal } from '@/components/CourseQuizModal';
 import { CourseCompletionModal } from '@/components/CourseCompletionModal';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import CommentsSection from '@/components/CommentsSection';
 import { useQuiz } from '@/hooks/useQuiz';
+import { toast } from '@/components/ui/use-toast';
 
 // Adicionar tipo auxiliar para vídeo com modulo_id e categoria
 type VideoWithModulo = Database['public']['Tables']['videos']['Row'] & {
@@ -96,17 +98,14 @@ const CursoDetalhe = () => {
   const [editingModuleId, setEditingModuleId] = React.useState<string | null>(null);
   const [editTitle, setEditTitle] = React.useState('');
   const [editDesc, setEditDesc] = React.useState('');
-  const [showImportDialog, setShowImportDialog] = React.useState<string | null>(null);
-  const [importUrl, setImportUrl] = React.useState('');
-  const [showClientView, setShowClientView] = React.useState<string | null>(null);
-  const [attachments, setAttachments] = React.useState<Record<string, unknown[]>>({}); // para anexos futuros
-  const [progressAvg, setProgressAvg] = React.useState<Record<string, number>>({});
+  const [currentCourse, setCurrentCourse] = React.useState<Course | null>(null);
+  const [totalVideos, setTotalVideos] = React.useState(0);
+  const [completedVideos, setCompletedVideos] = React.useState(0);
   const [showQuizModal, setShowQuizModal] = React.useState(false);
-  const [showCompletionModal, setShowCompletionModal] = React.useState(false);
-  const [quizNota, setQuizNota] = React.useState(0);
+  const [quizCompleted, setQuizCompleted] = React.useState(false);
   const { data: allCourses = [] } = useCourses();
-  const currentCourse = allCourses.find(c => c.id === id);
-  const currentCategory = currentCourse?.categoria;
+  const currentCourseData = allCourses.find(c => c.id === id);
+  const currentCategory = currentCourseData?.categoria;
   
   // Hook para gerenciar quiz e certificado
   const { 
@@ -115,6 +114,82 @@ const CursoDetalhe = () => {
     certificate, 
     generateCertificate 
   } = useQuiz(userId, currentCategory);
+
+  // Calcular progresso do curso
+  const calculateCourseProgress = React.useCallback(async () => {
+    if (!id || !userId) return;
+
+    try {
+      // Buscar todos os vídeos do curso
+      const { data: allVideos } = await supabase
+        .from('videos')
+        .select('id')
+        .eq('curso_id', id);
+
+      if (!allVideos) return;
+
+      const total = allVideos.length;
+      setTotalVideos(total);
+
+      // Buscar progresso dos vídeos
+      const videoIds = allVideos.map(v => v.id);
+      const { data: progress } = await supabase
+        .from('video_progress')
+        .select('video_id, concluido')
+        .eq('usuario_id', userId)
+        .in('video_id', videoIds);
+
+      if (progress) {
+        const completed = progress.filter(p => p.concluido).length;
+        setCompletedVideos(completed);
+      }
+    } catch (error) {
+      console.error('Erro ao calcular progresso do curso:', error);
+    }
+  }, [id, userId]);
+
+  // Carregar progresso inicial
+  React.useEffect(() => {
+    calculateCourseProgress();
+  }, [calculateCourseProgress]);
+
+  const handleCourseComplete = React.useCallback(async () => {
+    if (!userId || !id) return;
+    
+    try {
+      // Verificar se todos os vídeos foram concluídos
+      const allVideosCompleted = videos.every(video => {
+        const videoProgress = progress[video.id];
+        return videoProgress?.status === 'concluido';
+      });
+
+      if (allVideosCompleted && !quizCompleted) {
+        // Mostrar modal de quiz
+        setShowQuizModal(true);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar conclusão do curso:', error);
+    }
+  }, [userId, id, videos, progress, quizCompleted]);
+
+  const handleQuizComplete = React.useCallback((nota: number, aprovado: boolean) => {
+    setQuizCompleted(true);
+    setShowQuizModal(false);
+    
+    if (aprovado) {
+      toast({
+        title: "Parabéns! 🎉",
+        description: `Você foi aprovado no quiz com ${nota}%!`,
+        variant: "default"
+      });
+    } else {
+      toast({
+        title: "Continue estudando",
+        description: `Sua nota foi ${nota}%. Tente novamente!`,
+        variant: "destructive"
+      });
+    }
+  }, []);
 
   React.useEffect(() => {
     if (!id || !userId) return;
@@ -162,7 +237,7 @@ const CursoDetalhe = () => {
       Object.entries(map).forEach(([modId, arr]) => {
         avg[modId] = arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
       });
-      setProgressAvg(avg);
+      // Progresso calculado
     };
     if (isAdmin) fetchProgress();
   }, [id, isAdmin, refresh]);
@@ -176,23 +251,6 @@ const CursoDetalhe = () => {
       setShowQuizModal(true);
     }
   }, [isCourseCompleted, certificate, quizConfig]);
-
-  const handleQuizSuccess = async (nota: number) => {
-    setQuizNota(nota);
-    setShowQuizModal(false);
-    
-    try {
-      // Gerar certificado
-      await generateCertificate(nota);
-      setShowCompletionModal(true);
-    } catch (error) {
-      console.error('Erro ao gerar certificado:', error);
-    }
-  };
-
-  const handleQuizFail = () => {
-    setShowQuizModal(false);
-  };
 
   const handleViewCertificate = () => {
     if (certificate) {
@@ -217,12 +275,12 @@ const CursoDetalhe = () => {
               <Play className="w-8 h-8 text-era-dark-blue" />
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold text-era-dark-blue">{currentCourse?.nome || 'Detalhes do Curso'}</h1>
-              {currentCourse?.descricao && (
-                <p className="text-era-gray text-lg">{currentCourse.descricao}</p>
+              <h1 className="text-3xl font-extrabold text-era-dark-blue">{currentCourseData?.nome || 'Detalhes do Curso'}</h1>
+              {currentCourseData?.descricao && (
+                <p className="text-era-gray text-lg">{currentCourseData.descricao}</p>
               )}
               <div className="flex gap-3 mt-2">
-                {currentCourse?.categoria && <Badge className="bg-era-lime text-black">{currentCourse.categoria}</Badge>}
+                {currentCourseData?.categoria && <Badge className="bg-era-lime text-black">{currentCourseData.categoria}</Badge>}
               </div>
             </div>
           </div>
@@ -239,6 +297,9 @@ const CursoDetalhe = () => {
                   cursoId={id || ''}
                   moduloId={selectedModule?.id}
                   userId={userId}
+                  onCourseComplete={handleCourseComplete}
+                  totalVideos={totalVideos}
+                  completedVideos={completedVideos}
                   className="mb-4"
                 />
               </div>
@@ -353,12 +414,12 @@ const CursoDetalhe = () => {
               <Play className="w-8 h-8 text-era-dark-blue" />
             </div>
             <div>
-              <h1 className="text-3xl font-extrabold text-era-dark-blue">{currentCourse?.nome || 'Detalhes do Curso'}</h1>
-              {currentCourse?.descricao && (
-                <p className="text-era-gray text-lg">{currentCourse.descricao}</p>
+              <h1 className="text-3xl font-extrabold text-era-dark-blue">{currentCourseData?.nome || 'Detalhes do Curso'}</h1>
+              {currentCourseData?.descricao && (
+                <p className="text-era-gray text-lg">{currentCourseData.descricao}</p>
               )}
               <div className="flex gap-3 mt-2">
-                {currentCourse?.categoria && <Badge className="bg-era-lime text-black">{currentCourse.categoria}</Badge>}
+                {currentCourseData?.categoria && <Badge className="bg-era-lime text-black">{currentCourseData.categoria}</Badge>}
               </div>
             </div>
           </div>
@@ -375,6 +436,9 @@ const CursoDetalhe = () => {
                   cursoId={id || ''}
                   moduloId={selectedModule?.id}
                   userId={userId}
+                  onCourseComplete={handleCourseComplete}
+                  totalVideos={totalVideos}
+                  completedVideos={completedVideos}
                   className="mb-4"
                 />
               </div>
@@ -470,23 +534,14 @@ const CursoDetalhe = () => {
           </div>
         </div>
 
-        {/* Modais de Quiz e Conclusão */}
-        <QuizModal
+        {/* Quiz Modal */}
+        {/* Modal de Quiz */}
+        <CourseQuizModal
           isOpen={showQuizModal}
           onClose={() => setShowQuizModal(false)}
-          onSuccess={handleQuizSuccess}
-          onFail={handleQuizFail}
-          quizConfig={quizConfig}
-          categoriaNome={currentCategory || ''}
-        />
-
-        <CourseCompletionModal
-          isOpen={showCompletionModal}
-          onClose={() => setShowCompletionModal(false)}
-          onViewCertificate={handleViewCertificate}
-          categoriaNome={currentCategory || ''}
-          nota={quizNota}
-          certificadoUrl={certificate?.certificado_url}
+          courseId={id || ''}
+          courseName={currentCourseData?.nome || ''}
+          onQuizComplete={handleQuizComplete}
         />
       </div>
     );
@@ -504,7 +559,7 @@ const CursoDetalhe = () => {
         >
           ← Voltar
         </Button>
-        <h2 style={{ fontWeight: 'bold', marginBottom: 16 }}>{currentCourse?.nome || 'Curso'}</h2>
+        <h2 style={{ fontWeight: 'bold', marginBottom: 16 }}>{currentCourseData?.nome || 'Curso'}</h2>
         {modules.map(modulo => (
           <div key={modulo.id} style={{ marginBottom: 24 }}>
             <div style={{ fontWeight: 'bold', marginBottom: 8 }}>
@@ -537,19 +592,7 @@ const CursoDetalhe = () => {
             </ul>
           </div>
         ))}
-        <Button
-          className="bg-lime-400 hover:bg-lime-500 text-black font-bold w-full mt-4"
-          onClick={() => setShowImportDialog(modules[0].id)}
-        >
-          Importar vídeo
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full mt-2"
-          onClick={() => setShowClientView(modules[0].id)}
-        >
-          Visualizar como Cliente
-        </Button>
+
       </aside>
       {/* Área principal */}
       <main style={{ flex: 1, padding: 32 }}>
@@ -579,41 +622,7 @@ const CursoDetalhe = () => {
         ) : (
           <p>Selecione um vídeo</p>
         )}
-        {/* Importar vídeo */}
-        {showImportDialog && (
-          <form
-            className="flex flex-col gap-2 mt-6 max-w-md"
-            onSubmit={e => {
-              e.preventDefault();
-              // TODO: implementar handleImport
-            }}
-          >
-            <input
-              type="text"
-              placeholder="Cole o link do vídeo do YouTube aqui"
-              className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-lime-400"
-              value={importUrl}
-              onChange={e => setImportUrl(e.target.value)}
-              required
-            />
-            <div className="flex gap-2">
-              <Button
-                type="submit"
-                className="bg-lime-400 hover:bg-lime-500 text-black font-bold px-4 py-2 rounded"
-              >
-                Salvar
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="px-4 py-2 rounded"
-                onClick={() => setShowImportDialog(null)}
-              >
-                Cancelar
-              </Button>
-            </div>
-          </form>
-        )}
+
       </main>
     </div>
   );

@@ -19,13 +19,27 @@ interface DomainContextType {
 const DomainContext = createContext<DomainContextType | undefined>(undefined);
 
 export function DomainProvider({ children }: { children: ReactNode }) {
-  const { userProfile } = useAuth();
-  const location = useLocation();
   const [activeDomain, setActiveDomain] = useState<Domain | null>(null);
   const [domains, setDomains] = useState<Domain[]>([]);
   const [loading, setLoading] = useState(false);
   const [isViewingClient, setIsViewingClient] = useState(false);
   const [currentUserType, setCurrentUserType] = useState<string>('');
+  const location = useLocation();
+
+  // Tentar usar useAuth com tratamento de erro
+  let userProfile = null;
+  let authLoading = false;
+  let initialized = false;
+  
+  try {
+    const auth = useAuth();
+    userProfile = auth.userProfile;
+    authLoading = auth.loading;
+    initialized = auth.initialized;
+  } catch (error) {
+    // Se useAuth não estiver disponível, continuar sem ele
+    console.log('AuthProvider ainda não está disponível, continuando...');
+  }
 
   const refreshDomains = async () => {
     if (!userProfile) return;
@@ -86,10 +100,10 @@ export function DomainProvider({ children }: { children: ReactNode }) {
   }, [location.pathname, domains, activeDomain, isViewingClient]);
 
   useEffect(() => {
-    if (userProfile?.tipo_usuario === 'admin_master') {
+    if (userProfile?.tipo_usuario === 'admin_master' && !authLoading && initialized) {
       refreshDomains();
     }
-  }, [userProfile]);
+  }, [userProfile, authLoading, initialized]);
 
   const value: DomainContextType = {
     activeDomain,

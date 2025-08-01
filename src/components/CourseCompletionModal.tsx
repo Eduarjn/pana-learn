@@ -38,7 +38,7 @@ export const CourseCompletionModal: React.FC<CourseCompletionModalProps> = ({
 
   const handleShare = async (platform: 'linkedin' | 'facebook' | 'copy') => {
     const shareUrl = certificadoUrl || `${window.location.origin}/certificado/${categoriaNome}`;
-    const shareText = `🎉 Acabei de concluir o curso ${categoriaNome} na ERA Learn com ${nota}% de aproveitamento!`;
+    const shareText = `🎉 Acabei de concluir o curso ${categoriaNome} com ${nota}% de aproveitamento!`;
     
     try {
       switch (platform) {

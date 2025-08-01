@@ -13,11 +13,15 @@ interface VideoPlayerWithProgressProps {
     url_video: string;
     thumbnail_url?: string;
     duracao?: number;
+    source?: 'upload' | 'youtube';
   };
   cursoId: string;
   moduloId?: string;
   userId?: string;
   onProgressChange?: (progress: number) => void;
+  onCourseComplete?: (courseId: string) => void;
+  totalVideos?: number;
+  completedVideos?: number;
   className?: string;
 }
 
@@ -27,13 +31,19 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
   moduloId,
   userId,
   onProgressChange,
+  onCourseComplete,
+  totalVideos,
+  completedVideos,
   className = ''
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showCompletionBadge, setShowCompletionBadge] = useState(false);
+  const [isYouTube, setIsYouTube] = useState(false);
+  const [youtubeVideoId, setYoutubeVideoId] = useState('');
 
   const { progress, saveProgress, markAsCompleted, loading } = useVideoProgress(
     userId,
@@ -42,8 +52,53 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
     moduloId
   );
 
+  // Detectar se é vídeo do YouTube
+  useEffect(() => {
+    const detectYouTube = () => {
+      const url = video.url_video;
+      const isYouTubeVideo = video.source === 'youtube' || 
+        url.includes('youtube.com') || 
+        url.includes('youtu.be') ||
+        url.includes('youtube.com/embed');
+      
+      setIsYouTube(isYouTubeVideo);
+      
+      if (isYouTubeVideo) {
+        // Extrair ID do vídeo do YouTube
+        const videoId = extractYouTubeVideoId(url);
+        setYoutubeVideoId(videoId);
+      }
+    };
+
+    detectYouTube();
+  }, [video.url_video, video.source]);
+
+  // Função para extrair ID do vídeo do YouTube
+  const extractYouTubeVideoId = (url: string): string => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+    return '';
+  };
+
   // Carregar tempo salvo quando o vídeo estiver pronto
   useEffect(() => {
+    if (isYouTube) {
+      // Para YouTube, usar duração do vídeo se disponível
+      if (video.duracao) {
+        setDuration(video.duracao * 60); // Converter minutos para segundos
+      }
+      return;
+    }
+
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
@@ -61,10 +116,18 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
     return () => {
       videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [progress.tempoAssistido, progress.concluido]);
+  }, [progress.tempoAssistido, progress.concluido, isYouTube, video.duracao]);
 
   // Atualizar tempo atual
   useEffect(() => {
+    if (isYouTube) {
+      // Para YouTube, usar progresso salvo
+      if (progress.tempoAssistido > 0) {
+        setCurrentTime(progress.tempoAssistido);
+      }
+      return;
+    }
+
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
@@ -93,14 +156,17 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
     return () => {
       videoElement.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [duration, progress.tempoAssistido, progress.concluido, saveProgress, onProgressChange]);
+  }, [progress.tempoAssistido, progress.concluido, duration, isYouTube, saveProgress, onProgressChange]);
 
-  // Detectar quando o vídeo termina
+  // Eventos de fim do vídeo
   useEffect(() => {
+    if (isYouTube) return; // YouTube não suporta esses eventos via iframe
+
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
     const handleEnded = () => {
+      setIsPlaying(false);
       handleVideoCompletion();
     };
 
@@ -108,7 +174,7 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
     return () => {
       videoElement.removeEventListener('ended', handleEnded);
     };
-  }, []);
+  }, [isYouTube]);
 
   const handleVideoCompletion = async () => {
     if (progress.concluido) return;
@@ -128,6 +194,17 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
         onProgressChange(100); // Notificar que o vídeo foi concluído
       }
 
+      // Verificar se o curso foi completamente concluído
+      if (onCourseComplete && totalVideos && completedVideos !== undefined) {
+        const newCompletedCount = completedVideos + 1;
+        if (newCompletedCount >= totalVideos) {
+          // Curso completamente concluído
+          setTimeout(() => {
+            onCourseComplete(cursoId);
+          }, 1000); // Pequeno delay para mostrar o toast de conclusão do vídeo
+        }
+      }
+
       // Esconder badge após 3 segundos
       setTimeout(() => setShowCompletionBadge(false), 3000);
     } catch (error) {
@@ -136,6 +213,17 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
   };
 
   const togglePlay = () => {
+    if (isYouTube) {
+      // Para YouTube, apenas marcar como concluído se necessário
+      if (!progress.concluido && duration > 0) {
+        const progressPercent = (currentTime / duration) * 100;
+        if (progressPercent >= 90) {
+          handleVideoCompletion();
+        }
+      }
+      return;
+    }
+
     const videoElement = videoRef.current;
     if (!videoElement) return;
 
@@ -144,16 +232,19 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
     } else {
       videoElement.play();
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleFullscreen = () => {
-    if (videoRef.current) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen();
-      } else {
-        videoRef.current.requestFullscreen();
-      }
+    if (isYouTube) {
+      // Para YouTube, deixar o iframe lidar com fullscreen
+      return;
+    }
+
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    if (videoElement.requestFullscreen) {
+      videoElement.requestFullscreen();
     }
   };
 
@@ -166,19 +257,9 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`space-y-4 ${className}`}>
       {/* Badge de conclusão */}
       {progress.concluido && (
-        <div className="absolute top-4 right-4 z-10">
-          <Badge variant="default" className="bg-green-500 text-white">
-            <CheckCircle className="w-4 h-4 mr-1" />
-            Concluído
-          </Badge>
-        </div>
-      )}
-
-      {/* Badge temporário de conclusão */}
-      {showCompletionBadge && !progress.concluido && (
         <div className="absolute top-4 right-4 z-10 animate-pulse">
           <Badge variant="default" className="bg-green-500 text-white">
             <CheckCircle className="w-4 h-4 mr-1" />
@@ -189,15 +270,33 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
 
       {/* Player de vídeo */}
       <div className="relative bg-black rounded-lg overflow-hidden">
-        <video
-          ref={videoRef}
-          src={video.url_video}
-          className="w-full aspect-video"
-          poster={video.thumbnail_url}
-          controls={false}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-        />
+        {isYouTube ? (
+          <div className="relative">
+            <iframe
+              src={`https://www.youtube.com/embed/${youtubeVideoId}?rel=0&modestbranding=1&showinfo=0`}
+              ref={iframeRef}
+              className="w-full aspect-video"
+              title={video.titulo}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+            {/* Indicador de tipo de vídeo */}
+            <div className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
+              YouTube
+            </div>
+          </div>
+        ) : (
+          <video
+            ref={videoRef}
+            src={video.url_video}
+            className="w-full aspect-video"
+            poster={video.thumbnail_url}
+            controls={false}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+          />
+        )}
+        
         {/* Botão fullscreen */}
         <button
           onClick={handleFullscreen}
@@ -207,30 +306,33 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
         >
           <Maximize2 className="w-5 h-5" />
         </button>
-        {/* Controles customizados */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={togglePlay}
-              className="text-white hover:bg-white/20"
-            >
-              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
-            </Button>
-            
-            <div className="flex-1">
-              <Progress 
-                value={progressPercent} 
-                className="h-2 bg-white/20"
-              />
+        
+        {/* Controles customizados - apenas para vídeos locais */}
+        {!isYouTube && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={togglePlay}
+                className="text-white hover:bg-white/20"
+              >
+                {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5" />}
+              </Button>
+              
+              <div className="flex-1">
+                <Progress 
+                  value={progressPercent} 
+                  className="h-2 bg-white/20"
+                />
+              </div>
+              
+              <span className="text-white text-sm font-mono">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
             </div>
-            
-            <span className="text-white text-sm font-mono">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Informações do vídeo */}

@@ -71,7 +71,7 @@ export function DomainSelector() {
         ) : (
           <div className="flex items-center gap-2 px-3 py-2 bg-green-500/20 rounded-lg border border-green-500/30">
             <Home className="h-4 w-4 text-green-400" />
-            <span className="text-sm text-green-200">ERA Learn Principal</span>
+            <span className="text-sm text-green-200">Principal</span>
             <Badge variant="outline" className="bg-green-500/20 text-green-300 border-green-400/50 text-xs">
               Principal
             </Badge>
@@ -95,7 +95,7 @@ export function DomainSelector() {
               <div className="flex items-center gap-2">
                 <Home className="h-4 w-4 text-green-600" />
                 <div className="flex flex-col">
-                  <span className="font-medium text-green-600">ERA Learn Principal</span>
+                  <span className="font-medium text-green-600">Principal</span>
                   <span className="text-xs text-gray-500">Ambiente principal</span>
                 </div>
               </div>

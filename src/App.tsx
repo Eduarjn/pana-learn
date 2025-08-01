@@ -18,20 +18,25 @@ import NotFound from "./pages/NotFound";
 import MeuPainel from "./pages/MeuPainel";
 import CursoDetalhe from "./pages/CursoDetalhe";
 import Certificado from "./pages/Certificado";
-import { PreferencesProvider } from '../frontend/src/context/PreferencesContext';
+import Certificados from "./pages/Certificados";
+import Quizzes from "./pages/Quizzes";
+import { BrandingProvider } from '@/context/BrandingContext';
+import { DebugPanel } from '@/components/DebugPanel';
+import { TestComponent } from '@/components/TestComponent';
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <PreferencesProvider>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <DomainProvider>
-              <Routes>
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthProvider>
+          <DomainProvider>
+            <BrandingProvider>
+            <Routes>
+                <Route path="/test" element={<TestComponent />} />
                 <Route path="/" element={<Index />} />
                 <Route 
                   path="/dashboard" 
@@ -113,15 +118,32 @@ const App = () => (
                     </ProtectedRoute>
                   } 
                 />
+                <Route 
+                  path="/certificados" 
+                  element={
+                    <ProtectedRoute>
+                      <Certificados />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/quizzes" 
+                  element={
+                    <ProtectedRoute>
+                      <Quizzes />
+                    </ProtectedRoute>
+                  } 
+                />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <DebugPanel />
+              </BrandingProvider>
             </DomainProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
-  </PreferencesProvider>
 );
 
 export default App;
