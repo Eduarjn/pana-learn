@@ -55,7 +55,7 @@ export const resolveLogoPath = (customLogoUrl?: string): string => {
   }
   
   // Fallback para o logo padrão
-  return resolveImagePath('/logotipoeralearn.png');
+  return resolveImagePath('/panalearn-logo.png');
 };
 
 /**
@@ -68,7 +68,7 @@ export const resolveFaviconPath = (customFaviconUrl?: string): string => {
     return resolveImagePath(customFaviconUrl);
   }
   
-  return resolveImagePath('/favicon.ico');
+  return resolveImagePath('/panalearn-favicon.png');
 };
 
 /**
@@ -114,13 +114,13 @@ export const testImageLoad = (url: string): Promise<boolean> => {
  */
 export const imageFallbacks = {
   logo: [
+    '/panalearn-logo.png',
     '/logotipoeralearn.png',
-    '/logotipoeralearn.svg',
     '/placeholder.svg'
   ],
   favicon: [
-    '/favicon.ico',
-    '/logotipoeralearn.png'
+    '/panalearn-favicon.png',
+    '/panalearn-logo.png'
   ],
   background: [
     '/lovable-uploads/aafcc16a-d43c-4f66-9fa4-70da46d38ccb.png',

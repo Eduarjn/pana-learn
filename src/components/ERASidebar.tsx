@@ -45,19 +45,7 @@ const menuItems = [
   { title: "Usuários", icon: UserCheck, path: "/usuarios", roles: ["admin", "admin_master"] },
   { title: "Domínios", icon: Globe, path: "/dominios", roles: ["admin_master"] },
   { title: "Tokens IA", icon: Zap, path: "/ai-tokens", roles: ["admin", "admin_master"] },
-  { 
-    title: "Configurações", 
-    icon: Cog, 
-    path: "/configuracoes", 
-    roles: ["admin", "cliente", "admin_master"],
-    submenu: [
-      { label: "Preferências", path: "/configuracoes/preferencias", roles: ["admin", "cliente", "admin_master"] },
-      { label: "Conta", path: "/configuracoes/conta", roles: ["admin", "cliente", "admin_master"] },
-      { label: "White-Label", path: "/configuracoes/whitelabel", roles: ["admin", "admin_master"] },
-      { label: "Integrações & API", path: "/configuracoes/integracoes", roles: ["admin", "admin_master"] },
-      { label: "Segurança", path: "/configuracoes/seguranca", roles: ["admin", "admin_master"] }
-    ]
-  },
+  { title: "Configurações", icon: Cog, path: "/configuracoes", roles: ["admin", "cliente", "admin_master"] },
 ];
 
 function SidebarItem({ 
@@ -244,7 +232,7 @@ export function ERASidebar() {
       {/* Logo da empresa (usa branding) */}
       <div className="relative">
         <img
-          src={branding.logo_url || '/panalearnlogo.jpg'}
+          src={branding.logo_url || '/panalearn-logo.png'}
           alt={`${branding.company_name || 'Panalearn'} Logo`}
           id="sidebar-logo"
           className={`object-contain logo-rounded cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg ${

@@ -51,14 +51,31 @@ export function CourseCard({ course, onStartCourse }: CourseCardProps) {
   };
 
   return (
-    <Card className="h-full hover:shadow-lg transition-all duration-200 border-0 shadow-md bg-white">
-      <CardHeader className="pb-3 bg-gradient-to-r from-era-black via-era-gray-medium to-era-green text-white rounded-t-lg">
+    <Card
+      className="h-full transition-all duration-200 shadow-md hover:shadow-xl"
+      style={{
+        background: '#14213D',
+        border: '1px solid rgba(252,163,17,0.16)',
+        transition: 'all 0.2s ease',
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLElement).style.border = '1px solid rgba(252,163,17,0.40)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 32px rgba(252,163,17,0.18)';
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLElement).style.border = '1px solid rgba(252,163,17,0.16)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+        (e.currentTarget as HTMLElement).style.boxShadow = '';
+      }}
+    >
+      <CardHeader className="pb-3 rounded-t-lg" style={{ background: 'linear-gradient(to right, #08111f, #14213D, #FCA311)' }}>
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle className="text-lg text-white font-bold line-clamp-2">
+            <CardTitle className="text-lg font-bold line-clamp-2" style={{ color: '#FFFFFF' }}>
               {course.nome}
             </CardTitle>
-            <CardDescription className="mt-2 text-white/90 font-medium line-clamp-3">
+            <CardDescription className="mt-2 font-medium line-clamp-3" style={{ color: 'rgba(229,229,229,0.90)' }}>
               {course.descricao || 'Curso de treinamento profissional'}
             </CardDescription>
           </div>
@@ -68,7 +85,7 @@ export function CourseCard({ course, onStartCourse }: CourseCardProps) {
       
       <CardContent className="pt-0">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-4 text-sm text-era-gray-medium">
+          <div className="flex items-center space-x-4 text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>
             <div className="flex items-center">
               <BookOpen className="h-4 w-4 mr-1" />
               <span>Múltiplos módulos</span>
@@ -81,7 +98,12 @@ export function CourseCard({ course, onStartCourse }: CourseCardProps) {
         </div>
         <div className="relative group">
           <Button
-            className="w-full font-bold transition-all duration-300 rounded-xl py-3 text-base flex items-center justify-center bg-gradient-to-r from-era-black via-era-gray-medium to-era-green hover:from-era-black/90 hover:via-era-gray-medium/90 hover:to-era-green/90 text-white shadow-lg hover:shadow-xl"
+            className="w-full font-bold transition-all duration-300 rounded-xl py-3 text-base flex items-center justify-center shadow-lg hover:shadow-xl"
+            style={{
+              background: '#FCA311',
+              color: '#000000',
+              fontWeight: 700,
+            }}
             onClick={handleStart}
             disabled={isMock}
             onMouseEnter={() => isMock && setShowTooltip(true)}
@@ -93,7 +115,7 @@ export function CourseCard({ course, onStartCourse }: CourseCardProps) {
             Iniciar Curso
           </Button>
           {isMock && showTooltip && (
-            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-10 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap flex items-center gap-1 animate-fade-in">
+            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-10 text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap flex items-center gap-1 animate-fade-in" style={{ background: '#08111f', color: '#FFFFFF' }}>
               <Info className="h-3 w-3 mr-1" />
               Curso em breve
             </div>

@@ -11,66 +11,17 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Routes, Route, NavLink, useLocation } from 'react-router-dom';
 import { useBranding, defaultBranding } from '@/context/BrandingContext';
 
-// ─── Nav lateral de configurações ─────────────────────────────────────────────
+type TabKey = 'preferencias' | 'conta' | 'whitelabel' | 'integracoes' | 'seguranca';
 
-const CONFIG_SECTIONS = [
-  { path: '/configuracoes/preferencias', label: 'Preferências',    icon: Settings,   adminOnly: false },
-  { path: '/configuracoes/conta',        label: 'Minha conta',     icon: UserCheck,  adminOnly: false },
-  { path: '/configuracoes/whitelabel',   label: 'White-Label',     icon: Palette,    adminOnly: true  },
-  { path: '/configuracoes/integracoes',  label: 'Integrações & API', icon: Database, adminOnly: true  },
-  { path: '/configuracoes/seguranca',    label: 'Segurança',       icon: Shield,     adminOnly: true  },
+const CONFIG_SECTIONS: { key: TabKey; label: string; icon: React.ComponentType<{className?:string}>; adminOnly: boolean }[] = [
+  { key: 'preferencias', label: 'Preferências',     icon: Settings,  adminOnly: false },
+  { key: 'conta',        label: 'Minha conta',      icon: UserCheck, adminOnly: false },
+  { key: 'whitelabel',   label: 'White-Label',      icon: Palette,   adminOnly: true  },
+  { key: 'integracoes',  label: 'Integrações & API', icon: Database, adminOnly: true  },
+  { key: 'seguranca',    label: 'Segurança',        icon: Shield,    adminOnly: true  },
 ];
-
-const ConfigLayout = ({ children, isAdmin }: { children: React.ReactNode; isAdmin: boolean }) => {
-  const location = useLocation();
-  const visible = CONFIG_SECTIONS.filter(s => !s.adminOnly || isAdmin);
-
-  return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="bg-slate-900 rounded-2xl mx-1 mt-1 mb-6 overflow-hidden">
-        <div className="px-6 py-8 md:px-10 md:py-10">
-          <span className="inline-flex items-center gap-1.5 bg-slate-500/15 border border-slate-500/30 text-slate-400 text-xs font-medium px-3 py-1 rounded-full mb-3">
-            <Settings className="w-3 h-3" />
-            Configurações
-          </span>
-          <h1 className="text-3xl font-bold text-white">Configurações</h1>
-          <p className="text-slate-400 text-sm mt-1">Personalize a plataforma e gerencie sua conta.</p>
-        </div>
-      </div>
-
-      <div className="px-1 pb-8">
-        <div className="flex flex-col lg:flex-row gap-5">
-          {/* Nav lateral */}
-          <nav className="lg:w-52 flex-shrink-0">
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-              {visible.map(s => {
-                const active = location.pathname === s.path ||
-                  (s.path === '/configuracoes/preferencias' && location.pathname === '/configuracoes');
-                return (
-                  <NavLink key={s.path} to={s.path}
-                    className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors border-b border-slate-100 last:border-0 ${
-                      active
-                        ? 'bg-slate-900 text-white font-medium'
-                        : 'text-slate-600 hover:bg-slate-50'
-                    }`}>
-                    <s.icon className="h-4 w-4 flex-shrink-0" />
-                    {s.label}
-                  </NavLink>
-                );
-              })}
-            </div>
-          </nav>
-
-          {/* Conteúdo */}
-          <div className="flex-1 min-w-0">{children}</div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // ─── Seção: Preferências ──────────────────────────────────────────────────────
 
@@ -627,17 +578,17 @@ const SectionCard = ({ icon: Icon, title, desc, children }: {
   icon: React.ComponentType<{ className?: string }>;
   title: string; desc: string; children: React.ReactNode;
 }) => (
-  <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-    <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100">
-      <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
-        <Icon className="h-4 w-4 text-slate-600" />
+  <div style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)', borderRadius: 12, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div style={{ width: 32, height: 32, background: 'rgba(252,163,17,0.1)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon className="h-4 w-4" style={{ color: '#FCA311' }} />
       </div>
       <div>
-        <h3 className="text-sm font-semibold text-slate-800">{title}</h3>
-        <p className="text-xs text-slate-500">{desc}</p>
+        <h3 style={{ fontSize: 14, fontWeight: 600, color: '#FFFFFF' }}>{title}</h3>
+        <p style={{ fontSize: 12, color: 'rgba(229,229,229,0.45)' }}>{desc}</p>
       </div>
     </div>
-    <div className="p-5">{children}</div>
+    <div style={{ padding: 20 }}>{children}</div>
   </div>
 );
 
@@ -646,8 +597,8 @@ const SaveButton = ({ onClick, saved, loading = false, label = 'Salvar alteraç�
 }) => (
   <div className="flex justify-end">
     <Button onClick={onClick} disabled={loading || saved}
-      className="text-white text-sm px-5 flex items-center gap-2 min-w-[160px] justify-center"
-      style={{ backgroundColor: saved ? '#10B981' : '#0F172A' }}>
+      className="text-sm px-5 flex items-center gap-2 min-w-[160px] justify-center"
+      style={{ backgroundColor: saved ? '#22c55e' : '#FCA311', color: '#000000', fontWeight: 700 }}>
       {loading
         ? <><Loader2 className="h-4 w-4 animate-spin" />Salvando...</>
         : saved
@@ -660,22 +611,76 @@ const SaveButton = ({ onClick, saved, loading = false, label = 'Salvar alteraç�
 
 // ─── Componente raiz ──────────────────────────────────────────────────────────
 
+const TAB_COMPONENTS: Record<TabKey, React.FC> = {
+  preferencias: Preferencias,
+  conta: Conta,
+  whitelabel: WhiteLabel,
+  integracoes: Integracoes,
+  seguranca: Seguranca,
+};
+
 const Configuracoes = () => {
   const { userProfile } = useAuth();
   const isAdmin = userProfile?.tipo_usuario === 'admin' || userProfile?.tipo_usuario === 'admin_master';
+  const [activeTab, setActiveTab] = useState<TabKey>('preferencias');
+
+  const visible = CONFIG_SECTIONS.filter(s => !s.adminOnly || isAdmin);
+  const ActiveComponent = TAB_COMPONENTS[activeTab];
 
   return (
     <ERALayout>
-      <ConfigLayout isAdmin={isAdmin}>
-        <Routes>
-          <Route path="/"             element={<Preferencias />} />
-          <Route path="/preferencias" element={<Preferencias />} />
-          <Route path="/conta"        element={<Conta />} />
-          <Route path="/whitelabel"   element={<WhiteLabel />} />
-          <Route path="/integracoes"  element={<Integracoes />} />
-          <Route path="/seguranca"    element={<Seguranca />} />
-        </Routes>
-      </ConfigLayout>
+      <div style={{ minHeight: '100vh', background: '#08111f' }}>
+        {/* Header */}
+        <div style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)', borderRadius: 16, margin: '4px 4px 24px 4px', overflow: 'hidden' }}>
+          <div style={{ padding: '32px 40px' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(252,163,17,0.1)', border: '1px solid rgba(252,163,17,0.25)', color: '#FCA311', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 99, marginBottom: 12 }}>
+              <Settings className="w-3 h-3" />
+              Configurações
+            </span>
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#FFFFFF', margin: '8px 0 4px' }}>Configurações</h1>
+            <p style={{ color: 'rgba(229,229,229,0.5)', fontSize: 14 }}>Personalize a plataforma e gerencie sua conta.</p>
+          </div>
+        </div>
+
+        <div style={{ padding: '0 4px 32px' }}>
+          <div style={{ display: 'flex', gap: 20, flexDirection: 'row' }}>
+            {/* Sidebar de abas */}
+            <nav style={{ width: 210, flexShrink: 0 }}>
+              <div style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)', borderRadius: 12, overflow: 'hidden' }}>
+                {visible.map(s => {
+                  const active = activeTab === s.key;
+                  return (
+                    <button
+                      key={s.key}
+                      onClick={() => setActiveTab(s.key)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                        padding: '12px 16px', fontSize: 14, border: 'none', cursor: 'pointer',
+                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        borderLeft: active ? '3px solid #FCA311' : '3px solid transparent',
+                        background: active ? 'rgba(252,163,17,0.1)' : 'transparent',
+                        color: active ? '#FCA311' : 'rgba(229,229,229,0.7)',
+                        fontWeight: active ? 600 : 400,
+                        textAlign: 'left', transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(252,163,17,0.05)'; }}
+                      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                    >
+                      <s.icon className="h-4 w-4" style={{ flexShrink: 0 }} />
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </nav>
+
+            {/* Conteúdo da aba ativa */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <ActiveComponent />
+            </div>
+          </div>
+        </div>
+      </div>
     </ERALayout>
   );
 };

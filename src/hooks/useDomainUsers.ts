@@ -48,7 +48,7 @@ export function useDomainUsers(): UseDomainUsersReturn {
       const { data, error } = await supabase
         .from('usuarios')
         .select('*')
-        .eq('domain_id', domainId)
+        .eq('empresa_id', domainId)
         .order('nome');
 
       if (error) {
@@ -74,40 +74,61 @@ export function useDomainUsers(): UseDomainUsersReturn {
 
     try {
       // Gerar senha se não fornecida
-      const senha = userData.senha || Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-2);
-      
-      // Hash da senha
-      const { data: hashData, error: hashError } = await supabase.rpc('crypt', {
+      const senha = userData.senha || Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
+
+      // 1. Salvar sessão atual do admin ANTES de criar o novo usuário
+      const { data: currentSession } = await supabase.auth.getSession();
+      const adminAccessToken = currentSession?.session?.access_token;
+      const adminRefreshToken = currentSession?.session?.refresh_token;
+
+      // 2. Criar usuário via Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: userData.email,
         password: senha,
-        salt: 'bf'
+        options: {
+          data: {
+            nome: userData.nome,
+            tipo_usuario: userData.tipo_usuario
+          }
+        }
       });
 
-      if (hashError) {
-        throw new Error('Erro ao gerar hash da senha');
-      }
-
-      // Inserir usuário
-      const { data, error } = await supabase
-        .from('usuarios')
-        .insert({
-          nome: userData.nome,
-          email: userData.email,
-          tipo_usuario: userData.tipo_usuario,
-          status: 'ativo',
-          domain_id: domainId,
-          senha_hashed: hashData || senha // Fallback se RPC não funcionar
-        })
-        .select()
-        .single();
-
-      if (error) {
-        if (error.code === '23505') { // unique_violation
-          throw new Error('Email já existe no sistema');
+      if (authError) {
+        if (authError.message?.includes('already registered')) {
+          throw new Error('Este email já está cadastrado no sistema');
         }
-        throw error;
+        throw new Error(authError.message || 'Erro ao criar usuário');
       }
 
-      // Atualizar lista de usuários
+      if (!authData.user) {
+        throw new Error('Erro ao criar usuário: resposta vazia');
+      }
+
+      // 3. RESTAURAR sessão do admin imediatamente (signUp pode ter feito auto-login como o novo user)
+      if (adminRefreshToken) {
+        await supabase.auth.setSession({
+          access_token: adminAccessToken!,
+          refresh_token: adminRefreshToken
+        });
+      }
+
+      // 4. Aguardar trigger e atualizar empresa_id
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const { error: updateError } = await supabase
+        .from('usuarios')
+        .update({
+          empresa_id: domainId,
+          tipo_usuario: userData.tipo_usuario,
+          nome: userData.nome
+        })
+        .eq('user_id', authData.user.id);
+
+      if (updateError) {
+        console.warn('Aviso: não foi possível vincular empresa ao usuário:', updateError);
+      }
+
+      // 5. Atualizar lista de usuários
       await fetchUsersByDomain(domainId);
 
       return { 

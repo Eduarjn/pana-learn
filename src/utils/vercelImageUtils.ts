@@ -11,7 +11,7 @@ const isVercel = typeof window !== 'undefined' && window.location.hostname.inclu
 
 /**
  * Resolve URL de imagem para Vercel
- * @param imagePath - Caminho da imagem (ex: '/logotipoeralearn.png')
+ * @param imagePath - Caminho da imagem (ex: '/panalearn-logo.png')
  * @returns URL completa da imagem
  */
 export const getVercelImageUrl = (imagePath: string): string => {
@@ -38,8 +38,8 @@ export const getVercelImageUrl = (imagePath: string): string => {
  * URLs das imagens principais
  */
 export const VERCEL_IMAGES = {
-  LOGO: getVercelImageUrl('/logotipoeralearn.png'),
-  FAVICON: getVercelImageUrl('/favicon.ico'),
+  LOGO: getVercelImageUrl('/panalearn-logo.png'),
+  FAVICON: getVercelImageUrl('/panalearn-favicon.png'),
   BACKGROUND: getVercelImageUrl('/lovable-uploads/aafcc16a-d43c-4f66-9fa4-70da46d38ccb.png'),
   PLACEHOLDER: getVercelImageUrl('/placeholder.svg')
 };

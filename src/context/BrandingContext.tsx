@@ -31,14 +31,14 @@ interface BrandingContextType {
 // ─── Padrão ───────────────────────────────────────────────────────────────────
 
 export const defaultBranding: BrandingConfig = {
-  logo_url: '/logotipoeralearn.png',
-  sub_logo_url: '/era-sub-logo.png',
-  favicon_url: '/favicon.ico',
+  logo_url: '/panalearn-logo.png',
+  sub_logo_url: '/panalearn-icon-dark.png',
+  favicon_url: '/panalearn-favicon.png',
   background_url: '',
-  primary_color: '#3AB26A',   // verde Panalearn
-  secondary_color: '#1E1B4B', // roxo escuro
+  primary_color: '#FCA311',   // ERA Orange
+  secondary_color: '#14213D', // Prussian Blue
   company_name: 'Panalearn',
-  company_slogan: 'Plataforma de Ensino Online',
+  company_slogan: 'Conhecimento em Conexão',
 };
 
 // ─── Aplicar cores ao DOM ─────────────────────────────────────────────────────
@@ -131,6 +131,47 @@ export const useBranding = () => {
   return ctx;
 };
 
+// ─── Migração automática de assets antigos ────────────────────────────────────
+
+const OLD_ASSETS: Record<string, string> = {
+  '/logotipoeralearn.png': '/panalearn-logo.png',
+  '/logotipoeralearn.svg': '/panalearn-logo.png',
+  '/panalearnlogo.jpg': '/panalearn-logo.png',
+  '/era-sub-logo.png': '/panalearn-icon-dark.png',
+  '/favicon.ico': '/panalearn-favicon.png',
+};
+
+const OLD_COLORS: Record<string, string> = {
+  '#3AB26A': '#FCA311',  // verde antigo → laranja ERA
+  '#3ab26a': '#FCA311',
+  '#1E1B4B': '#14213D',  // roxo antigo → prussian blue
+  '#1e1b4b': '#14213D',
+};
+
+function migrateBranding(cfg: BrandingConfig): BrandingConfig {
+  const migrated = { ...cfg };
+  // Migrar URLs de assets (paths locais)
+  if (migrated.logo_url && OLD_ASSETS[migrated.logo_url]) migrated.logo_url = OLD_ASSETS[migrated.logo_url];
+  if (migrated.sub_logo_url && OLD_ASSETS[migrated.sub_logo_url]) migrated.sub_logo_url = OLD_ASSETS[migrated.sub_logo_url];
+  if (migrated.favicon_url && OLD_ASSETS[migrated.favicon_url]) migrated.favicon_url = OLD_ASSETS[migrated.favicon_url];
+  // Migrar URLs completas (Supabase Storage) que contenham nomes antigos
+  const oldLogoNames = ['logotipoeralearn', 'panalearnlogo', 'era-sub-logo', 'eralearn'];
+  if (migrated.logo_url && oldLogoNames.some(n => migrated.logo_url.includes(n))) {
+    migrated.logo_url = '/panalearn-logo.png';
+  }
+  if (migrated.sub_logo_url && oldLogoNames.some(n => migrated.sub_logo_url.includes(n))) {
+    migrated.sub_logo_url = '/panalearn-icon-dark.png';
+  }
+  // Migrar cores
+  if (migrated.primary_color && OLD_COLORS[migrated.primary_color]) migrated.primary_color = OLD_COLORS[migrated.primary_color];
+  if (migrated.secondary_color && OLD_COLORS[migrated.secondary_color]) migrated.secondary_color = OLD_COLORS[migrated.secondary_color];
+  // Migrar slogan
+  if (migrated.company_slogan === 'Plataforma de Ensino Online' || migrated.company_slogan === 'Smart Training') {
+    migrated.company_slogan = 'Conhecimento em Conexão';
+  }
+  return migrated;
+}
+
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export const BrandingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -150,20 +191,20 @@ export const BrandingProvider: React.FC<{ children: ReactNode }> = ({ children }
           .single();
 
         if (!error && data) {
-          const cfg = { ...defaultBranding, ...data };
+          const cfg = migrateBranding({ ...defaultBranding, ...data });
           setBranding(cfg);
           applyBrandingToDOM(cfg);
           localStorage.setItem('panalearn-branding', JSON.stringify(cfg));
         } else {
           // fallback localStorage
           const saved = localStorage.getItem('panalearn-branding');
-          const cfg = saved ? { ...defaultBranding, ...JSON.parse(saved) } : defaultBranding;
+          const cfg = saved ? migrateBranding({ ...defaultBranding, ...JSON.parse(saved) }) : defaultBranding;
           setBranding(cfg);
           applyBrandingToDOM(cfg);
         }
       } catch {
         const saved = localStorage.getItem('panalearn-branding');
-        const cfg = saved ? { ...defaultBranding, ...JSON.parse(saved) } : defaultBranding;
+        const cfg = saved ? migrateBranding({ ...defaultBranding, ...JSON.parse(saved) }) : defaultBranding;
         setBranding(cfg);
         applyBrandingToDOM(cfg);
       } finally {

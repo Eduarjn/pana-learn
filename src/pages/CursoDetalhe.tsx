@@ -54,16 +54,18 @@ const ModuleEditForm = ({ modulo, onSaved }: { modulo: Module, onSaved: () => vo
   };
 
   return (
-    <div className="p-2 border rounded mb-2 bg-gray-50">
-      <label className="block mb-1 font-semibold">Link do vídeo</label>
+    <div className="p-2 border rounded mb-2" style={{ background: '#14213D', borderColor: 'rgba(252,163,17,0.18)' }}>
+      <label className="block mb-1 font-semibold" style={{ color: '#E5E5E5' }}>Link do vídeo</label>
       <input
         className="border px-2 py-1 w-full mb-2"
+        style={{ background: '#0d1828', borderColor: 'rgba(252,163,17,0.18)', color: '#E5E5E5', borderRadius: 8 }}
         value={link}
         onChange={e => setLink(e.target.value)}
         placeholder="https://youtu.be/..."
       />
       <button
-        className="bg-era-green text-era-black px-3 py-1 rounded font-bold"
+        className="px-3 py-1 rounded font-bold"
+        style={{ background: '#FCA311', color: '#000000' }}
         onClick={handleSave}
         disabled={loading}
       >
@@ -518,7 +520,7 @@ const CursoDetalhe = () => {
     });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ background: '#08111f' }}>
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -526,16 +528,17 @@ const CursoDetalhe = () => {
             <Button
               variant="ghost"
               onClick={() => navigate(-1)}
-              className="text-gray-600 hover:text-gray-900"
+              className=""
+              style={{ color: 'rgba(229,229,229,0.6)' }}
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF' }}>
                 {currentCourseData?.nome || 'Carregando...'}
               </h1>
-              <p className="text-gray-600">
+              <p style={{ color: '#FCA311' }}>
                 {currentCourseData?.categoria || 'Categoria não definida'}
               </p>
             </div>
@@ -550,7 +553,8 @@ const CursoDetalhe = () => {
                   setShowVideoUpload(true);
                   console.log('🎯 showVideoUpload depois:', true);
                 }}
-                className="bg-era-green hover:bg-era-green/90 text-era-black"
+                className=""
+                style={{ background: '#FCA311', color: '#000000', fontWeight: 700 }}
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Adicionar Vídeo
@@ -563,14 +567,16 @@ const CursoDetalhe = () => {
         {filteredVideos.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium" style={{ color: '#E5E5E5' }}>
                 Progresso do Curso
               </span>
-              <span className="text-sm text-gray-500">
+              <span className="text-sm" style={{ color: '#FCA311', fontWeight: 700 }}>
                 {Math.round(averageProgress)}% completo
               </span>
             </div>
-            <Progress value={averageProgress} className="h-2" />
+            <div style={{ height: 4, background: 'rgba(252,163,17,0.15)', borderRadius: 99, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${averageProgress}%`, background: 'linear-gradient(90deg, #FCA311, #e8940f)', borderRadius: 99, transition: 'width 0.4s' }} />
+            </div>
           </div>
         )}
 
@@ -578,8 +584,8 @@ const CursoDetalhe = () => {
         {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-era-green mx-auto mb-4"></div>
-              <p className="text-gray-600">Carregando curso...</p>
+              <div className="animate-spin rounded-full h-8 w-8 mx-auto mb-4" style={{ border: '2px solid #FCA311', borderTopColor: 'transparent' }}></div>
+              <p style={{ color: 'rgba(229,229,229,0.5)' }}>Carregando curso...</p>
             </div>
           </div>
         )}
@@ -590,7 +596,7 @@ const CursoDetalhe = () => {
             {/* Player e Comentários */}
             <div className="lg:col-span-2 flex flex-col gap-6">
               {selectedVideo ? (
-                <div className="bg-white rounded-2xl shadow-lg p-6 mb-2">
+                <div className="rounded-2xl shadow-lg p-6 mb-2" style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)' }}>
                   {/* Player de Vídeo */}
                   <VideoPlayerWithProgress
                     video={selectedVideo}
@@ -613,19 +619,20 @@ const CursoDetalhe = () => {
                   
                   {/* Seção de Quiz (quando vídeos estão completos) */}
                   {isCourseComplete && quizConfig && (
-                    <div className="mt-6 p-4 bg-gradient-to-r from-era-green/10 to-era-green/20 rounded-lg border border-era-green/30">
+                    <div className="mt-6 p-4 rounded-lg" style={{ background: 'rgba(252,163,17,0.08)', border: '1px solid rgba(252,163,17,0.25)' }}>
                       <div className="flex items-center justify-between">
                         <div>
-                          <h3 className="text-lg font-semibold text-era-black mb-1">
+                          <h3 className="text-lg font-semibold mb-1" style={{ color: '#FFFFFF' }}>
                             🎯 Prova Final Disponível
                           </h3>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>
                             {quizConfig.perguntas?.length || 0} perguntas • Nota mínima: {quizConfig.nota_minima || 70}%
                           </p>
                         </div>
                         <Button
                           onClick={() => setShowQuizModal(true)}
-                          className="bg-era-green hover:bg-era-green/90 text-era-black"
+                          className=""
+                          style={{ background: '#FCA311', color: '#000000', fontWeight: 700 }}
                         >
                           <FileText className="h-4 w-4 mr-2" />
                           Apresentar Prova
@@ -635,12 +642,12 @@ const CursoDetalhe = () => {
                   )}
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-                  <Video className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <div className="rounded-2xl shadow-lg p-8 text-center" style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)' }}>
+                  <Video className="h-12 w-12 mx-auto mb-4" style={{ color: 'rgba(229,229,229,0.3)' }} />
+                  <h3 className="text-lg font-medium mb-2" style={{ color: '#E5E5E5' }}>
                     Nenhum vídeo selecionado
                   </h3>
-                  <p className="text-gray-600">
+                  <p style={{ color: 'rgba(229,229,229,0.45)' }}>
                     Selecione um vídeo da lista ao lado para começar a assistir.
                   </p>
                 </div>
@@ -657,16 +664,16 @@ const CursoDetalhe = () => {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Lista de Vídeos */}
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <Video className="h-5 w-5 text-era-green" />
+              <div className="rounded-2xl shadow-lg p-6" style={{ background: '#000000', border: '1px solid rgba(252,163,17,0.12)' }}>
+                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: '#FFFFFF' }}>
+                  <Video className="h-5 w-5" style={{ color: '#FCA311' }} />
                   Vídeos do Curso
                 </h3>
                 
                 {filteredVideos.length === 0 ? (
                   <div className="text-center py-8">
-                    <Video className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600 text-sm">
+                    <Video className="h-8 w-8 mx-auto mb-2" style={{ color: 'rgba(229,229,229,0.3)' }} />
+                    <p className="text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>
                       Nenhum vídeo disponível para este curso.
                     </p>
                   </div>
@@ -680,32 +687,35 @@ const CursoDetalhe = () => {
                       return (
                         <div
                           key={video.id}
-                          className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                            isSelected
-                              ? 'bg-era-green/20 border border-era-green/30'
-                              : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
-                          }`}
+                          className={`p-3 rounded-lg cursor-pointer transition-all duration-200`}
+                          style={{
+                            background: isSelected ? 'rgba(252,163,17,0.1)' : 'transparent',
+                            border: isSelected ? '1px solid rgba(252,163,17,0.3)' : '1px solid rgba(255,255,255,0.04)',
+                            borderLeft: isSelected ? '3px solid #FCA311' : '3px solid transparent',
+                          }}
+                          onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(252,163,17,0.05)'; }}
+                          onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
                           onClick={() => setSelectedVideo(video)}
                         >
                           <div className="flex items-center gap-3">
                             <div className="flex-shrink-0">
                               {isCompleted ? (
-                                <CheckCircle className="h-5 w-5 text-era-green" />
+                                <CheckCircle className="h-5 w-5" style={{ color: '#22c55e' }} />
                               ) : (
-                                <Play className="h-5 w-5 text-gray-400" />
+                                <Play className="h-5 w-5" style={{ color: 'rgba(229,229,229,0.4)' }} />
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium text-gray-900 truncate">
+                              <h4 className="text-sm font-medium truncate" style={{ color: isSelected ? '#FCA311' : '#E5E5E5' }}>
                                 {video.titulo}
                               </h4>
                               <div className="flex items-center gap-2 mt-1">
-                                <Clock className="h-3 w-3 text-gray-400" />
-                                <span className="text-xs text-gray-500">
+                                <Clock className="h-3 w-3" style={{ color: 'rgba(229,229,229,0.35)' }} />
+                                <span className="text-xs" style={{ color: 'rgba(229,229,229,0.35)' }}>
                                   {video.duracao ? `${Math.round(video.duracao / 60)} min` : 'Duração não definida'}
                                 </span>
                                 {videoProgress && (
-                                  <span className="text-xs text-era-green font-medium">
+                                  <span className="text-xs font-medium" style={{ color: '#FCA311' }}>
                                     {Math.round(videoProgress.percentual_assistido || 0)}% completo
                                   </span>
                                 )}
@@ -721,19 +731,19 @@ const CursoDetalhe = () => {
 
               {/* Estatísticas */}
               {filteredVideos.length > 0 && (
-                <div className="bg-white rounded-2xl shadow-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Award className="h-5 w-5 text-era-green" />
+                <div className="rounded-2xl shadow-lg p-6" style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)' }}>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: '#FFFFFF' }}>
+                    <Award className="h-5 w-5" style={{ color: '#FCA311' }} />
                     Estatísticas
                   </h3>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Total de vídeos</span>
-                      <span className="text-sm font-medium">{filteredVideos.length}</span>
+                      <span className="text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>Total de vídeos</span>
+                      <span className="text-sm font-medium" style={{ color: '#FFFFFF' }}>{filteredVideos.length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Vídeos concluídos</span>
-                      <span className="text-sm font-medium text-era-green">
+                      <span className="text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>Vídeos concluídos</span>
+                      <span className="text-sm font-medium" style={{ color: '#22c55e' }}>
                         {filteredVideos.filter(v => {
                           const videoProgress = progress[v.id];
                           return videoProgress?.concluido === true || videoProgress?.percentual_assistido >= 90;
@@ -741,8 +751,8 @@ const CursoDetalhe = () => {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Progresso geral</span>
-                      <span className="text-sm font-medium">{Math.round(averageProgress)}%</span>
+                      <span className="text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>Progresso geral</span>
+                      <span className="text-sm font-medium" style={{ color: '#FCA311' }}>{Math.round(averageProgress)}%</span>
                     </div>
                   </div>
                 </div>
@@ -750,17 +760,18 @@ const CursoDetalhe = () => {
 
               {/* Certificado */}
               {certificate && (
-                <div className="bg-white rounded-2xl shadow-lg p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-era-green" />
+                <div className="rounded-2xl shadow-lg p-6" style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)' }}>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: '#FFFFFF' }}>
+                    <FileText className="h-5 w-5" style={{ color: '#FCA311' }} />
                     Certificado
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm mb-4" style={{ color: 'rgba(229,229,229,0.65)' }}>
                     Parabéns! Você concluiu este curso com sucesso.
                   </p>
                   <Button
                     onClick={handleViewCertificate}
-                    className="w-full bg-era-green hover:bg-era-green/90 text-era-black"
+                    className="w-full"
+                    style={{ background: '#FCA311', color: '#000000', fontWeight: 700 }}
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     Ver Certificado
@@ -791,7 +802,7 @@ const CursoDetalhe = () => {
 
         {/* Video Upload Modal */}
         {showVideoUpload && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)' }}>
             {console.log('🎯 Modal VideoUpload sendo renderizado!')}
             <VideoUpload
               onClose={() => {

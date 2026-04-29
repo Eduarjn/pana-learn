@@ -89,7 +89,7 @@ export function ERALayout({ children, breadcrumbs = [], cursoNome = '', userNome
 
         {/* Page content */}
         <main 
-          className="flex-1 p-4 lg:p-6 overflow-y-auto transition-all duration-200 ease-in-out sidebar-content main-content"
+          className="flex-1 p-1 lg:p-2 overflow-y-auto transition-all duration-200 ease-in-out sidebar-content main-content"
           style={{ 
             marginLeft: (isDesktop || isLargeDesktop) ? `${sidebarWidth}px` : '0px',
             width: (isDesktop || isLargeDesktop) ? `calc(100% - ${sidebarWidth}px)` : '100%'

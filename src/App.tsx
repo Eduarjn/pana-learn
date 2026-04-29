@@ -104,7 +104,7 @@ const App = () => {
                   } 
                 />
                 <Route 
-                  path="/configuracoes/*" 
+                  path="/configuracoes" 
                   element={
                     <ProtectedRoute>
                       <Configuracoes />
