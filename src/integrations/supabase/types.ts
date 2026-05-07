@@ -59,6 +59,7 @@ export interface Database {
           descricao: string | null
           id: string
           nome: string
+          empresa_id: string | null
         }
         Insert: {
           cor?: string | null
@@ -67,6 +68,7 @@ export interface Database {
           descricao?: string | null
           id?: string
           nome: string
+          empresa_id?: string | null
         }
         Update: {
           cor?: string | null
@@ -75,6 +77,7 @@ export interface Database {
           descricao?: string | null
           id?: string
           nome?: string
+          empresa_id?: string | null
         }
         Relationships: []
       }
@@ -88,6 +91,7 @@ export interface Database {
           nota_final: number | null
           numero_certificado: string | null
           usuario_id: string
+          empresa_id: string | null
         }
         Insert: {
           curso_id: string
@@ -98,6 +102,7 @@ export interface Database {
           nota_final?: number | null
           numero_certificado?: string | null
           usuario_id: string
+          empresa_id?: string | null
         }
         Update: {
           curso_id?: string
@@ -108,6 +113,7 @@ export interface Database {
           nota_final?: number | null
           numero_certificado?: string | null
           usuario_id?: string
+          empresa_id?: string | null
         }
         Relationships: [
           {
@@ -141,6 +147,7 @@ export interface Database {
           ordem: number | null
           status: Database["public"]["Enums"]["course_status"]
           video_id: string | null
+          empresa_id: string | null
         }
         Insert: {
           categoria: string
@@ -156,6 +163,7 @@ export interface Database {
           ordem?: number | null
           status?: Database["public"]["Enums"]["course_status"]
           video_id?: string | null
+          empresa_id?: string | null
         }
         Update: {
           categoria?: string
@@ -171,6 +179,7 @@ export interface Database {
           ordem?: number | null
           status?: Database["public"]["Enums"]["course_status"]
           video_id?: string | null
+          empresa_id?: string | null
         }
         Relationships: [
           {
@@ -423,6 +432,7 @@ export interface Database {
           user_id: string | null
           domain_id: string | null
           ultimo_login: string | null
+          empresa_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -438,6 +448,7 @@ export interface Database {
           user_id?: string | null
           domain_id?: string | null
           ultimo_login?: string | null
+          empresa_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -453,6 +464,7 @@ export interface Database {
           user_id?: string | null
           domain_id?: string | null
           ultimo_login?: string | null
+          empresa_id?: string | null
         }
         Relationships: []
       }
@@ -635,12 +647,227 @@ export interface Database {
           created_at?: string
         }
       }
-    }
+      organizations: {
+        Row: {
+          id: string
+          name: string
+          owner_id: string | null
+          domain: string | null
+          logo_url: string | null
+          primary_color: string | null
+          platform_name: string | null
+          plan: string | null
+          plan_status: string | null
+          onboarding_completed: boolean | null
+          onboarding_step: number | null
+          content_preferences: Json | null
+          trial_end_date: string | null
+          created_at: string | null
+          updated_at: string | null
+          empresa_id: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          owner_id?: string | null
+          domain?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          platform_name?: string | null
+          plan?: string | null
+          plan_status?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: number | null
+          content_preferences?: Json | null
+          trial_end_date?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          empresa_id?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          owner_id?: string | null
+          domain?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          platform_name?: string | null
+          plan?: string | null
+          plan_status?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: number | null
+          content_preferences?: Json | null
+          trial_end_date?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          empresa_id?: string | null
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          id: string
+          organization_id: string | null
+          user_id: string | null
+          plan: string
+          status: string
+          mp_preference_id: string | null
+          mp_payment_id: string | null
+          mp_external_reference: string | null
+          amount_cents: number | null
+          trial_end_date: string | null
+          current_period_start: string | null
+          current_period_end: string | null
+          created_at: string | null
+          updated_at: string | null
+          empresa_id: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id?: string | null
+          user_id?: string | null
+          plan: string
+          status?: string
+          mp_preference_id?: string | null
+          mp_payment_id?: string | null
+          mp_external_reference?: string | null
+          amount_cents?: number | null
+          trial_end_date?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          empresa_id?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string | null
+          user_id?: string | null
+          plan?: string
+          status?: string
+          mp_preference_id?: string | null
+          mp_payment_id?: string | null
+          mp_external_reference?: string | null
+          amount_cents?: number | null
+          trial_end_date?: string | null
+          current_period_start?: string | null
+          current_period_end?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          empresa_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      empresas: {
+        Row: {
+          id: string
+          organization_id: string | null
+          nome: string
+          subdominio: string | null
+          plan: string | null
+          plan_status: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          organization_id?: string | null
+          nome: string
+          subdominio?: string | null
+          plan?: string | null
+          plan_status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          organization_id?: string | null
+          nome?: string
+          subdominio?: string | null
+          plan?: string | null
+          plan_status?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      branding_config: {
+        Row: {
+          id: string
+          empresa_id: string | null
+          company_name: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          logo_url: string | null
+          favicon_url: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          empresa_id?: string | null
+          company_name?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          logo_url?: string | null
+          favicon_url?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          empresa_id?: string | null
+          company_name?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          logo_url?: string | null
+          favicon_url?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     Views: {
-      [_ in never]: never
+      current_tenant: {
+        Row: {
+          empresa_id: string | null
+          organization_id: string | null
+          subdominio: string | null
+          empresa_nome: string | null
+          plan: string | null
+          plan_status: string | null
+          cor_primaria: string | null
+          logo_url: string | null
+          onboarding_completed: boolean | null
+          trial_end_date: string | null
+          tipo_usuario: string | null
+          usuario_interno_id: string | null
+          usuario_nome: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      setup_tenant_environment: {
+        Args: {
+          p_organization_id: string
+          p_owner_auth_id: string
+          p_company_name: string
+          p_platform_name?: string
+          p_primary_color?: string
+          p_logo_url?: string
+          p_subdominio?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       course_status: "ativo" | "inativo" | "em_breve"

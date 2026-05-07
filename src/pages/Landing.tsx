@@ -414,7 +414,7 @@ export default function Landing() {
           </div>
           <div className="lp-nav-actions">
             <a href="/login" className="lp-btn lp-btn-ow">Entrar</a>
-            <a href="/login" className="lp-btn lp-btn-g">Teste grátis</a>
+            <a href="/onboarding" className="lp-btn lp-btn-g">Teste grátis</a>
           </div>
           <button className="lp-ham" id="lp-ham" onClick={() => (window as any).__lpMobile?.()}>
             <span/><span/><span/>
@@ -431,7 +431,7 @@ export default function Landing() {
         <a href="#lp-faq" onClick={() => (window as any).__lpMobile?.()}>Contato</a>
         <div className="lp-mob-actions">
           <a href="/login" className="lp-btn lp-btn-op">Entrar</a>
-          <a href="/login" className="lp-btn lp-btn-g">Teste grátis</a>
+          <a href="/onboarding" className="lp-btn lp-btn-g">Teste grátis</a>
         </div>
       </div>
 
@@ -451,7 +451,7 @@ export default function Landing() {
               <h1 className="lp-h1">Treine equipes, certifique talentos e transforme resultados.</h1>
               <p className="lp-hsub">Panalearn é a plataforma de aprendizado online que se adapta ao seu negócio — de escolas de idiomas a universidades corporativas, de redes de franquias a instituições de ensino.</p>
               <div className="lp-ctas">
-                <a href="/login" className="lp-btn lp-btn-g lp-btn-lg">Começar gratuitamente</a>
+                <a href="/onboarding" className="lp-btn lp-btn-g lp-btn-lg">Começar gratuitamente</a>
                 <a href="#lp-features" className="lp-btn lp-btn-ow lp-btn-lg">Ver demonstração</a>
               </div>
               <div className="lp-trust">
@@ -685,7 +685,7 @@ export default function Landing() {
               <ul className="lp-plan-feats">
                 {['Até 50 usuários ativos','Biblioteca de até 20h de vídeo','Cursos ilimitados','Certificados automáticos','Quizzes inclusos','White-label: Não','IA de suporte: Não'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
               </ul>
-              <a href="/login" className="lp-plan-cta lp-btn lp-btn-op">Começar agora</a>
+              <a href="/onboarding" className="lp-plan-cta lp-btn lp-btn-op">Começar agora</a>
             </div>
             <div className="lp-plan featured">
               <div className="lp-plan-badge">Mais popular</div>
@@ -695,7 +695,7 @@ export default function Landing() {
               <ul className="lp-plan-feats">
                 {['Até 200 usuários ativos','Biblioteca de até 60h de vídeo','Cursos ilimitados','Certificados automáticos','Quizzes inclusos','White-label: Sim','IA de suporte: Sim'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
               </ul>
-              <a href="/login" className="lp-plan-cta lp-btn lp-btn-dark">Começar agora</a>
+              <a href="/onboarding" className="lp-plan-cta lp-btn lp-btn-dark">Começar agora</a>
             </div>
             <div className="lp-plan">
               <div className="lp-plan-name">Enterprise</div>
@@ -773,7 +773,7 @@ export default function Landing() {
           <p className="lp-cta-sub">14 dias grátis. Configuração em minutos. Sem cartão de crédito.</p>
           <div className="lp-cta-form">
             <input type="email" className="lp-cta-inp" placeholder="Seu melhor e-mail corporativo"/>
-            <a href="/login" className="lp-btn lp-btn-g lp-btn-lg" style={{whiteSpace:'nowrap'}}>Começar agora</a>
+            <a href="/onboarding" className="lp-btn lp-btn-g lp-btn-lg" style={{whiteSpace:'nowrap'}}>Começar agora</a>
           </div>
           <div className="lp-micros">
             <span className="lp-micro"><svg viewBox="0 0 14 14" fill="none"><path d="M7 1v6l3 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.5"/></svg>Cancele quando quiser</span>

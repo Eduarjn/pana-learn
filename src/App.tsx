@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { DomainProvider } from "@/context/DomainContext";
+import { TenantProvider } from "@/context/TenantContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
@@ -28,6 +29,9 @@ import { TestComponent } from '@/components/TestComponent';
 import { AITokenManagement } from '@/pages/AITokenManagement';
 import { CadastroTest } from '@/components/CadastroTest';
 import ResetPassword from '@/pages/ResetPassword';
+import Onboarding from '@/pages/Onboarding';
+import OnboardingSucesso from '@/pages/OnboardingSucesso';
+import PlanoExpirado from '@/pages/PlanoExpirado';
 import { ImageDiagnostic } from '@/components/ImageDiagnostic';
 import GerenciarOrdemVideos from '@/pages/admin/GerenciarOrdemVideos';
 import { runDiagnostics } from '@/utils/debug-env';
@@ -50,6 +54,7 @@ const App = () => {
       <BrowserRouter>
         <AuthProvider>
           <DomainProvider>
+            <TenantProvider>
             <BrandingProvider>
               <SidebarProvider>
                 <Routes>
@@ -58,10 +63,20 @@ const App = () => {
                   <Route path="/cadastro-test" element={<CadastroTest />} />
                   <Route path="/image-diagnostic" element={<ImageDiagnostic />} />
                 </>}
+                {/* Rotas públicas */}
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/index" element={<Index />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/plano-expirado" element={<PlanoExpirado />} />
+
+                {/* Onboarding (rotas públicas) */}
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/onboarding/sucesso" element={<OnboardingSucesso />} />
+                <Route path="/onboarding/pendente" element={<OnboardingSucesso />} />
+                <Route path="/onboarding/pagamento" element={<Onboarding />} />
+
+                {/* Rotas protegidas */}
                 <Route 
                   path="/dashboard" 
                   element={
@@ -78,7 +93,6 @@ const App = () => {
                     </ProtectedRoute>
                   } 
                 />
-
                 <Route 
                   path="/usuarios" 
                   element={
@@ -180,6 +194,7 @@ const App = () => {
               </Routes>
               </SidebarProvider>
             </BrandingProvider>
+            </TenantProvider>
             </DomainProvider>
           </AuthProvider>
         </BrowserRouter>
