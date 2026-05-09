@@ -1,5 +1,5 @@
 
-# ERA Learn - Plataforma de Treinamento Corporativo
+# pana Learn - Plataforma de Treinamento Corporativo
 
 Plataforma inteligente de treinamento corporativo especializada em PABX e soluções Omnichannel.
 
@@ -73,12 +73,12 @@ Plataforma inteligente de treinamento corporativo especializada em PABX e soluç
 A aplicação possui usuários de teste pré-configurados:
 
 - **Administrador**
-  - Email: admin@eralearn.com
-  - Senha: test123456
+    - Email: admin@example.com
+    - Senha: your_admin_password
 
 - **Cliente**
-  - Email: cliente@eralearn.com
-  - Senha: test123456
+    - Email: cliente@example.com
+    - Senha: your_client_password
 
 ## Funcionalidades
 
@@ -127,7 +127,7 @@ O backend está configurado para usar Supabase como serviço gerenciado.
 
 ## Licença
 
-Este projeto é proprietário da PANA.
+Este projeto está disponível para fins de portfólio e demonstração técnica.
 
 ## Suporte
 
