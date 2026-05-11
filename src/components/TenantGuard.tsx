@@ -1,7 +1,4 @@
 // src/components/TenantGuard.tsx
-// Garante que o usuário só acessa seu próprio ambiente
-
-import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useTenantContext } from '@/context/TenantContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -23,16 +20,11 @@ export function TenantGuard({ children, requireAdmin = false }: Props) {
     );
   }
 
-  // Não logado
   if (!user) return <Navigate to="/login" replace />;
-
-  // Logado mas sem empresa (onboarding incompleto)
   if (!tenant) return <Navigate to="/onboarding" replace />;
-
-  // Plano não ativo e não em trial
-  if (!tenant.isPlanActive) return <Navigate to="/plano-expirado" replace />;
-
-  // Requer admin mas não é admin
+  if (!tenant.isPlanActive && tenant.planStatus !== 'pending') {
+    return <Navigate to="/plano-expirado" replace />;
+  }
   if (requireAdmin && !tenant.isAdmin) return <Navigate to="/dashboard" replace />;
 
   return <>{children}</>;

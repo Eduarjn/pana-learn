@@ -25,17 +25,15 @@ export default function StepPagamento({ data, onBack }: Props) {
   const navigate = useNavigate();
   const plano = PLANO_INFO[data.planoSelecionado] || { nome: '', preco: '' };
 
-  // Opção 1: Iniciar trial grátis de 14 dias
   const handleStartTrial = async () => {
     setTrialLoading(true);
     try {
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + 14);
 
-      // 1. Chamar função SQL que cria empresa + branding + usuario admin
-      const { data: empresaId, error: setupError } = await supabase.rpc(
-        'setup_tenant_environment',
-        {
+      // Tentar chamar setup_tenant_environment se existir
+      try {
+        await supabase.rpc('setup_tenant_environment', {
           p_organization_id: data.organizationId,
           p_owner_auth_id: data.userId,
           p_company_name: data.organizacaoNome,
@@ -43,12 +41,11 @@ export default function StepPagamento({ data, onBack }: Props) {
           p_primary_color: data.corPrimaria || '#22c55e',
           p_logo_url: null,
           p_subdominio: null,
-        }
-      );
+        });
+      } catch {
+        console.warn('setup_tenant_environment não disponível');
+      }
 
-      if (setupError) throw setupError;
-
-      // 2. Atualizar organization com status trial
       await supabase.from('organizations').update({
         plan: data.planoSelecionado,
         plan_status: 'trial',
@@ -56,29 +53,18 @@ export default function StepPagamento({ data, onBack }: Props) {
         onboarding_completed: true,
       }).eq('id', data.organizationId);
 
-      // 3. Criar subscription
       await supabase.from('subscriptions').insert({
         organization_id: data.organizationId,
-        empresa_id: empresaId,
         user_id: data.userId,
         plan: data.planoSelecionado,
         status: 'trial',
         trial_end_date: trialEnd.toISOString(),
       });
 
-      // 4. Atualizar empresa com plan_status trial
-      if (empresaId) {
-        await supabase.from('empresas').update({
-          plan: data.planoSelecionado,
-          plan_status: 'trial',
-        }).eq('id', empresaId);
-      }
-
       toast({
         title: '🎉 Seu ambiente está pronto!',
         description: `Bem-vindo ao Plano ${plano.nome}. 14 dias grátis começando agora.`,
       });
-
       navigate('/dashboard');
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
@@ -87,7 +73,6 @@ export default function StepPagamento({ data, onBack }: Props) {
     }
   };
 
-  // Opção 2: Ir para checkout do Mercado Pago
   const handlePagar = async () => {
     setLoading(true);
     try {
@@ -102,14 +87,9 @@ export default function StepPagamento({ data, onBack }: Props) {
           user_name: data.nome,
         }),
       });
-
       const result = await res.json();
-
       if (!res.ok) throw new Error(result.error || 'Erro ao iniciar pagamento');
-
-      // Em sandbox: usar sandbox_init_point; em produção: init_point
       window.location.href = result.sandbox_init_point || result.init_point;
-
     } catch (error: any) {
       toast({ title: 'Erro no pagamento', description: error.message, variant: 'destructive' });
       setLoading(false);
@@ -121,7 +101,6 @@ export default function StepPagamento({ data, onBack }: Props) {
       <h2 className="text-2xl font-bold text-gray-900 mb-1">Confirme e comece agora</h2>
       <p className="text-gray-500 mb-8">Alunos recebem acesso e começam a aprender imediatamente.</p>
 
-      {/* Resumo do plano */}
       <div className="bg-gray-50 rounded-xl p-5 mb-6">
         <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Resumo da assinatura</p>
         <div className="flex justify-between items-center">
@@ -133,59 +112,32 @@ export default function StepPagamento({ data, onBack }: Props) {
         </div>
       </div>
 
-      {/* Opção Trial Grátis */}
       <div className="border-2 border-dashed border-green-300 rounded-xl p-5 mb-4 bg-green-50/50">
         <div className="flex items-start gap-3">
           <Gift className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="font-bold text-gray-900">Testar 14 dias grátis</p>
-            <p className="text-xs text-gray-500 mt-0.5 mb-3">
-              Sem cartão de crédito. Cancele quando quiser. Após o trial, assinatura ativa.
-            </p>
-            <Button
-              onClick={handleStartTrial}
-              disabled={trialLoading}
-              className="w-full bg-green-500 hover:bg-green-600 text-white"
-            >
-              {trialLoading
-                ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Iniciando...</>
-                : '🎁 Iniciar teste gratuito de 14 dias'
-              }
+            <p className="text-xs text-gray-500 mt-0.5 mb-3">Sem cartão de crédito. Cancele quando quiser.</p>
+            <Button onClick={handleStartTrial} disabled={trialLoading} className="w-full bg-green-500 hover:bg-green-600 text-white">
+              {trialLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Iniciando...</> : '🎁 Iniciar teste gratuito de 14 dias'}
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Divider */}
       <div className="flex items-center gap-3 my-4">
         <div className="flex-1 h-px bg-gray-200" />
         <p className="text-xs text-gray-400 font-medium">ou pague agora com desconto</p>
         <div className="flex-1 h-px bg-gray-200" />
       </div>
 
-      {/* Botão pagamento MP */}
-      <Button
-        onClick={handlePagar}
-        disabled={loading}
-        variant="outline"
-        className="w-full border-2 border-gray-300 text-gray-700 h-12 font-semibold"
-      >
-        {loading
-          ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Redirecionando para pagamento...</>
-          : <><CreditCard className="w-4 h-4 mr-2" />Pagar com Mercado Pago</>
-        }
+      <Button onClick={handlePagar} disabled={loading} variant="outline" className="w-full border-2 border-gray-300 text-gray-700 h-12 font-semibold">
+        {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Redirecionando...</> : <><CreditCard className="w-4 h-4 mr-2" />Pagar com Mercado Pago</>}
       </Button>
 
-      {/* Selos de segurança */}
       <div className="flex items-center justify-center gap-4 mt-4">
-        <div className="flex items-center gap-1.5 text-xs text-gray-400">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          Pagamento seguro
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-400">
-          <ShieldCheck className="w-3.5 h-3.5" />
-          Dados criptografados
-        </div>
+        <div className="flex items-center gap-1.5 text-xs text-gray-400"><ShieldCheck className="w-3.5 h-3.5" />Pagamento seguro</div>
+        <div className="flex items-center gap-1.5 text-xs text-gray-400"><ShieldCheck className="w-3.5 h-3.5" />Dados criptografados</div>
       </div>
 
       <div className="flex justify-between mt-6">

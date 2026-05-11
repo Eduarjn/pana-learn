@@ -9,7 +9,6 @@ export function useUsuariosTenant() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Listar usuários do tenant
   const { data: usuarios, isLoading } = useQuery({
     queryKey: ['usuarios-tenant', empresaId],
     enabled: !!empresaId,
@@ -17,33 +16,20 @@ export function useUsuariosTenant() {
       const { data, error } = await supabase
         .from('usuarios')
         .select('id, nome, email, tipo_usuario, status, data_criacao, ultimo_login')
-        .eq('empresa_id', empresaId!)
         .order('data_criacao', { ascending: false });
-
       if (error) throw error;
       return data;
     },
   });
 
-  // Convidar/criar novo usuário no tenant
   const criarUsuario = useMutation({
-    mutationFn: async (novoUsuario: {
-      nome: string;
-      email: string;
-      senha: string;
-      tipo_usuario: 'admin' | 'comercial' | 'cliente';
-    }) => {
+    mutationFn: async (novoUsuario: { nome: string; email: string; senha: string; tipo_usuario: 'admin' | 'cliente'; }) => {
       const res = await fetch('/api/create-tenant-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...novoUsuario, empresa_id: empresaId }),
       });
-
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Erro ao criar usuário');
-      }
-
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Erro ao criar usuário'); }
       return res.json();
     },
     onSuccess: () => {

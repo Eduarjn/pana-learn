@@ -32,43 +32,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    const organization_id = payment.metadata?.organization_id;
-    const user_id = payment.metadata?.user_id;
+    const externalRef = payment.external_reference; // "org_id_timestamp"
+    const orgId = externalRef.split('_')[0];
     const plan = payment.metadata?.plan;
-
-    // Buscar empresa vinculada à organization
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('empresa_id, name, platform_name, primary_color, logo_url')
-      .eq('id', organization_id)
-      .single();
-
-    let empresaId = (org as any)?.empresa_id;
-
-    // Se ainda não tem empresa (pagou sem trial), criar agora
-    if (!empresaId) {
-      const { data: newEmpresaId } = await supabase.rpc('setup_tenant_environment', {
-        p_organization_id: organization_id,
-        p_owner_auth_id: user_id,
-        p_company_name: (org as any)?.name || 'Empresa',
-        p_platform_name: (org as any)?.platform_name || (org as any)?.name,
-        p_primary_color: (org as any)?.primary_color || '#22c55e',
-        p_logo_url: (org as any)?.logo_url || null,
-      });
-      empresaId = newEmpresaId;
-    }
 
     const now = new Date();
     const nextMonth = new Date(now);
     nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-    const externalRef = payment.external_reference;
-
     // Atualizar subscription
     await supabase.from('subscriptions')
       .update({
         status: 'active',
-        empresa_id: empresaId,
         mp_payment_id: String(data.id),
         current_period_start: now.toISOString(),
         current_period_end: nextMonth.toISOString(),
@@ -83,17 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         plan_status: 'active',
         onboarding_completed: true,
       })
-      .eq('id', organization_id);
-
-    // Atualizar empresa com plano ativo
-    if (empresaId) {
-      await supabase.from('empresas')
-        .update({
-          plan,
-          plan_status: 'active',
-        })
-        .eq('id', empresaId);
-    }
+      .eq('id', orgId);
 
     return res.status(200).json({ ok: true });
 
@@ -101,4 +66,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('Webhook error:', error);
     return res.status(500).json({ error: 'Webhook processing failed' });
   }
+}
+plan_status: 'active',
+        })
+        .eq('id', empresaId);
+    }
+
+return res.status(200).json({ ok: true });
+
+  } catch (error) {
+  console.error('Webhook error:', error);
+  return res.status(500).json({ error: 'Webhook processing failed' });
+}
 }
