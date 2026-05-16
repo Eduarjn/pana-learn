@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { YouTubePlayerWithProgress } from './YouTubePlayerWithProgress';
 
+const BUNNY_LIBRARY_ID  = import.meta.env.VITE_BUNNY_LIBRARY_ID  as string;
+const BUNNY_CDN_HOSTNAME = import.meta.env.VITE_BUNNY_CDN_HOSTNAME as string;
+
 interface VideoPlayerWithProgressProps {
   video: {
     id: string;
@@ -58,6 +61,19 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
   // Detectar se é vídeo do YouTube
   const isYouTube = video.url_video.includes('youtube.com') || video.url_video.includes('youtu.be');
   const youtubeVideoId = isYouTube ? extractYouTubeVideoId(video.url_video) : '';
+
+  // Detectar se é vídeo do Bunny Stream
+  const isBunny = !isYouTube && (
+    video.url_video.includes('b-cdn.net') ||
+    (BUNNY_CDN_HOSTNAME && video.url_video.includes(BUNNY_CDN_HOSTNAME))
+  );
+  // Extrair o GUID da URL do Bunny: https://{CDN}/{guid}/play_720p.mp4
+  const bunnyGuid = isBunny
+    ? video.url_video.split('/').filter(Boolean).find((_seg, i, arr) => i === arr.length - 2) ?? ''
+    : '';
+  const bunnyEmbedUrl = isBunny && bunnyGuid && BUNNY_LIBRARY_ID
+    ? `https://iframe.mediadelivery.net/embed/${BUNNY_LIBRARY_ID}/${bunnyGuid}?autoplay=false&loop=false&muted=false&preload=true`
+    : '';
 
   const detectYouTube = () => {
     if (isYouTube) {
@@ -232,6 +248,70 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
 
   const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  // ── Render: Bunny Stream (iframe embed oficial) ─────────────────────────────
+  if (isBunny) {
+    return (
+      <div className={`space-y-4 ${className}`}>
+        {/* Badge de conclusão */}
+        {progress.concluido && (
+          <div className="flex justify-end">
+            <Badge variant="default" className="bg-green-500 text-white">
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Concluído!
+            </Badge>
+          </div>
+        )}
+
+        {/* Bunny Player via iframe */}
+        <div className="relative rounded-lg overflow-hidden bg-black" style={{ aspectRatio: '16/9' }}>
+          {bunnyEmbedUrl ? (
+            <iframe
+              ref={iframeRef}
+              src={bunnyEmbedUrl}
+              className="w-full h-full"
+              allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+              style={{ border: 0 }}
+              title={video.titulo}
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-white text-sm">
+              URL do vídeo inválida ou a processar no Bunny Stream…
+            </div>
+          )}
+        </div>
+
+        {/* Progresso */}
+        <div className="flex items-center gap-2">
+          <Progress value={progress.percentualAssistido} className="flex-1 h-2" />
+          <span className="text-sm text-gray-600 font-medium">
+            {Math.round(progress.percentualAssistido)}%
+          </span>
+        </div>
+
+        {/* Status */}
+        <div className="flex items-center gap-2">
+          {progress.concluido ? (
+            <Badge variant="default" className="bg-green-100 text-green-800">
+              <CheckCircle className="w-3 h-3 mr-1" />
+              Vídeo concluído
+            </Badge>
+          ) : progress.percentualAssistido > 0 ? (
+            <Badge variant="secondary">Em andamento</Badge>
+          ) : (
+            <Badge variant="outline">Não iniciado</Badge>
+          )}
+          {progress.dataConclusao && (
+            <span className="text-xs text-gray-500">
+              Concluído em {new Date(progress.dataConclusao).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Render: YouTube ─────────────────────────────────────────────────
   // Se for vídeo do YouTube, usar o componente especializado
   if (isYouTube) {
     return (

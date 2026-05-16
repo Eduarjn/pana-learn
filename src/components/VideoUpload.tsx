@@ -11,6 +11,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { useCourses, useCourseModules } from '@/hooks/useCourses';
 
+// ── Proxy seguro para o Bunny Stream (Supabase Edge Function) ──────────────────
+// A chave API do Bunny fica nos secrets do servidor — nunca exposta no browser.
+const BUNNY_PROXY    = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/super-endpoint`;
+const CDN_HOSTNAME   = import.meta.env.VITE_BUNNY_CDN_HOSTNAME as string;
+
 interface VideoUploadProps {
   onClose: () => void;
   onSuccess: () => void;
@@ -29,6 +34,7 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
   const { data: modules = [], isLoading: modulesLoading } = useCourseModules(selectedCourseId);
   const [selectedModuleId, setSelectedModuleId] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadStep, setUploadStep] = useState<string>('');
   const [activeTab, setActiveTab] = useState<VideoSource>('upload');
 
   // Debug logs para módulos
@@ -530,6 +536,7 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
     }
   };
 
+  // ── Supabase Storage: usado APENAS para thumbnails ──────────────────────────
   const uploadFile = async (file: File, bucket: string, path: string) => {
     const { data, error } = await supabase.storage
       .from(bucket)
@@ -539,12 +546,62 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
       });
 
     if (error) throw error;
-    
+
     const { data: { publicUrl } } = supabase.storage
       .from(bucket)
       .getPublicUrl(data.path);
 
     return publicUrl;
+  };
+
+  // ── Bunny Stream: proxy via Supabase Edge Function ──────────────────────────
+  // Os secrets do Bunny ficam no servidor – nunca chegam ao browser.
+  const uploadToBunny = async (file: File, title: string): Promise<string> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const authHeader = session?.access_token
+      ? { Authorization: `Bearer ${session.access_token}` }
+      : {};
+
+    // Passo 1 – criar o registo e obter o GUID
+    setUploadStep('Criando registo no Bunny Stream…');
+    const createRes = await fetch(BUNNY_PROXY, {
+      method: 'POST',
+      headers: {
+        ...authHeader,
+        'Content-Type': 'application/json',
+        'x-action': 'create',
+      },
+      body: JSON.stringify({ title }),
+    });
+
+    if (!createRes.ok) {
+      const err = await createRes.json().catch(() => ({ error: createRes.statusText }));
+      throw new Error(`Criar vídeo falhou: ${err.error ?? createRes.statusText}`);
+    }
+
+    const { guid, cdnUrl } = await createRes.json() as { guid: string; cdnUrl: string };
+    if (!guid) throw new Error('GUID não encontrado na resposta do servidor.');
+
+    // Passo 2 – enviar os bytes do ficheiro
+    setUploadStep('A enviar vídeo para o Bunny Stream…');
+    const uploadRes = await fetch(BUNNY_PROXY, {
+      method: 'POST',
+      headers: {
+        ...authHeader,
+        'Content-Type': 'application/octet-stream',
+        'x-action': 'upload',
+        'x-video-guid': guid,
+      },
+      body: file,
+    });
+
+    if (!uploadRes.ok) {
+      const err = await uploadRes.json().catch(() => ({ error: uploadRes.statusText }));
+      throw new Error(`Upload do vídeo falhou: ${err.error ?? uploadRes.statusText}`);
+    }
+
+    // Devolve a URL CDN (ou constrói localmente como fallback)
+    return cdnUrl ?? `https://${CDN_HOSTNAME}/${guid}/play_720p.mp4`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -621,17 +678,13 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
       });
 
       let videoUrl = '';
-      let storagePath = '';
 
       if (activeTab === 'upload') {
-        // Upload do vídeo
-        const videoPath = `videos/${Date.now()}_${videoFile!.name}`;
-        videoUrl = await uploadFile(videoFile!, 'training-videos', videoPath);
-        storagePath = videoPath;
+        // Vídeo → Bunny Stream (create + PUT binário)
+        videoUrl = await uploadToBunny(videoFile!, videoData.titulo);
       } else {
-        // YouTube URL
+        // YouTube: guardar URL directamente
         videoUrl = youtubeUrl;
-        storagePath = `youtube/${Date.now()}_${videoData.titulo.replace(/[^a-zA-Z0-9]/g, '_')}`;
       }
 
       // Upload da thumbnail (se fornecida)
@@ -997,7 +1050,7 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
               className="era-green-button flex-1"
             >
               {uploading ? (
-                <>Enviando...</>
+                <>{uploadStep || 'Enviando…'}</>
               ) : (
                 <>
                   {activeTab === 'upload' ? (
