@@ -14,6 +14,7 @@ import {
   Cog,
   ChevronDown,
   Globe,
+  Building2,
   Bot,
   Zap,
   Pin,
@@ -43,8 +44,7 @@ const menuItems = [
   { title: "Quizzes", icon: FileText, path: "/quizzes", roles: ["admin", "admin_master"] },
   { title: "Certificados", icon: Award, path: "/certificados", roles: ["admin", "cliente", "admin_master"] },
   { title: "Usuários", icon: UserCheck, path: "/usuarios", roles: ["admin", "admin_master"] },
-  { title: "Domínios", icon: Globe, path: "/dominios", roles: ["admin_master"] },
-  { title: "Tokens IA", icon: Zap, path: "/ai-tokens", roles: ["admin", "admin_master"] },
+  { title: "Empresas", icon: Building2, path: "/empresas", roles: ["admin_master"] },
   { title: "Configurações", icon: Cog, path: "/configuracoes", roles: ["admin", "cliente", "admin_master"] },
 ];
 
@@ -221,9 +221,7 @@ export function ERASidebar() {
   return (
     <div 
       ref={sidebarRef}
-      className={`flex flex-col h-full text-white min-h-screen transition-[width] duration-200 ease-in-out ${
-        isExpanded ? 'shadow-lg' : 'shadow-sm'
-      }`}
+      className="flex flex-col h-full text-white min-h-screen transition-[width] duration-200 ease-in-out"
       style={{ width: `${sidebarWidth}px`, backgroundColor: branding.secondary_color || '#111827' }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -235,11 +233,10 @@ export function ERASidebar() {
           src={branding.logo_url || '/panalearn-logo.png'}
           alt={`${branding.company_name || 'Panalearn'} Logo`}
           id="sidebar-logo"
-          className={`object-contain logo-rounded cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg ${
+          className={`object-contain rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg ${
             isExpanded ? 'h-20 lg:h-24' : 'h-16'
           }`}
           style={{ 
-            borderRadius: '12px',
             width: isExpanded ? '100%' : '48px',
             margin: isExpanded ? '0' : '0 auto'
           }}

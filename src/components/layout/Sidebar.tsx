@@ -22,7 +22,7 @@ export function Sidebar({ children }: SidebarProps) {
   };
 
   return (
-    <div className="flex h-screen bg-futuristic overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop Sidebar - Hidden on mobile */}
       <div className="hidden lg:block">
         <ERASidebar />

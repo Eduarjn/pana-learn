@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ERALayout } from '@/components/ERALayout';
 import { useAuth } from '@/hooks/useAuth';
-import { useDomains } from '@/hooks/useDomains';
-import { useDomainUsers } from '@/hooks/useDomainUsers';
+import { useEmpresas } from '@/hooks/useEmpresas';
+import { useEmpresaUsers } from '@/hooks/useEmpresaUsers';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
+import { useMonthlyUsage } from '@/hooks/useMonthlyUsage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   ArrowLeft, 
-  Globe, 
+  Building2, 
   Users, 
   BookOpen, 
   Award, 
@@ -31,32 +33,36 @@ import {
   Edit,
   Copy,
   CheckCircle,
-  XCircle
+  XCircle,
+  Zap,
+  HardDrive
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import type { Database as DatabaseType } from '@/integrations/supabase/types';
 
-type Domain = DatabaseType['public']['Tables']['domains']['Row'];
-type User = DatabaseType['public']['Tables']['usuarios']['Row'];
+type Empresa = DatabaseType['public']['Tables']['empresas']['Row'];
 
-const ClienteDashboard: React.FC = () => {
-  const { domainId } = useParams<{ domainId: string }>();
+const EmpresaDashboard: React.FC = () => {
+  const { id: empresaId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { userProfile } = useAuth();
-  const { domains, isAdminMaster, currentUserType } = useDomains();
+  const { empresas, isAdminMaster, currentUserType } = useEmpresas();
   const { 
     users, 
     loading: usersLoading, 
     error: usersError,
     createUser,
-    fetchUsersByDomain,
+    fetchUsersByEmpresa,
     setupDefaultUsers,
     deleteUser,
     updateUser
-  } = useDomainUsers();
+  } = useEmpresaUsers();
   
-  const [domain, setDomain] = useState<Domain | null>(null);
+  const [empresa, setEmpresa] = useState<Empresa | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const { data: planLimits } = usePlanLimits(empresa ? { id: empresa.id, plan: empresa.plan } : undefined);
+  const { data: monthlyUsage } = useMonthlyUsage(empresa?.id);
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -69,17 +75,17 @@ const ClienteDashboard: React.FC = () => {
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
 
   useEffect(() => {
-    if (domainId && domains.length > 0) {
-      const foundDomain = domains.find(d => d.id === domainId);
-      setDomain(foundDomain || null);
+    if (empresaId && empresas.length > 0) {
+      const foundEmpresa = empresas.find(e => e.id === empresaId);
+      setEmpresa(foundEmpresa || null);
       setLoading(false);
       
-      // Carregar usuários do domínio
-      if (foundDomain) {
-        fetchUsersByDomain(domainId);
+      // Carregar usuários da empresa
+      if (foundEmpresa) {
+        fetchUsersByEmpresa(empresaId);
       }
     }
-  }, [domainId, domains, fetchUsersByDomain]);
+  }, [empresaId, empresas, fetchUsersByEmpresa]);
 
   // Verificar se é admin_master (usando o tipo original)
   if (currentUserType !== 'admin_master') {
@@ -102,23 +108,23 @@ const ClienteDashboard: React.FC = () => {
       <ERALayout>
         <div className="flex items-center justify-center min-h-screen">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
-          <span className="ml-2 text-gray-600">Carregando dados do cliente...</span>
+          <span className="ml-2 text-gray-600">Carregando dados da empresa...</span>
         </div>
       </ERALayout>
     );
   }
 
-  if (!domain) {
+  if (!empresa) {
     return (
       <ERALayout>
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <div className="text-center">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">Cliente não encontrado</h2>
-            <p className="text-gray-500 mb-4">O domínio solicitado não foi encontrado.</p>
-            <Button onClick={() => navigate('/dominios')}>
+            <h2 className="text-xl font-semibold text-gray-700 mb-2">Empresa não encontrada</h2>
+            <p className="text-gray-500 mb-4">A empresa solicitada não foi encontrada.</p>
+            <Button onClick={() => navigate('/empresas')}>
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar para Domínios
+              Voltar para Empresas
             </Button>
           </div>
         </div>
@@ -127,21 +133,23 @@ const ClienteDashboard: React.FC = () => {
   }
 
   const handleAccessClient = () => {
-    const clientUrl = `https://${domain.name}`;
+    const clientUrl = empresa.subdominio 
+      ? `https://${empresa.subdominio}.panalearn.com` 
+      : window.location.origin;
     window.open(clientUrl, '_blank');
     toast({
-      title: "🔗 Acessando Cliente",
-      description: `Redirecionando para ${domain.name}...`,
+      title: "🔗 Acessando Empresa",
+      description: `Redirecionando para ${empresa.nome}...`,
     });
   };
 
   const handleSetupNewClient = async () => {
     setSetupLoading(true);
-    const result = await setupDefaultUsers(domain.id);
+    const result = await setupDefaultUsers(empresa.id);
     
     if (result.success) {
       toast({
-        title: "✅ Cliente Configurado",
+        title: "✅ Empresa Configurada",
         description: result.message,
       });
       setShowSetupModal(false);
@@ -165,7 +173,7 @@ const ClienteDashboard: React.FC = () => {
       return;
     }
 
-    const result = await createUser(domain.id, newUser);
+    const result = await createUser(empresa.id, newUser);
     
     if (result.success) {
       toast({
@@ -227,11 +235,11 @@ const ClienteDashboard: React.FC = () => {
     });
   };
 
-  // Dados simulados do cliente (em uma implementação real, viriam do banco)
+  // Dados simulados da empresa
   const clientStats = {
     totalUsers: users.length,
     activeUsers: users.filter(u => u.status === 'ativo').length,
-    totalCourses: 0, // Cliente novo, sem cursos
+    totalCourses: 0,
     completedCourses: 0,
     totalCertificates: 0,
     averageProgress: 0
@@ -247,19 +255,19 @@ const ClienteDashboard: React.FC = () => {
           <div className="flex items-center gap-4">
             <Button 
               variant="outline" 
-              onClick={() => navigate('/dominios')}
+              onClick={() => navigate('/empresas')}
               className="flex items-center gap-2"
             >
               <ArrowLeft className="h-4 w-4" />
               Voltar
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard do Cliente</h1>
+              <h1 className="text-3xl font-bold text-gray-900">Dashboard da Empresa</h1>
               <div className="flex items-center gap-2 mt-2">
-                <Globe className="h-5 w-5 text-blue-500" />
-                <span className="text-xl font-semibold text-blue-600">{domain.name}</span>
+                <Building2 className="h-5 w-5 text-blue-500" />
+                <span className="text-xl font-semibold text-blue-600">{empresa.nome}</span>
                 <Badge variant="secondary" className="ml-2">
-                  {isNewClient ? 'Novo Cliente' : 'Ativo'}
+                  {isNewClient ? 'Nova Empresa' : 'Ativo'}
                 </Badge>
                 <Badge variant="outline" className="ml-2">
                   Admin Master
@@ -283,19 +291,18 @@ const ClienteDashboard: React.FC = () => {
                     className="bg-green-600 hover:bg-green-700 text-white"
                   >
                     <Plus className="h-4 w-4 mr-2" />
-                    Configurar Cliente
+                    Configurar Empresa
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Configurar Cliente</DialogTitle>
+                    <DialogTitle>Configurar Empresa</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
-                    <p>Isso irá criar usuários padrão para o domínio {domain.name}:</p>
+                    <p>Isso irá criar usuários padrão para a empresa {empresa.nome}:</p>
                     <ul className="list-disc list-inside space-y-2">
-                      <li>admin@{domain.name} (Administrador)</li>
-                      <li>usuario@{domain.name} (Cliente)</li>
-                      <li>gerente@{domain.name} (Administrador)</li>
+                      <li>admin (Administrador)</li>
+                      <li>cliente (Usuário comum)</li>
                     </ul>
                     <Button 
                       onClick={handleSetupNewClient}
@@ -343,7 +350,7 @@ const ClienteDashboard: React.FC = () => {
                   </div>
                   <div>
                     <Label htmlFor="tipo">Tipo de Usuário</Label>
-                                         <Select
+                    <Select
                        value={newUser.tipo_usuario}
                        onValueChange={(value) => setNewUser({ ...newUser, tipo_usuario: value as 'cliente' | 'admin' | 'admin_master' })}
                      >
@@ -384,7 +391,7 @@ const ClienteDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Banner para Cliente Novo */}
+        {/* Banner para Empresa Nova */}
         {isNewClient && (
           <Card className="border-0 shadow-lg bg-gradient-to-r from-blue-50 to-green-50">
             <CardContent className="p-6">
@@ -394,10 +401,10 @@ const ClienteDashboard: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-blue-900 mb-1">
-                    Cliente Novo - Ambiente Limpo
+                    Empresa Nova - Ambiente Limpo
                   </h3>
                   <p className="text-blue-700">
-                    Este é um ambiente novo para {domain.name}. Clique em "Configurar Cliente" para 
+                    Este é um ambiente novo para {empresa.nome}. Clique em "Configurar Empresa" para 
                     criar usuários padrão e preparar o ambiente para uso.
                   </p>
                 </div>
@@ -451,30 +458,30 @@ const ClienteDashboard: React.FC = () => {
           </Card>
         )}
 
-        {/* Informações do Cliente */}
+        {/* Informações da Empresa */}
         <Card className="border-0 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Informações do Cliente
+              <Building2 className="h-5 w-5" />
+              Informações da Empresa
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Detalhes do Domínio</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">Detalhes</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Nome:</span>
-                    <span className="font-medium">{domain.name}</span>
+                    <span className="font-medium">{empresa.nome}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Descrição:</span>
-                    <span className="font-medium">{domain.description || 'Sem descrição'}</span>
+                    <span className="text-gray-600">Subdomínio:</span>
+                    <span className="font-medium">{empresa.subdominio || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Criado em:</span>
-                    <span className="font-medium">{formatDate(domain.created_at)}</span>
+                    <span className="text-gray-600">Criada em:</span>
+                    <span className="font-medium">{empresa.created_at ? formatDate(empresa.created_at) : '-'}</span>
                   </div>
                 </div>
               </div>
@@ -483,8 +490,8 @@ const ClienteDashboard: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Status:</span>
-                    <Badge className={isNewClient ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}>
-                      {isNewClient ? 'Configurando' : 'Ativo'}
+                    <Badge className={empresa.plan_status === 'active' ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                      {empresa.plan_status === 'active' ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </div>
                   <div className="flex justify-between">
@@ -493,13 +500,86 @@ const ClienteDashboard: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Versão:</span>
-                    <span className="font-medium">v2.1.0</span>
+                    <span className="font-medium">v3.0.0</span>
                   </div>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* ── Uso do Plano ───────────────────────────────────────── */}
+        {planLimits && (
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" style={{ color: planLimits.planColor }} />
+                  Uso do Plano — {planLimits.planName}
+                </div>
+                {(planLimits.isAtLimit || planLimits.isNearLimit) && (
+                  <Badge variant={planLimits.isAtLimit ? 'destructive' : 'secondary'} className={planLimits.isNearLimit && !planLimits.isAtLimit ? 'bg-amber-100 text-amber-800' : ''}>
+                    {planLimits.isAtLimit ? 'Limite Atingido' : `${planLimits.usagePercent}% Usado`}
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+                {/* Users usage */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Users className="h-4 w-4" />
+                      <span className="text-sm font-medium">Usuários</span>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {planLimits.maxUsers >= 9999 ? 'Ilimitado' : `${planLimits.remainingSlots} vagas restantes`}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold text-gray-900">{planLimits.currentUsers}</span>
+                    <span className="text-sm text-gray-500">/ {planLimits.maxUsers >= 9999 ? '\u221e' : planLimits.maxUsers}</span>
+                  </div>
+                  {planLimits.maxUsers < 9999 && (
+                    <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${planLimits.usagePercent}%`,
+                          background: planLimits.isAtLimit ? '#EF4444' : planLimits.isNearLimit ? '#F59E0B' : planLimits.planColor,
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Watch hours */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Zap className="h-4 w-4" />
+                    <span className="text-sm font-medium">Horas assistidas ({monthlyUsage?.currentMonth})</span>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {monthlyUsage?.totalWatchHours ?? '—'}
+                  </div>
+                </div>
+
+                {/* Bandwidth */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <HardDrive className="h-4 w-4" />
+                    <span className="text-sm font-medium">Bandwidth de vídeo</span>
+                  </div>
+                  <div className="text-2xl font-bold text-gray-900">
+                    {monthlyUsage?.totalGb ?? '—'}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {/* ───────────────────────────────────────────────────────── */}
 
         {/* Estatísticas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -544,7 +624,7 @@ const ClienteDashboard: React.FC = () => {
                   <p className="text-sm font-medium text-gray-600 mb-1">Certificados</p>
                   <p className="text-3xl font-bold text-gray-900">{clientStats.totalCertificates}</p>
                   <p className="text-sm text-gray-500 mt-1">
-                    {isNewClient ? 'Nenhum certificado emitido' : '+8 esta semana'}
+                    {isNewClient ? 'Nenhum certificado emitido' : '+0 esta semana'}
                   </p>
                 </div>
                 <div className="bg-purple-100 p-3 rounded-full">
@@ -561,7 +641,7 @@ const ClienteDashboard: React.FC = () => {
                   <p className="text-sm font-medium text-gray-600 mb-1">Progresso Médio</p>
                   <p className="text-3xl font-bold text-gray-900">{clientStats.averageProgress}%</p>
                   <p className="text-sm text-gray-500 mt-1">
-                    {isNewClient ? 'Sem dados disponíveis' : '+5% este mês'}
+                    {isNewClient ? 'Sem dados disponíveis' : '+0% este mês'}
                   </p>
                 </div>
                 <div className="bg-orange-100 p-3 rounded-full">
@@ -578,7 +658,7 @@ const ClienteDashboard: React.FC = () => {
                   <p className="text-sm font-medium text-gray-600 mb-1">Usuários Ativos</p>
                   <p className="text-3xl font-bold text-gray-900">{clientStats.activeUsers}</p>
                   <p className="text-sm text-gray-500 mt-1">
-                    {isNewClient ? '0% do total' : `${Math.round((clientStats.activeUsers / clientStats.totalUsers) * 100)}% do total`}
+                    {isNewClient ? '0% do total' : `${clientStats.totalUsers > 0 ? Math.round((clientStats.activeUsers / clientStats.totalUsers) * 100) : 0}% do total`}
                   </p>
                 </div>
                 <div className="bg-green-100 p-3 rounded-full">
@@ -597,7 +677,7 @@ const ClienteDashboard: React.FC = () => {
                     {isNewClient ? 'Nunca' : 'Hoje'}
                   </p>
                   <p className="text-sm text-gray-500 mt-1">
-                    {isNewClient ? 'Cliente ainda não configurado' : '14:30 - Login de usuário'}
+                    {isNewClient ? 'Empresa ainda não configurada' : 'Sem atividades recentes'}
                   </p>
                 </div>
                 <div className="bg-gray-100 p-3 rounded-full">
@@ -614,7 +694,7 @@ const ClienteDashboard: React.FC = () => {
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
-                Usuários do Domínio
+                Usuários da Empresa
               </div>
               <Button 
                 onClick={() => setShowCreateUserModal(true)}
@@ -640,7 +720,7 @@ const ClienteDashboard: React.FC = () => {
             ) : users.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>Nenhum usuário cadastrado neste domínio</p>
+                <p>Nenhum usuário cadastrado nesta empresa</p>
                 <Button 
                   onClick={() => setShowCreateUserModal(true)}
                   className="mt-4"
@@ -678,7 +758,7 @@ const ClienteDashboard: React.FC = () => {
                           </Badge>
                         </td>
                         <td className="py-3 px-4 text-sm text-gray-500">
-                          {formatDate(user.data_criacao)}
+                          {formatDate(user.data_criacao || '')}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex gap-2">
@@ -739,4 +819,4 @@ const ClienteDashboard: React.FC = () => {
   );
 };
 
-export default ClienteDashboard; 
+export default EmpresaDashboard;

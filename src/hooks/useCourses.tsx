@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useEmpresa } from '@/context/EmpresaContext';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface Course {
   id: string;
@@ -26,9 +28,12 @@ export interface Module {
   link_video: string | null;
 }
 
-export const useCourses = (empresaId?: string, tipoUsuario?: string) => {
+export const useCourses = () => {
+  const { empresa } = useEmpresa();
+  const { userProfile } = useAuth();
+  
   return useQuery({
-    queryKey: ['courses', empresaId, tipoUsuario],
+    queryKey: ['courses', empresa?.id, userProfile?.tipo_usuario],
     queryFn: async () => {
       console.log('🔍 Buscando cursos...');
       try {
@@ -38,9 +43,11 @@ export const useCourses = (empresaId?: string, tipoUsuario?: string) => {
           .select(`*, categorias (nome, cor)`) 
           .eq('status', 'ativo')
           .order('ordem', { ascending: true });
-        if (empresaId && tipoUsuario !== 'admin_master') {
-          query = query.eq('empresa_id', empresaId);
+          
+        if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
+          query = query.eq('empresa_id', empresa.id);
         }
+        
         const { data, error } = await query;
         if (error) {
           console.error('❌ Erro ao buscar cursos:', error);

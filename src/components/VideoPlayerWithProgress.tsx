@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { YouTubePlayerWithProgress } from './YouTubePlayerWithProgress';
+import { useEmpresa } from '@/context/EmpresaContext';
 
 const BUNNY_LIBRARY_ID  = import.meta.env.VITE_BUNNY_LIBRARY_ID  as string;
 const BUNNY_CDN_HOSTNAME = import.meta.env.VITE_BUNNY_CDN_HOSTNAME as string;
@@ -49,7 +50,10 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
   const [completionChecked, setCompletionChecked] = useState(false); // Nova variável para evitar chamadas repetidas
 
   const { toast } = useToast();
-  const { progress, saveProgress, markAsCompleted } = useVideoProgress(userId, video.id, cursoId, moduloId);
+  const { empresa } = useEmpresa();
+  const { progress, saveProgress, markAsCompleted } = useVideoProgress(
+    userId, video.id, cursoId, moduloId, empresa?.id ?? undefined
+  );
 
   // Extrair ID do vídeo do YouTube
   const extractYouTubeVideoId = (url: string): string => {

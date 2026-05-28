@@ -36,7 +36,7 @@ export default function ClienteCursoDetalhe() {
         .from('videos')
         .select('*')
         .in('modulo_id', moduloIds)
-        .order('ordem', { ascending: true });
+        .order('data_criacao', { ascending: true });
 
       // Agrupar vídeos por módulo
       const agrupado = {};

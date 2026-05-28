@@ -65,7 +65,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Verificar permissões para páginas restritas a administradores
   const adminOnlyPaths = ['/usuarios']; // Removido /relatorios para permitir acesso
   const isAdminOnlyPath = adminOnlyPaths.includes(location.pathname);
-  const isAdmin = userProfile?.tipo_usuario === 'admin';
+  const isAdmin = userProfile?.tipo_usuario === 'admin' || userProfile?.tipo_usuario === 'admin_master';
 
   if (isAdminOnlyPath && !isAdmin) {
     console.log('🚫 Acesso negado - Usuário não é admin para', location.pathname);

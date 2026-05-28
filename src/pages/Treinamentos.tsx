@@ -8,19 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Search, Filter, Plus, Video, Eye, BookOpen, Clock, Users, Settings, ListOrdered, ArrowLeft, Play, Trash, ChevronRight, GraduationCap, Award, Edit, Loader2, MoreVertical, Tag } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import type { Database } from '@/integrations/supabase/types';
 import { toast } from '@/hooks/use-toast';
 
-// ERA Brand Palette: #000000 Black | #14213D Prussian Blue | #FCA311 Orange | #E5E5E5 Alabaster | #FFFFFF White
-const C = {
-  black: '#000000', navy: '#14213D', navyDark: '#0d1828', navyMid: '#1a2d52',
-  orange: '#FCA311', orangeDim: '#e8940f', alabaster: '#E5E5E5', white: '#FFFFFF',
-  card: '#15243d', border: 'rgba(252,163,17,0.18)', borderSoft: 'rgba(252,163,17,0.1)',
-  textMuted: 'rgba(229,229,229,0.45)', textSub: 'rgba(229,229,229,0.65)',
-} as const;
+
 
 type VideoRow = Database['public']['Tables']['videos']['Row'] & {
   cursos?: { id: string; nome: string; categoria: string } | null;
@@ -46,7 +41,7 @@ const COURSES_MOCK = [
 const CAT_COLORS = ['#FCA311', '#e8940f', '#d4860e', '#f0b84a', '#14213D', '#1e3152', '#2a4070', '#0d1a2e'];
 
 const CatIcon = ({ cat, size = 20 }: { cat: string; size?: number }) => {
-  const c = C.orange;
+  const c = 'hsl(var(--primary))';
   if (cat === 'PABX' || cat === 'VoIP')
     return <svg width={size} height={size} viewBox="0 0 20 20" fill="none"><path d="M3 4a1 1 0 011-1h3l1.5 3.5L7 8s1 2 5 5l1.5-1.5L17 13v3a1 1 0 01-1 1C7 17 3 10 3 4z" stroke={c} strokeWidth="1.5" strokeLinejoin="round" /></svg>;
   if (cat === 'CALLCENTER')
@@ -56,9 +51,9 @@ const CatIcon = ({ cat, size = 20 }: { cat: string; size?: number }) => {
   return <svg width={size} height={size} viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke={c} strokeWidth="1.5" /><path d="M7 10h6M10 7v6" stroke={c} strokeWidth="1.5" strokeLinecap="round" /></svg>;
 };
 
-const emptyCF: CategoryForm = { nome: '', descricao: '', cor: C.orange };
+const emptyCF: CategoryForm = { nome: '', descricao: '', cor: 'hsl(var(--primary))' };
 const emptyCoF: CourseForm = { nome: '', descricao: '', categoria: '', categoria_id: '', status: 'ativo', ordem: 0, manualCategory: false };
-const IS: React.CSSProperties = { background: C.navyDark, border: `1px solid ${C.border}`, color: C.alabaster, borderRadius: 10, padding: '9px 13px', fontSize: 13, width: '100%', outline: 'none', fontFamily: 'inherit' };
+const IS: React.CSSProperties = { background: 'hsl(var(--background))', border: `1px solid ${'hsl(var(--border))'}`, color: 'hsl(var(--foreground))', borderRadius: 10, padding: '9px 13px', fontSize: 13, width: '100%', outline: 'none', fontFamily: 'inherit' };
 
 export const Treinamentos = () => {
   const { data: courses = [], isLoading, error, refetch } = useCourses();
@@ -177,7 +172,7 @@ export const Treinamentos = () => {
     finally { setSavingCategory(false); }
   };
 
-  const handleEditCategory = (cat: CategoriaDB) => { setCategoryForm({ nome: cat.nome, descricao: cat.descricao || '', cor: cat.cor || C.orange }); setEditingCategoryId(cat.id); setShowCategoryForm(true); };
+  const handleEditCategory = (cat: CategoriaDB) => { setCategoryForm({ nome: cat.nome, descricao: cat.descricao || '', cor: cat.cor || 'hsl(var(--primary))' }); setEditingCategoryId(cat.id); setShowCategoryForm(true); };
   const handleDeleteCategory = async (cat: CategoriaDB) => {
     if (!window.confirm(`Excluir "${cat.nome}"?`)) return;
     try { const { error } = await supabase.from('categorias').delete().eq('id', cat.id); if (error) throw error; toast({ title: 'Sucesso', description: 'Categoria excluida!' }); await loadCategories(); }
@@ -207,306 +202,404 @@ export const Treinamentos = () => {
     catch { toast({ title: 'Erro', description: 'Erro ao excluir.', variant: 'destructive' }); }
   };
 
-  if (isLoading) return (<ERALayout><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', background: C.navyDark }}><div style={{ textAlign: 'center' }}><div style={{ width: 40, height: 40, border: `3px solid ${C.orange}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto 12px', animation: 'era-spin 0.8s linear infinite' }} /><p style={{ color: C.textSub, fontSize: 13 }}>Carregando treinamentos...</p></div></div></ERALayout>);
+  if (isLoading) return (<ERALayout><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', background: 'hsl(var(--background))' }}><div style={{ textAlign: 'center' }}><div style={{ width: 40, height: 40, border: `3px solid ${'hsl(var(--primary))'}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto 12px', animation: 'era-spin 0.8s linear infinite' }} /><p style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Carregando treinamentos...</p></div></div></ERALayout>);
   if (error) return (<ERALayout><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}><div style={{ textAlign: 'center' }}><BookOpen style={{ width: 40, height: 40, color: '#ef4444', margin: '0 auto 8px' }} /><p style={{ color: '#f87171', fontSize: 13 }}>Erro ao carregar treinamentos.</p></div></div></ERALayout>);
 
   const catGroups = getCoursesByCategory();
 
   return (
     <ERALayout>
-      <style>{`
-        @keyframes era-spin { to { transform: rotate(360deg) } }
-        @keyframes era-fade { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: translateY(0) } }
-        .ef { animation: era-fade 0.4s ease both }
-        .ef1 { animation-delay: 0.06s } .ef2 { animation-delay: 0.12s } .ef3 { animation-delay: 0.18s }
-        .ecard { transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s }
-        .ecard:hover { transform: translateY(-3px); box-shadow: 0 16px 48px rgba(252,163,17,0.12) !important; border-color: rgba(252,163,17,0.4) !important }
-        .ebtn { transition: background 0.15s, box-shadow 0.15s, transform 0.15s }
-        .ebtn:hover { transform: translateY(-1px); box-shadow: 0 4px 18px rgba(252,163,17,0.3) }
-        .einput:focus { border-color: #FCA311 !important; box-shadow: 0 0 0 3px rgba(252,163,17,0.12) !important; outline: none }
-        .escroll::-webkit-scrollbar { width: 4px }
-        .escroll::-webkit-scrollbar-track { background: #0d1828 }
-        .escroll::-webkit-scrollbar-thumb { background: rgba(252,163,17,0.25); border-radius: 99px }
-        .evrow { transition: background 0.15s, border-color 0.15s }
-        .evrow:hover { background: rgba(252,163,17,0.05) !important; border-color: rgba(252,163,17,0.2) !important }
-        .ecrow { transition: background 0.12s }
-        .ecrow:hover { background: rgba(252,163,17,0.06) !important }
-      `}</style>
-
       {showUpload && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }}>
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <VideoUpload onClose={() => setShowUpload(false)} onSuccess={() => { loadVideos(); refetch(); setShowUpload(false); }} />
         </div>
       )}
+      
       {showVideoModal && selectedVideo && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.92)', padding: 16 }}>
-          <div style={{ background: C.navy, border: `1px solid ${C.border}`, borderRadius: 20, padding: 24, maxWidth: 680, width: '100%', position: 'relative' }}>
-            <button style={{ position: 'absolute', top: 14, right: 14, width: 32, height: 32, borderRadius: '50%', background: 'rgba(252,163,17,0.1)', border: `1px solid ${C.border}`, color: C.orange, fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+          <div className="bg-background border border-border rounded-2xl p-6 max-w-3xl w-full relative">
+            <button className="absolute top-4 right-4 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-foreground hover:bg-muted/80 transition-colors"
               onClick={() => { setShowVideoModal(false); setSelectedVideo(null); }}>x</button>
-            <h2 style={{ fontSize: 15, fontWeight: 700, color: C.white, marginBottom: 16, paddingRight: 40 }}>{selectedVideo.titulo}</h2>
-            <video src={selectedVideo.url_video ?? undefined} controls style={{ width: '100%', borderRadius: 12, background: '#000' }} />
+            <h2 className="text-lg font-bold text-foreground mb-4 pr-10">{selectedVideo.titulo}</h2>
+            <video src={selectedVideo.url_video ?? undefined} controls className="w-full rounded-xl bg-black" />
           </div>
         </div>
       )}
 
-      <div style={{ minHeight: '100vh', background: C.navyDark, paddingBottom: 40 }}>
+      <div className="min-h-screen bg-background pb-10">
+        
         {/* HERO */}
-        <div className="ef" style={{ background: `linear-gradient(135deg, ${C.black} 0%, ${C.navy} 55%, ${C.navyMid} 100%)`, border: `1px solid ${C.borderSoft}`, borderRadius: 20, marginBottom: 24, overflow: 'hidden', position: 'relative', boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${C.orange}, rgba(252,163,17,0.15) 70%, transparent)` }} />
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(rgba(252,163,17,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(252,163,17,0.03) 1px, transparent 1px)`, backgroundSize: '40px 40px', pointerEvents: 'none' }} />
-          <div style={{ position: 'relative', zIndex: 1, padding: '36px 40px 28px' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24 }}>
-              <div>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 700, padding: '5px 12px', borderRadius: 99, background: 'rgba(252,163,17,0.1)', border: `1px solid rgba(252,163,17,0.3)`, color: C.orange, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16 }}>
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: C.orange }} />
-                  Plataforma de Ensino
-                </span>
-                <h1 style={{ fontSize: 36, fontWeight: 900, color: C.white, marginBottom: 10, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-                  Treinamentos <span style={{ color: C.orange }}>ERA</span>
+        <div className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #1E1B4B 0%, #2D2B6F 60%, #3D3A8F 100%)' }}>
+          <div className="px-6 lg:px-10 py-8 lg:py-12">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+              
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#3AB26A' }}></div>
+                  <span className="text-xs lg:text-sm font-medium text-white/80">Plataforma de Ensino</span>
+                </div>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">
+                  Treinamentos
                 </h1>
-                <p style={{ fontSize: 14, color: C.textSub, maxWidth: 480, marginBottom: 20, lineHeight: 1.65 }}>
-                  Cursos estruturados em trilhas de aprendizado - do basico ao avancado, com certificacao ao final.
+                <p className="text-sm sm:text-base lg:text-lg text-white/80 max-w-2xl mb-4">
+                  Cursos estruturados em trilhas de aprendizado - do básico ao avançado, com certificação.
                 </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20 }}>
-                  {[{ icon: BookOpen, label: `${allFilteredCourses.length} cursos` }, { icon: Clock, label: '50+ horas' }, { icon: Users, label: '1.000+ alunos' }, { icon: Award, label: 'Certificados' }].map(({ icon: Icon, label }) => (
-                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: C.textMuted }}>
-                      <Icon style={{ width: 14, height: 14, color: C.orange }} />{label}
+                <div className="flex flex-wrap items-center gap-4">
+                  {[
+                    { icon: BookOpen, label: `${allFilteredCourses.length} cursos` },
+                    { icon: Clock, label: '50+ horas' },
+                    { icon: Users, label: '1.000+ alunos' },
+                    { icon: Award, label: 'Certificados' }
+                  ].map(({ icon: Icon, label }) => (
+                    <div key={label} className="flex items-center gap-2 text-xs lg:text-sm text-white/80">
+                      <Icon className="h-4 w-4" style={{ color: '#3AB26A' }} />
+                      <span>{label}</span>
                     </div>
                   ))}
                 </div>
               </div>
-              {isAdmin && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
-                  <button className="ebtn" onClick={() => setShowUpload(true)} style={{ background: C.orange, color: C.black, border: 'none', borderRadius: 12, padding: '10px 18px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}><Settings style={{ width: 14, height: 14 }} />Novo treinamento</button>
-                  <button className="ebtn" onClick={() => { setShowCategoryDialog(true); loadCategories(); }} style={{ background: 'rgba(252,163,17,0.08)', color: C.orange, border: `1px solid rgba(252,163,17,0.25)`, borderRadius: 12, padding: '10px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}><Tag style={{ width: 14, height: 14 }} />Categorias</button>
-                  <button className="ebtn" onClick={() => navigate('/admin/gerenciar-ordem-videos')} style={{ background: 'rgba(252,163,17,0.08)', color: C.orange, border: `1px solid rgba(252,163,17,0.25)`, borderRadius: 12, padding: '10px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}><ListOrdered style={{ width: 14, height: 14 }} />Ordem</button>
+
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-3 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
+                  {[
+                    { value: courses.length, label: 'Cursos' }, 
+                    { value: categories.length, label: 'Categorias' }, 
+                    { value: isAdmin ? videos.length : '50+', label: isAdmin ? 'Vídeos' : 'Horas' }
+                  ].map(({ value, label }) => (
+                    <div key={label}
+                      className="flex flex-col items-center justify-center rounded-xl px-4 py-3 text-center min-w-[76px]"
+                      style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)' }}>
+                      <span className="text-xl font-bold text-white leading-tight">{value}</span>
+                      <span className="text-[11px] text-white/70 uppercase tracking-wider font-semibold mt-1">{label}</span>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          </div>
-          <div style={{ borderTop: `1px solid ${C.borderSoft}`, background: 'rgba(0,0,0,0.35)', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', padding: '16px 40px' }}>
-            {[{ value: courses.length, label: 'Cursos disponiveis' }, { value: categories.length, label: 'Categorias' }, { value: isAdmin ? videos.length : '50+', label: isAdmin ? 'Videos importados' : 'Horas de conteudo' }].map(({ value, label }) => (
-              <div key={label} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 26, fontWeight: 900, color: C.orange }}>{value}</div>
-                <div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{label}</div>
+                {isAdmin && (
+                  <div className="flex gap-2">
+                    <button onClick={() => setShowUpload(true)} className="flex-1 py-2.5 px-4 text-sm text-white font-semibold rounded-xl flex items-center justify-center transition-transform hover:scale-105" style={{ background: '#3AB26A' }}>
+                      <Settings className="w-4 h-4 mr-2" /> Novo treinamento
+                    </button>
+                    <button onClick={() => { setShowCategoryDialog(true); loadCategories(); }} className="px-3 rounded-xl border border-white/20 text-white hover:bg-white/10 transition-colors" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <Tag className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => navigate('/admin/gerenciar-ordem-videos')} className="px-3 rounded-xl border border-white/20 text-white hover:bg-white/10 transition-colors" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      <ListOrdered className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
-            ))}
+
+            </div>
           </div>
         </div>
 
-        {/* SEARCH */}
-        <div className="ef ef1" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 16, marginBottom: 16 }}>
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-              <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: C.textMuted, pointerEvents: 'none' }} />
-              <input className="einput" placeholder="Pesquisar cursos..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ ...IS, paddingLeft: 36 }} />
-            </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger style={{ ...IS, width: 200 }}>
-                <Filter style={{ width: 13, height: 13, marginRight: 6, color: C.textMuted }} /><SelectValue placeholder="Categoria" />
-              </SelectTrigger>
-              <SelectContent style={{ background: C.navy, border: `1px solid ${C.border}`, color: C.alabaster }}>
-                <SelectItem value="all">Todas as categorias</SelectItem>
-                {categories.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* VIDEOS ADMIN */}
-        {isAdmin && (
-          <div className="ef ef2" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: `1px solid ${C.borderSoft}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(252,163,17,0.1)', border: `1px solid rgba(252,163,17,0.2)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Video style={{ width: 15, height: 15, color: C.orange }} />
-                </div>
-                <div><p style={{ fontSize: 13, fontWeight: 600, color: C.white }}>Videos importados</p><p style={{ fontSize: 11, color: C.textMuted }}>Gerencie os videos de treinamento</p></div>
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 space-y-6">
+          {/* SAAS FILTER HEADER */}
+          <div className="bg-background/60 backdrop-blur-md rounded-2xl shadow-sm border border-border p-4 mb-6">
+            <div className="flex flex-col gap-4">
+              <div className="relative w-full group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <input 
+                  className="w-full bg-background/50 border border-border text-foreground rounded-xl pl-11 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all shadow-sm"
+                  placeholder="Buscar treinamentos..." 
+                  value={searchTerm} 
+                  onChange={e => setSearchTerm(e.target.value)} 
+                />
               </div>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: 'rgba(252,163,17,0.1)', color: C.orange, border: `1px solid rgba(252,163,17,0.2)` }}>{videos.length} videos</span>
+              
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide hide-scrollbar w-full">
+                <button
+                  onClick={() => setSelectedCategory('all')}
+                  className={`relative px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors z-10 ${selectedCategory === 'all' ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+                >
+                  {selectedCategory === 'all' && (
+                    <motion.div layoutId="activeChip" className="absolute inset-0 bg-primary rounded-full -z-10" transition={{ type: "spring", stiffness: 300, damping: 30 }} />
+                  )}
+                  Tudo
+                </button>
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`relative px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors z-10 ${selectedCategory === cat ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'}`}
+                  >
+                    {selectedCategory === cat && (
+                      <motion.div layoutId="activeChip" className="absolute inset-0 bg-primary rounded-full -z-10" transition={{ type: "spring", stiffness: 300, damping: 30 }} />
+                    )}
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div style={{ padding: 14 }}>
-              {loadingVideos ? (<div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}><div style={{ width: 24, height: 24, border: `2px solid ${C.orange}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'era-spin 0.8s linear infinite' }} /></div>)
-                : videos.length === 0 ? (<div style={{ textAlign: 'center', padding: '32px 0' }}><Video style={{ width: 28, height: 28, color: C.textMuted, margin: '0 auto 8px' }} /><p style={{ fontSize: 13, color: C.textMuted }}>Nenhum video importado ainda.</p></div>)
-                  : (<div className="escroll" style={{ maxHeight: 240, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          </div>
+
+          {/* VIDEOS ADMIN */}
+          {isAdmin && (
+            <div className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col">
+              <div className="px-5 py-4 flex items-center justify-between border-b border-border bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/40">
+                    <Video className="h-4 w-4 text-indigo-700 dark:text-indigo-400" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-foreground">Vídeos Importados</span>
+                    <p className="text-xs text-muted-foreground">Gerencie os vídeos de treinamento</p>
+                  </div>
+                </div>
+                <span className="text-xs font-bold px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  {videos.length} vídeos
+                </span>
+              </div>
+              <div className="p-5">
+                {loadingVideos ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                  </div>
+                ) : videos.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Video className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Nenhum vídeo importado ainda.</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[240px] overflow-y-auto space-y-2 pr-2">
                     {videos.map(video => (
-                      <div key={video.id} className="evrow" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: `1px solid ${C.borderSoft}`, background: C.navyDark }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 8, background: 'rgba(252,163,17,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Play style={{ width: 13, height: 13, color: C.orange }} /></div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 13, fontWeight: 500, color: C.white, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{video.titulo}</p>
-                          <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-                            <span style={{ fontSize: 11, color: C.textMuted }}>{video.duracao} min</span>
-                            <span style={{ fontSize: 11, color: C.textMuted }}>{new Date(video.data_criacao).toLocaleDateString('pt-BR')}</span>
-                            {video.cursos && <span style={{ fontSize: 11, color: C.orange, fontWeight: 500 }}>{video.cursos.nome}</span>}
+                      <div key={video.id} className="flex items-center gap-3 p-3 rounded-lg bg-background border border-border hover:bg-muted/50 transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center flex-shrink-0">
+                          <Play className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 ml-0.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{video.titulo}</p>
+                          <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                            <span>{video.duracao} min</span>
+                            <span>{new Date(video.data_criacao).toLocaleDateString('pt-BR')}</span>
+                            {video.cursos && <span className="text-indigo-600 dark:text-indigo-400 font-medium">{video.cursos.nome}</span>}
                           </div>
                         </div>
-                        <div style={{ display: 'flex', gap: 4 }}>
-                          <button onClick={() => { setSelectedVideo(video); setShowVideoModal(true); }} style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid ${C.borderSoft}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Eye style={{ width: 13, height: 13, color: C.textSub }} /></button>
-                          <button onClick={() => handleDeleteVideo(video)} disabled={deletingVideoId === video.id} style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid rgba(239,68,68,0.2)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: deletingVideoId === video.id ? 0.5 : 1 }}>
-                            {deletingVideoId === video.id ? <div style={{ width: 12, height: 12, border: '2px solid #ef4444', borderTopColor: 'transparent', borderRadius: '50%', animation: 'era-spin 0.8s linear infinite' }} /> : <Trash style={{ width: 12, height: 12, color: '#f87171' }} />}
+                        <div className="flex gap-2">
+                          <button onClick={() => { setSelectedVideo(video); setShowVideoModal(true); }} className="w-8 h-8 rounded-md border border-border flex items-center justify-center hover:bg-muted transition-colors">
+                            <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                          </button>
+                          <button onClick={() => handleDeleteVideo(video)} disabled={deletingVideoId === video.id} className="w-8 h-8 rounded-md border border-red-200 dark:border-red-900/50 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                            {deletingVideoId === video.id ? <Loader2 className="w-3.5 h-3.5 text-red-500 animate-spin" /> : <Trash className="w-3.5 h-3.5 text-red-500" />}
                           </button>
                         </div>
                       </div>
                     ))}
-                  </div>)}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* COURSES */}
-        {allFilteredCourses.length === 0 ? (
-          <div className="ef ef3" style={{ textAlign: 'center', padding: '64px 20px', background: C.card, borderRadius: 16, border: `1px solid ${C.border}` }}>
-            <BookOpen style={{ width: 40, height: 40, color: C.textMuted, margin: '0 auto 12px' }} />
-            <p style={{ fontWeight: 600, color: C.textSub }}>Nenhum curso encontrado.</p>
-            <p style={{ fontSize: 13, color: C.textMuted, marginTop: 4 }}>Tente ajustar os filtros.</p>
-          </div>
-        ) : selectedCategory === 'all' ? (
-          <div className="ef ef3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-            {catGroups.map(group => (
-              <div key={group.categoria} className="ecard" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
-                <div style={{ padding: '18px 20px 14px', background: `linear-gradient(135deg, ${C.navyDark}, ${C.navy})`, borderBottom: `1px solid rgba(252,163,17,0.12)` }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(252,163,17,0.1)', border: `1.5px solid rgba(252,163,17,0.25)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <CatIcon cat={group.categoria} size={22} />
+          {/* COURSES */}
+          {allFilteredCourses.length === 0 ? (
+            <div className="text-center py-16 bg-card rounded-xl border border-border">
+              <BookOpen className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="font-medium text-foreground">Nenhum curso encontrado.</p>
+              <p className="text-sm text-muted-foreground mt-1">Tente ajustar os filtros.</p>
+            </div>
+          ) : selectedCategory === 'all' ? (
+            <motion.div 
+              initial="hidden" animate="visible"
+              variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.1 } } }}
+              className="flex flex-col gap-10"
+            >
+              {catGroups.map(group => (
+                <motion.div 
+                  key={group.categoria} 
+                  variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } }}
+                  className="flex flex-col gap-4"
+                >
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary border border-primary/20">
+                        <CatIcon cat={group.categoria} size={20} />
                       </div>
                       <div>
-                        <h3 style={{ fontWeight: 800, fontSize: 15, color: C.white }}>{group.categoria}</h3>
-                        <p style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{group.cursos.length} curso{group.cursos.length !== 1 ? 's' : ''} - {group.totalHoras}+ horas</p>
+                        <h3 className="font-bold text-xl text-foreground tracking-tight">{group.categoria}</h3>
+                        <p className="text-xs text-muted-foreground font-medium">{group.cursos.length} treinamento{group.cursos.length !== 1 ? 's' : ''} • {group.totalHoras}+ horas</p>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
-                      {group.niveis.slice(0, 2).map(n => (
-                        <span key={n} style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, fontWeight: 600, background: LEVEL_STYLE[n]?.bg ?? 'rgba(255,255,255,0.08)', color: LEVEL_STYLE[n]?.text ?? C.alabaster, border: `1px solid ${LEVEL_STYLE[n]?.border ?? 'transparent'}` }}>{n}</span>
-                      ))}
-                    </div>
+                    <button onClick={() => { setSelectedCategory(group.categoria); setSearchTerm(''); }} className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1 hidden sm:flex">
+                      Ver todos <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
-                </div>
-                <div style={{ padding: '14px 20px', flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {group.cursos.slice(0, 3).map(c => {
-                    const lvl = getLevel(c); const mock = COURSES_MOCK.find(m => m.nome === c.nome);
-                    return (
-                      <div key={c.id} className="ecrow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 8px', borderRadius: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
-                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: C.orange, flexShrink: 0 }} />
-                          <span style={{ fontSize: 13, color: C.alabaster, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.nome}</span>
+                  
+                  <div className="flex overflow-x-auto pb-6 pt-2 px-1 -mx-1 gap-5 snap-x snap-mandatory scrollbar-hide hide-scrollbar w-full">
+                    {group.cursos.map(c => (
+                      <motion.div
+                        key={c.id}
+                        whileHover={{ scale: 1.03, y: -4 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                        className="snap-start flex-shrink-0 w-[280px] sm:w-[320px] relative group"
+                      >
+                        <div className="h-full rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300">
+                          <CourseCard course={c as unknown as Course} onStartCourse={handleStartCourse} />
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                          <span style={{ fontSize: 11, fontWeight: 600, color: LEVEL_STYLE[lvl]?.text ?? C.textMuted, flexShrink: 0 }}>{mock?.modules ?? ''}m</span>
-                          {isAdmin && !c.id.startsWith('mock-') && (
+                        {isAdmin && !c.id.startsWith('mock-') && (
+                          <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                             <DropdownMenu>
-                              <DropdownMenuTrigger asChild><button style={{ width: 22, height: 22, borderRadius: 5, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><MoreVertical style={{ width: 13, height: 13, color: C.textMuted }} /></button></DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" style={{ background: C.navy, border: `1px solid ${C.border}`, color: C.alabaster }}>
-                                <DropdownMenuItem onClick={() => openEditCourse(c)}><Edit style={{ width: 13, height: 13, marginRight: 6 }} />Editar</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDeleteCourse(c)} style={{ color: '#f87171' }}><Trash style={{ width: 13, height: 13, marginRight: 6 }} />Excluir</DropdownMenuItem>
+                              <DropdownMenuTrigger asChild>
+                                <button className="w-8 h-8 rounded-lg bg-background/90 backdrop-blur-md border border-border shadow-md flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors">
+                                  <MoreVertical className="w-4 h-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="w-40 rounded-xl">
+                                <DropdownMenuItem onClick={() => openEditCourse(c as Course)} className="rounded-lg"><Edit className="w-3.5 h-3.5 mr-2" />Editar</DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteCourse(c as Course)} className="text-red-500 focus:bg-red-50 dark:focus:bg-red-900/20 rounded-lg"><Trash className="w-3.5 h-3.5 mr-2" />Excluir</DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
-                          )}
+                          </div>
+                        )}
+                      </motion.div>
+                    ))}
+                    {isAdmin && (
+                      <div className="snap-start flex-shrink-0 w-[280px] sm:w-[320px] pb-2">
+                        <div onClick={openNewCourse} className="h-full bg-card border-2 border-dashed border-border rounded-2xl flex flex-col items-center justify-center p-6 text-center cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group min-h-[240px]">
+                          <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4 group-hover:bg-primary/10 transition-colors group-hover:scale-110 duration-300">
+                            <Plus className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                          </div>
+                          <p className="font-bold text-foreground mb-1 group-hover:text-primary transition-colors">Adicionar treinamento</p>
+                          <span className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-300 shadow-sm mt-2">
+                            Criar Novo
+                          </span>
                         </div>
                       </div>
-                    );
-                  })}
-                  {group.cursos.length > 3 && <p style={{ fontSize: 11, textAlign: 'center', color: C.textMuted, paddingTop: 4 }}>+{group.cursos.length - 3} mais</p>}
+                    )}
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-inner">
+                    <CatIcon cat={selectedCategory} size={24} />
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-2xl text-foreground leading-tight">{selectedCategory}</h2>
+                    <p className="text-sm font-medium text-muted-foreground">{allFilteredCourses.length} treinamento{allFilteredCourses.length !== 1 ? 's' : ''}</p>
+                  </div>
                 </div>
-                <div style={{ padding: '0 20px 20px' }}>
-                  <button className="ebtn" onClick={() => { setSelectedCategory(group.categoria); setSearchTerm(''); }} style={{ width: '100%', padding: '11px', borderRadius: 12, border: 'none', background: C.orange, color: C.black, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
-                    <Eye style={{ width: 14, height: 14 }} />Ver cursos<ChevronRight style={{ width: 13, height: 13, marginLeft: 'auto' }} />
+                <div className="flex gap-3">
+                  {isAdmin && (
+                    <button onClick={openNewCourse} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold flex items-center gap-2 hover:bg-primary/90 transition-all hover:scale-105 active:scale-95 shadow-md">
+                      <Plus className="w-4 h-4" /> Novo Curso
+                    </button>
+                  )}
+                  <button onClick={() => { setSelectedCategory('all'); setSearchTerm(''); }} className="px-5 py-2.5 rounded-xl border border-border text-foreground text-sm font-bold flex items-center gap-2 hover:bg-muted transition-colors">
+                    <ArrowLeft className="w-4 h-4" /> Voltar
                   </button>
                 </div>
               </div>
-            ))}
-            {isAdmin && (
-              <div onClick={openNewCourse}
-                style={{ background: 'transparent', border: `2px dashed rgba(252,163,17,0.2)`, borderRadius: 18, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 32, textAlign: 'center', minHeight: 220, cursor: 'pointer', transition: 'border-color 0.2s, background 0.2s' }}
-                onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = C.orange; (e.currentTarget as HTMLDivElement).style.background = 'rgba(252,163,17,0.04)'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(252,163,17,0.2)'; (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}>
-                <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(252,163,17,0.1)', border: `1px solid rgba(252,163,17,0.25)`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}><Plus style={{ width: 22, height: 22, color: C.orange }} /></div>
-                <p style={{ fontSize: 14, fontWeight: 700, color: C.white, marginBottom: 4 }}>Adicionar novo curso</p>
-                <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 16 }}>Crie um novo treinamento</p>
-                <span style={{ padding: '8px 18px', borderRadius: 10, background: C.orange, color: C.black, fontSize: 12, fontWeight: 700 }}>+ Criar curso</span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="ef ef3">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(252,163,17,0.1)', border: `1px solid rgba(252,163,17,0.25)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><CatIcon cat={selectedCategory} size={18} /></div>
-                <div><h2 style={{ fontSize: 16, fontWeight: 800, color: C.white }}>Cursos</h2><p style={{ fontSize: 13, fontWeight: 600, color: C.orange }}>{selectedCategory}</p></div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {isAdmin && <button className="ebtn" onClick={openNewCourse} style={{ background: C.orange, color: C.black, border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}><Plus style={{ width: 13, height: 13 }} />Novo Curso</button>}
-                <button onClick={() => { setSelectedCategory('all'); setSearchTerm(''); }} style={{ background: 'transparent', color: C.orange, border: `1px solid rgba(252,163,17,0.3)`, borderRadius: 10, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}><ArrowLeft style={{ width: 13, height: 13 }} />Voltar</button>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
-              {allFilteredCourses.map(c => (
-                <div key={c.id} style={{ position: 'relative' }}>
-                  <CourseCard course={c as unknown as Course} onStartCourse={handleStartCourse} />
-                  {isAdmin && !c.id.startsWith('mock-') && (
-                    <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 10 }}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild><button style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(20,33,61,0.9)', border: `1px solid ${C.border}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><MoreVertical style={{ width: 14, height: 14, color: C.orange }} /></button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" style={{ background: C.navy, border: `1px solid ${C.border}`, color: C.alabaster }}>
-                          <DropdownMenuItem onClick={() => openEditCourse(c as Course)}><Edit style={{ width: 13, height: 13, marginRight: 6 }} />Editar</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleDeleteCourse(c as Course)} style={{ color: '#f87171' }}><Trash style={{ width: 13, height: 13, marginRight: 6 }} />Excluir</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                initial="hidden" animate="visible"
+                variants={{ hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.08 } } }}
+              >
+                {allFilteredCourses.map(c => (
+                  <motion.div 
+                    key={c.id} 
+                    className="relative group"
+                    variants={{ hidden: { opacity: 0, y: 15 }, visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } } }}
+                    whileHover={{ y: -6 }}
+                  >
+                    <div className="h-full rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300">
+                      <CourseCard course={c as unknown as Course} onStartCourse={handleStartCourse} />
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* STATS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12, marginTop: 20 }}>
-          {[{ icon: BookOpen, value: courses.length, label: 'Cursos disponiveis' }, { icon: GraduationCap, value: categories.length, label: 'Categorias' }, { icon: isAdmin ? Video : Clock, value: isAdmin ? videos.length : '50+', label: isAdmin ? 'Videos importados' : 'Horas de conteudo' }].map(({ icon: Icon, value, label }) => (
-            <div key={label} className="ecard" style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(252,163,17,0.08)', border: `1px solid rgba(252,163,17,0.15)`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon style={{ width: 20, height: 20, color: C.orange }} /></div>
-              <div><div style={{ fontSize: 24, fontWeight: 900, color: C.white }}>{value}</div><div style={{ fontSize: 11, color: C.textMuted, marginTop: 2 }}>{label}</div></div>
-            </div>
-          ))}
+                    {isAdmin && !c.id.startsWith('mock-') && (
+                      <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="w-8 h-8 rounded-lg bg-background/90 backdrop-blur-md border border-border shadow-md flex items-center justify-center hover:bg-accent hover:text-accent-foreground transition-colors">
+                              <MoreVertical className="w-4 h-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40 rounded-xl">
+                            <DropdownMenuItem onClick={() => openEditCourse(c as Course)} className="rounded-lg"><Edit className="w-3.5 h-3.5 mr-2" />Editar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDeleteCourse(c as Course)} className="text-red-500 focus:bg-red-50 dark:focus:bg-red-900/20 rounded-lg"><Trash className="w-3.5 h-3.5 mr-2" />Excluir</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </motion.div>
+            </motion.div>
+          )}
         </div>
       </div>
 
       {/* DIALOG CATEGORIAS */}
       <Dialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
-        <DialogContent style={{ background: C.navy, border: `1px solid ${C.border}`, borderRadius: 18, maxWidth: 480, maxHeight: '85vh', overflowY: 'auto' }}>
-          <DialogHeader><DialogTitle style={{ color: C.white, display: 'flex', alignItems: 'center', gap: 10 }}><div style={{ padding: 8, borderRadius: 9, background: 'rgba(252,163,17,0.1)', border: `1px solid rgba(252,163,17,0.2)` }}><Tag style={{ width: 16, height: 16, color: C.orange }} /></div>Gerenciar Categorias</DialogTitle></DialogHeader>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>
-            {loadingCategories ? (<div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}><Loader2 style={{ width: 22, height: 22, color: C.orange, animation: 'era-spin 0.8s linear infinite' }} /></div>)
-              : categoriesDB.length === 0 ? (<div style={{ textAlign: 'center', padding: '20px 0', color: C.textMuted }}><Tag style={{ width: 28, height: 28, margin: '0 auto 8px' }} /><p style={{ fontSize: 13 }}>Nenhuma categoria cadastrada.</p></div>)
-                : categoriesDB.map(cat => (
-                  <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: `1px solid ${C.borderSoft}`, background: C.navyDark }}>
-                    <div style={{ width: 14, height: 14, borderRadius: '50%', background: cat.cor || C.orange, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}><p style={{ fontSize: 13, fontWeight: 600, color: C.white, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.nome}</p>{cat.descricao && <p style={{ fontSize: 11, color: C.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cat.descricao}</p>}</div>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <button onClick={() => handleEditCategory(cat)} style={{ width: 28, height: 28, borderRadius: 7, border: `1px solid ${C.borderSoft}`, background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Edit style={{ width: 13, height: 13, color: C.textSub }} /></button>
-                      <button onClick={() => handleDeleteCategory(cat)} style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid rgba(239,68,68,0.2)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Trash style={{ width: 12, height: 12, color: '#f87171' }} /></button>
-                    </div>
-                  </div>
-                ))}
-            {!showCategoryForm ? (
-              <button onClick={() => { setCategoryForm({ ...emptyCF }); setEditingCategoryId(null); setShowCategoryForm(true); }} style={{ width: '100%', padding: '10px', borderRadius: 10, border: `1.5px dashed rgba(252,163,17,0.25)`, background: 'transparent', color: C.orange, fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}><Plus style={{ width: 14, height: 14 }} />Nova Categoria</button>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Tag className="w-4 h-4 text-primary" />
+              </div>
+              Gerenciar Categorias
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-2">
+            {loadingCategories ? (
+              <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 text-primary animate-spin" /></div>
+            ) : categoriesDB.length === 0 ? (
+              <div className="text-center py-6 text-muted-foreground">
+                <Tag className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Nenhuma categoria cadastrada.</p>
+              </div>
             ) : (
-              <div style={{ padding: 14, borderRadius: 12, border: `1px solid ${C.border}`, background: C.navyDark, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <p style={{ fontSize: 13, fontWeight: 700, color: C.white }}>{editingCategoryId ? 'Editar Categoria' : 'Nova Categoria'}</p>
-                <div><label style={{ fontSize: 11, color: C.textSub, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Nome *</label><input className="einput" value={categoryForm.nome} onChange={e => setCategoryForm(p => ({ ...p, nome: e.target.value }))} placeholder="Ex: PABX..." style={IS} /></div>
-                <div><label style={{ fontSize: 11, color: C.textSub, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Descricao</label><input className="einput" value={categoryForm.descricao} onChange={e => setCategoryForm(p => ({ ...p, descricao: e.target.value }))} placeholder="Opcional" style={IS} /></div>
-                <div>
-                  <label style={{ fontSize: 11, color: C.textSub, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Cor</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <input type="color" value={categoryForm.cor} onChange={e => setCategoryForm(p => ({ ...p, cor: e.target.value }))} style={{ width: 36, height: 36, borderRadius: 8, border: `1px solid ${C.border}`, cursor: 'pointer', padding: 2, background: 'transparent' }} />
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{CAT_COLORS.map(col => <button key={col} onClick={() => setCategoryForm(p => ({ ...p, cor: col }))} style={{ width: 26, height: 26, borderRadius: 6, background: col, border: `2px solid ${categoryForm.cor === col ? C.white : 'transparent'}`, cursor: 'pointer' }} />)}</div>
+              categoriesDB.map(cat => (
+                <div key={cat.id} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card">
+                  <div className="w-3.5 h-3.5 rounded-full flex-shrink-0" style={{ background: cat.cor || 'hsl(var(--primary))' }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{cat.nome}</p>
+                    {cat.descricao && <p className="text-xs text-muted-foreground truncate">{cat.descricao}</p>}
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button onClick={() => handleEditCategory(cat)} className="w-7 h-7 rounded-md border border-border flex items-center justify-center hover:bg-muted transition-colors"><Edit className="w-3 h-3 text-muted-foreground" /></button>
+                    <button onClick={() => handleDeleteCategory(cat)} className="w-7 h-7 rounded-md border border-red-200 dark:border-red-900/50 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><Trash className="w-3 h-3 text-red-500" /></button>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="ebtn" onClick={handleSaveCategory} disabled={savingCategory} style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', background: C.orange, color: C.black, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: savingCategory ? 0.7 : 1 }}>
-                    {savingCategory ? <><Loader2 style={{ width: 13, height: 13, animation: 'era-spin 0.8s linear infinite' }} />Salvando...</> : 'Salvar'}
+              ))
+            )}
+            
+            {!showCategoryForm ? (
+              <button onClick={() => { setCategoryForm({ ...emptyCF }); setEditingCategoryId(null); setShowCategoryForm(true); }} className="w-full py-2.5 rounded-xl border-2 border-dashed border-border text-primary text-sm font-semibold flex items-center justify-center gap-2 hover:bg-muted transition-colors mt-2">
+                <Plus className="w-4 h-4" /> Nova Categoria
+              </button>
+            ) : (
+              <div className="p-4 rounded-xl border border-border bg-muted/30 flex flex-col gap-3 mt-2">
+                <p className="text-sm font-bold text-foreground">{editingCategoryId ? 'Editar Categoria' : 'Nova Categoria'}</p>
+                <div>
+                  <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Nome *</label>
+                  <input className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" value={categoryForm.nome} onChange={e => setCategoryForm(p => ({ ...p, nome: e.target.value }))} placeholder="Ex: PABX..." />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Descrição</label>
+                  <input className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" value={categoryForm.descricao} onChange={e => setCategoryForm(p => ({ ...p, descricao: e.target.value }))} placeholder="Opcional" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Cor</label>
+                  <div className="flex items-center gap-2">
+                    <input type="color" value={categoryForm.cor} onChange={e => setCategoryForm(p => ({ ...p, cor: e.target.value }))} className="w-9 h-9 rounded-md border border-border cursor-pointer p-0.5 bg-background" />
+                    <div className="flex gap-1 flex-wrap">
+                      {CAT_COLORS.map(col => (
+                        <button key={col} onClick={() => setCategoryForm(p => ({ ...p, cor: col }))} className={`w-7 h-7 rounded-md border-2 ${categoryForm.cor === col ? 'border-foreground' : 'border-transparent'}`} style={{ background: col }} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  <button onClick={handleSaveCategory} disabled={savingCategory} className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 disabled:opacity-70 transition-colors">
+                    {savingCategory ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</> : 'Salvar'}
                   </button>
-                  <button onClick={() => { setShowCategoryForm(false); setEditingCategoryId(null); }} style={{ padding: '9px 16px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSub, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+                  <button onClick={() => { setShowCategoryForm(false); setEditingCategoryId(null); }} className="py-2 px-4 rounded-lg border border-border text-sm font-semibold hover:bg-muted transition-colors">Cancelar</button>
                 </div>
               </div>
             )}
@@ -516,45 +609,72 @@ export const Treinamentos = () => {
 
       {/* DIALOG CURSO */}
       <Dialog open={showCourseDialog} onOpenChange={setShowCourseDialog}>
-        <DialogContent style={{ background: C.navy, border: `1px solid ${C.border}`, borderRadius: 18, maxWidth: 480, maxHeight: '85vh', overflowY: 'auto' }}>
-          <DialogHeader><DialogTitle style={{ color: C.white, display: 'flex', alignItems: 'center', gap: 10 }}><div style={{ padding: 8, borderRadius: 9, background: 'rgba(252,163,17,0.1)', border: `1px solid rgba(252,163,17,0.2)` }}><BookOpen style={{ width: 16, height: 16, color: C.orange }} /></div>{editingCourseId ? 'Editar Curso' : 'Novo Curso'}</DialogTitle></DialogHeader>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginTop: 8 }}>
-            <div><label style={{ fontSize: 11, color: C.textSub, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Nome *</label><input className="einput" value={courseForm.nome} onChange={e => setCourseForm(p => ({ ...p, nome: e.target.value }))} placeholder="Ex: Fundamentos de PABX" style={IS} /></div>
-            <div><label style={{ fontSize: 11, color: C.textSub, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Descricao</label><textarea className="einput" value={courseForm.descricao} onChange={e => setCourseForm(p => ({ ...p, descricao: e.target.value }))} placeholder="Descricao..." rows={3} style={{ ...IS, resize: 'none' }} /></div>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <BookOpen className="w-4 h-4 text-primary" />
+              </div>
+              {editingCourseId ? 'Editar Curso' : 'Novo Curso'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 mt-2">
             <div>
-              <label style={{ fontSize: 11, color: C.textSub, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Categoria</label>
+              <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Nome *</label>
+              <input className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" value={courseForm.nome} onChange={e => setCourseForm(p => ({ ...p, nome: e.target.value }))} placeholder="Ex: Fundamentos de PABX" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Descrição</label>
+              <textarea className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" rows={3} value={courseForm.descricao} onChange={e => setCourseForm(p => ({ ...p, descricao: e.target.value }))} placeholder="Descrição..." />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Categoria</label>
               {!courseForm.manualCategory ? (
                 <Select value={courseForm.categoria_id || 'manual'} onValueChange={(val) => { if (val === 'manual') { setCourseForm(p => ({ ...p, manualCategory: true, categoria_id: '', categoria: '' })); } else { const cat = categoriesDB.find(c => c.id === val); setCourseForm(p => ({ ...p, categoria_id: val, categoria: cat?.nome || '' })); } }}>
-                  <SelectTrigger style={IS}><SelectValue placeholder="Selecione uma categoria" /></SelectTrigger>
-                  <SelectContent style={{ background: C.navy, border: `1px solid ${C.border}`, color: C.alabaster }}>
-                    {categoriesDB.map(cat => <SelectItem key={cat.id} value={cat.id}><div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><div style={{ width: 10, height: 10, borderRadius: '50%', background: cat.cor || C.orange }} />{cat.nome}</div></SelectItem>)}
+                  <SelectTrigger className="w-full bg-background border border-border rounded-lg">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categoriesDB.map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>
+                        <div className="flex items-center gap-2">
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ background: cat.cor || 'hsl(var(--primary))' }} />
+                          {cat.nome}
+                        </div>
+                      </SelectItem>
+                    ))}
                     <SelectItem value="manual">Digitar manualmente</SelectItem>
                   </SelectContent>
                 </Select>
               ) : (
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <input className="einput" value={courseForm.categoria} onChange={e => setCourseForm(p => ({ ...p, categoria: e.target.value }))} placeholder="Digite a categoria" style={{ ...IS, flex: 1 }} />
-                  <button onClick={() => setCourseForm(p => ({ ...p, manualCategory: false }))} style={{ padding: '9px 12px', borderRadius: 9, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSub, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>Usar lista</button>
+                <div className="flex gap-2">
+                  <input className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" value={courseForm.categoria} onChange={e => setCourseForm(p => ({ ...p, categoria: e.target.value }))} placeholder="Digite a categoria" />
+                  <button onClick={() => setCourseForm(p => ({ ...p, manualCategory: false }))} className="px-3 py-2 rounded-lg border border-border text-xs font-semibold hover:bg-muted transition-colors whitespace-nowrap">Usar lista</button>
                 </div>
               )}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label style={{ fontSize: 11, color: C.textSub, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status</label>
+                <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Status</label>
                 <Select value={courseForm.status} onValueChange={(val: 'ativo' | 'inativo' | 'em_breve') => setCourseForm(p => ({ ...p, status: val }))}>
-                  <SelectTrigger style={IS}><SelectValue /></SelectTrigger>
-                  <SelectContent style={{ background: C.navy, border: `1px solid ${C.border}`, color: C.alabaster }}>
-                    <SelectItem value="ativo">Ativo</SelectItem><SelectItem value="inativo">Inativo</SelectItem><SelectItem value="em_breve">Em breve</SelectItem>
+                  <SelectTrigger className="w-full bg-background border border-border rounded-lg"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ativo">Ativo</SelectItem>
+                    <SelectItem value="inativo">Inativo</SelectItem>
+                    <SelectItem value="em_breve">Em breve</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div><label style={{ fontSize: 11, color: C.textSub, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Ordem</label><input className="einput" type="number" value={courseForm.ordem} onChange={e => setCourseForm(p => ({ ...p, ordem: parseInt(e.target.value) || 0 }))} style={IS} /></div>
+              <div>
+                <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1.5 block">Ordem</label>
+                <input type="number" className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" value={courseForm.ordem} onChange={e => setCourseForm(p => ({ ...p, ordem: parseInt(e.target.value) || 0 }))} />
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, paddingTop: 4 }}>
-              <button className="ebtn" onClick={handleSaveCourse} disabled={savingCourse} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: C.orange, color: C.black, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: savingCourse ? 0.7 : 1 }}>
-                {savingCourse ? <><Loader2 style={{ width: 13, height: 13, animation: 'era-spin 0.8s linear infinite' }} />Salvando...</> : editingCourseId ? 'Salvar alteracoes' : 'Criar curso'}
+            <div className="flex gap-2 mt-2">
+              <button onClick={handleSaveCourse} disabled={savingCourse} className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 hover:bg-primary/90 disabled:opacity-70 transition-colors">
+                {savingCourse ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Salvando...</> : editingCourseId ? 'Salvar alterações' : 'Criar curso'}
               </button>
-              <button onClick={() => setShowCourseDialog(false)} style={{ padding: '10px 18px', borderRadius: 10, border: `1px solid ${C.border}`, background: 'transparent', color: C.textSub, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={() => setShowCourseDialog(false)} className="py-2 px-4 rounded-lg border border-border text-sm font-semibold hover:bg-muted transition-colors">Cancelar</button>
             </div>
           </div>
         </DialogContent>

@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useEmpresa } from '@/context/EmpresaContext';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface DashboardStats {
   totalUsers: number;
@@ -27,33 +29,46 @@ export interface CategoryProgress {
 }
 
 export const useDashboardStats = () => {
+  const { empresa } = useEmpresa();
+  const { userProfile } = useAuth();
+
   return useQuery<DashboardStats>({
-    queryKey: ['dashboard-stats'],
+    queryKey: ['dashboard-stats', empresa?.id, userProfile?.tipo_usuario],
     queryFn: async () => {
+      // Helper function para adicionar filtro de empresa se necessário
+      const applyEmpresaFilter = (query: any) => {
+        if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
+          return query.eq('empresa_id', empresa.id);
+        }
+        return query;
+      };
+
       // 1. Total de Usuários Ativos
-      const { count: userCount, error: userError } = await supabase
-        .from('usuarios')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'ativo');
+      const { count: userCount, error: userError } = await applyEmpresaFilter(
+        supabase.from('usuarios').select('id', { count: 'exact', head: true }).eq('status', 'ativo')
+      );
       if (userError) throw userError;
 
       // 2. Total de Cursos Ativos
-      const { count: courseCount, error: courseError } = await supabase
-        .from('cursos')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'ativo');
+      const { count: courseCount, error: courseError } = await applyEmpresaFilter(
+        supabase.from('cursos').select('id', { count: 'exact', head: true }).eq('status', 'ativo')
+      );
       if (courseError) throw courseError;
 
       // 3. Total de Certificados Emitidos (todos os tempos)
-      const { count: certCount, error: certError } = await supabase
-        .from('certificados')
-        .select('id', { count: 'exact', head: true });
+      const { count: certCount, error: certError } = await applyEmpresaFilter(
+        supabase.from('certificados').select('id', { count: 'exact', head: true })
+      );
       if (certError) throw certError;
 
       // 4. Taxa de Conclusão: cursos concluídos / cursos iniciados
-      const { data: progressData, error: progressError } = await supabase
-        .from('progresso_usuario')
-        .select('status');
+      // progresso_usuario não tem empresa_id, então vamos buscar via join com usuarios
+      let progressQuery = supabase.from('progresso_usuario').select('status, usuarios!inner(empresa_id)');
+      if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
+        progressQuery = progressQuery.eq('usuarios.empresa_id', empresa.id);
+      }
+      const { data: progressData, error: progressError } = await progressQuery;
+      
       if (progressError) throw progressError;
       const totalStarted = progressData?.filter(p => p.status !== 'nao_iniciado').length || 0;
       const totalCompleted = progressData?.filter(p => p.status === 'concluido').length || 0;
@@ -72,19 +87,28 @@ export const useDashboardStats = () => {
 
 // Hook para atividades recentes
 export const useRecentActivity = () => {
+  const { empresa } = useEmpresa();
+  const { userProfile } = useAuth();
+
   return useQuery<RecentActivity[]>({
-    queryKey: ['recent-activity'],
+    queryKey: ['recent-activity', empresa?.id, userProfile?.tipo_usuario],
     queryFn: async () => {
       const activities: RecentActivity[] = [];
 
       try {
         // 1. Certificados recentes (últimos 7 dias)
-        const { data: recentCertificates } = await supabase
+        let certsQuery = supabase
           .from('certificados')
           .select('*')
           .gte('data_conclusao', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
           .order('data_conclusao', { ascending: false })
           .limit(5);
+          
+        if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
+          certsQuery = certsQuery.eq('empresa_id', empresa.id);
+        }
+
+        const { data: recentCertificates } = await certsQuery;
 
         if (recentCertificates) {
           recentCertificates.forEach((cert: any) => {
@@ -100,12 +124,18 @@ export const useRecentActivity = () => {
         }
 
         // 2. Progresso de vídeos recentes (últimos 7 dias)
-        const { data: recentProgress } = await supabase
+        let progressQuery = supabase
           .from('progresso_usuario')
-          .select('*')
+          .select('*, usuarios!inner(empresa_id)')
           .gte('data_conclusao', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
           .order('data_conclusao', { ascending: false })
           .limit(10);
+          
+        if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
+          progressQuery = progressQuery.eq('usuarios.empresa_id', empresa.id);
+        }
+
+        const { data: recentProgress } = await progressQuery;
 
         if (recentProgress) {
           recentProgress.forEach((progress: any) => {
@@ -205,49 +235,50 @@ export const useCategoryProgress = (userId?: string) => {
 
 // Hook para estatísticas de crescimento (comparação com mês anterior)
 export const useGrowthStats = () => {
+  const { empresa } = useEmpresa();
+  const { userProfile } = useAuth();
+
   return useQuery({
-    queryKey: ['growth-stats'],
+    queryKey: ['growth-stats', empresa?.id, userProfile?.tipo_usuario],
     queryFn: async () => {
       const now = new Date();
       const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      
+      const applyEmpresaFilter = (query: any) => {
+        if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
+          return query.eq('empresa_id', empresa.id);
+        }
+        return query;
+      };
 
       try {
         // Usuários este mês vs mês passado
-        const { count: usersThisMonth } = await supabase
-          .from('usuarios')
-          .select('id', { count: 'exact', head: true })
-          .gte('created_at', thisMonth.toISOString());
+        const { count: usersThisMonth } = await applyEmpresaFilter(
+          supabase.from('usuarios').select('id', { count: 'exact', head: true }).gte('created_at', thisMonth.toISOString())
+        );
 
-        const { count: usersLastMonth } = await supabase
-          .from('usuarios')
-          .select('id', { count: 'exact', head: true })
-          .gte('created_at', lastMonth.toISOString())
-          .lt('created_at', thisMonth.toISOString());
+        const { count: usersLastMonth } = await applyEmpresaFilter(
+          supabase.from('usuarios').select('id', { count: 'exact', head: true }).gte('created_at', lastMonth.toISOString()).lt('created_at', thisMonth.toISOString())
+        );
 
         // Certificados este mês vs mês passado
-        const { count: certsThisMonth } = await supabase
-          .from('certificados')
-          .select('id', { count: 'exact', head: true })
-          .gte('data_conclusao', thisMonth.toISOString());
+        const { count: certsThisMonth } = await applyEmpresaFilter(
+          supabase.from('certificados').select('id', { count: 'exact', head: true }).gte('data_conclusao', thisMonth.toISOString())
+        );
 
-        const { count: certsLastMonth } = await supabase
-          .from('certificados')
-          .select('id', { count: 'exact', head: true })
-          .gte('data_conclusao', lastMonth.toISOString())
-          .lt('data_conclusao', thisMonth.toISOString());
+        const { count: certsLastMonth } = await applyEmpresaFilter(
+          supabase.from('certificados').select('id', { count: 'exact', head: true }).gte('data_conclusao', lastMonth.toISOString()).lt('data_conclusao', thisMonth.toISOString())
+        );
 
         // Cursos este mês vs mês passado
-        const { count: coursesThisMonth } = await supabase
-          .from('cursos')
-          .select('id', { count: 'exact', head: true })
-          .gte('created_at', thisMonth.toISOString());
+        const { count: coursesThisMonth } = await applyEmpresaFilter(
+          supabase.from('cursos').select('id', { count: 'exact', head: true }).gte('created_at', thisMonth.toISOString())
+        );
 
-        const { count: coursesLastMonth } = await supabase
-          .from('cursos')
-          .select('id', { count: 'exact', head: true })
-          .gte('created_at', lastMonth.toISOString())
-          .lt('created_at', thisMonth.toISOString());
+        const { count: coursesLastMonth } = await applyEmpresaFilter(
+          supabase.from('cursos').select('id', { count: 'exact', head: true }).gte('created_at', lastMonth.toISOString()).lt('created_at', thisMonth.toISOString())
+        );
 
         return {
           usersGrowth: usersLastMonth ? Math.round(((usersThisMonth || 0) - usersLastMonth) / usersLastMonth * 100) : 12,

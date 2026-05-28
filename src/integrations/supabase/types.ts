@@ -835,6 +835,7 @@ export interface Database {
         }
         Relationships: []
       }
+    }
     Views: {
       current_tenant: {
         Row: {

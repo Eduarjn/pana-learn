@@ -8,13 +8,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
   Search, Plus, Users, Edit, Trash2,
-  Clock, Download, MoreHorizontal, Award, Activity
+  Clock, Download, MoreHorizontal, Award, Activity, AlertTriangle, ShieldAlert
 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useEmpresa } from '@/context/EmpresaContext';
+import { useEmpresaUsers } from '@/hooks/useEmpresaUsers';
 import type { Database } from '@/integrations/supabase/types';
 import { useToast } from '@/hooks/use-toast';
+import { usePlanLimits } from '@/hooks/usePlanLimits';
 
 interface UserListItem {
   id: string; nome: string; email: string; user_id: string;
@@ -34,13 +37,16 @@ const formatLastLogin = (d: string | null | undefined) => {
 
 const USER_TYPE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
   admin_master: { bg: '#EDE9FE', text: '#5B21B6', label: 'Admin Master' },
-  admin:        { bg: '#F0FDF4', text: '#166534', label: 'Admin' },
-  cliente:      { bg: '#F1F5F9', text: '#475569', label: 'Cliente' },
+  admin: { bg: '#F0FDF4', text: '#166534', label: 'Admin' },
+  cliente: { bg: '#F1F5F9', text: '#475569', label: 'Cliente' },
 };
 const getUserTypeStyle = (t: string) => USER_TYPE_STYLE[t] ?? USER_TYPE_STYLE.cliente;
 
 const Usuarios = () => {
   const { userProfile } = useAuth();
+  const { empresa } = useEmpresa();
+  const { createUser } = useEmpresaUsers();
+  const { data: planLimits } = usePlanLimits();
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewUserForm, setShowNewUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState<Database['public']['Tables']['usuarios']['Row'] | null>(null);
@@ -71,9 +77,17 @@ const Usuarios = () => {
   }, []);
 
   const fetchUsers = async (search = searchTerm) => {
+    if (!empresa?.id && userProfile?.tipo_usuario !== 'admin_master') return;
+    
     setLoading(true);
     try {
-      const { data } = await supabase.from('usuarios').select('*', { count: 'exact' }).order(sortField, { ascending: sortDirection === 'asc' });
+      let query = supabase.from('usuarios').select('*', { count: 'exact' }).order(sortField, { ascending: sortDirection === 'asc' });
+      
+      if (empresa?.id) {
+        query = query.eq('empresa_id', empresa.id);
+      }
+      
+      const { data } = await query;
       const all = data || [];
       const filtered = search.trim()
         ? all.filter(u => u.nome?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase()))
@@ -91,7 +105,7 @@ const Usuarios = () => {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { if (userProfile) fetchUsers(); }, [userProfile]);
+  useEffect(() => { if (userProfile && (empresa || userProfile.tipo_usuario === 'admin_master')) fetchUsers(); }, [userProfile, empresa]);
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => fetchUsers(), 300);
@@ -129,13 +143,23 @@ const Usuarios = () => {
 
   const handleNewUserSubmit = async () => {
     if (!newUser.nome || !newUser.email) { toast({ title: 'Nome e email obrigatórios', variant: 'destructive' }); return; }
-    const { error } = await supabase.from('usuarios').insert({
-      nome: newUser.nome, email: newUser.email,
-      tipo_usuario: (newUser.tipo === 'Cliente' ? 'cliente' : 'admin') as any,
-      status: (newUser.status === 'Ativo' ? 'ativo' : 'inativo') as any
+    if (!empresa?.id) { toast({ title: 'Empresa não selecionada', variant: 'destructive' }); return; }
+    
+    const result = await createUser(empresa.id, {
+      nome: newUser.nome,
+      email: newUser.email,
+      tipo_usuario: newUser.tipo === 'Cliente' ? 'cliente' : 'admin'
     });
-    if (error) { toast({ title: 'Erro ao criar usuário', description: error.code === '23505' ? 'Email já existe' : error.message, variant: 'destructive' }); return; }
-    toast({ title: 'Usuário criado!' }); setNewUser({ nome: '', email: '', tipo: 'Cliente', status: 'Ativo' }); setShowNewUserForm(false); fetchUsers();
+    
+    if (!result.success) { 
+      toast({ title: 'Erro ao criar usuário', description: result.message, variant: 'destructive' }); 
+      return; 
+    }
+    
+    toast({ title: 'Usuário criado!', description: result.password ? `Senha: ${result.password}` : '' }); 
+    setNewUser({ nome: '', email: '', tipo: 'Cliente', status: 'Ativo' }); 
+    setShowNewUserForm(false); 
+    fetchUsers();
   };
 
   const handleSaveEdit = async () => {
@@ -202,8 +226,8 @@ const Usuarios = () => {
           </div>
           <div className="px-6 md:px-10 py-4 grid grid-cols-4 gap-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
             {[
-              { value: userStats.total,          label: 'Total' },
-              { value: userStats.ativos,          label: 'Ativos' },
+              { value: userStats.total, label: 'Total' },
+              { value: userStats.ativos, label: 'Ativos' },
               { value: userStats.administradores, label: 'Admins' },
               { value: userStats.novosEstaSemana, label: 'Novos esta semana' },
             ].map(({ value, label }) => (
@@ -216,6 +240,36 @@ const Usuarios = () => {
         </div>
 
         <div className="px-1 pb-8 space-y-5">
+
+          {/* Plan limit banners */}
+          {planLimits?.isAtLimit && (
+            <div className="flex items-center gap-3 p-4 rounded-xl mb-1"
+              style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+              <ShieldAlert className="h-5 w-5 flex-shrink-0" style={{ color: '#DC2626' }} />
+              <div className="flex-1">
+                <p className="text-sm font-semibold" style={{ color: '#991B1B' }}>
+                  Limite do plano {planLimits.planName} atingido
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: '#B91C1C' }}>
+                  {planLimits.currentUsers}/{planLimits.maxUsers} usuários. Faça upgrade para adicionar novos usuários.
+                </p>
+              </div>
+            </div>
+          )}
+          {planLimits?.isNearLimit && !planLimits.isAtLimit && (
+            <div className="flex items-center gap-3 p-4 rounded-xl mb-1"
+              style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+              <AlertTriangle className="h-5 w-5 flex-shrink-0" style={{ color: '#D97706' }} />
+              <div className="flex-1">
+                <p className="text-sm font-semibold" style={{ color: '#92400E' }}>
+                  Limite de usuários próximo — {planLimits.usagePercent}% usado
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: '#B45309' }}>
+                  {planLimits.currentUsers}/{planLimits.maxUsers} usuários no plano {planLimits.planName}. Restam {planLimits.remainingSlots} vagas.
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Toolbar */}
           <div className="flex flex-col sm:flex-row gap-3 items-center justify-between">
@@ -244,11 +298,23 @@ const Usuarios = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button
-                onClick={() => setShowNewUserForm(!showNewUserForm)}
-                className="text-white text-sm flex items-center gap-1.5 px-4"
-                style={{ background: 'linear-gradient(135deg, #1E1B4B, #2D2B6F)' }}
+                onClick={() => {
+                  if (planLimits?.isAtLimit) return;
+                  setShowNewUserForm(!showNewUserForm);
+                }}
+                disabled={planLimits?.isAtLimit}
+                title={planLimits?.isAtLimit
+                  ? `Limite do plano ${planLimits.planName} atingido (${planLimits.maxUsers} usuários). Faça upgrade para adicionar mais.`
+                  : undefined
+                }
+                className="text-white text-sm flex items-center gap-1.5 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: planLimits?.isAtLimit ? '#6B7280' : 'linear-gradient(135deg, #1E1B4B, #2D2B6F)' }}
               >
-                <Plus className="h-4 w-4" /> Novo Usuário
+                {planLimits?.isAtLimit
+                  ? <ShieldAlert className="h-4 w-4" />
+                  : <Plus className="h-4 w-4" />
+                }
+                {planLimits?.isAtLimit ? 'Limite atingido' : 'Novo Usuário'}
               </Button>
             </div>
           </div>
@@ -323,7 +389,7 @@ const Usuarios = () => {
                     <TableHead className="w-10 pl-5">
                       <Checkbox checked={selectAll} onCheckedChange={handleSelectAll} />
                     </TableHead>
-                    {([['nome','Nome'],['email','Email'],['ultimo_login','Último login'],['tipo_usuario','Tipo'],['data_criacao','Criação']] as [typeof sortField, string][]).map(([field, label]) => (
+                    {([['nome', 'Nome'], ['email', 'Email'], ['ultimo_login', 'Último login'], ['tipo_usuario', 'Tipo'], ['data_criacao', 'Criação']] as [typeof sortField, string][]).map(([field, label]) => (
                       <TableHead key={field} className="text-xs font-medium text-gray-500 cursor-pointer select-none" onClick={() => handleSort(field)}>
                         {label}<SortIcon field={field} />
                       </TableHead>
@@ -378,10 +444,10 @@ const Usuarios = () => {
                           ) : (
                             <div className="flex gap-1">
                               {[
-                                { icon: Award,    fn: () => handleViewCertificates(user.id), title: 'Certificados', color: '#F59E0B' },
+                                { icon: Award, fn: () => handleViewCertificates(user.id), title: 'Certificados', color: '#F59E0B' },
                                 { icon: Activity, fn: () => handleViewProgress(user.id, user.nome), title: 'Progresso', color: '#3AB26A' },
-                                { icon: Edit,     fn: () => { setEditingUser(user as any); setShowEditModal(true); }, title: 'Editar', color: '#2D2B6F' },
-                                { icon: Trash2,   fn: async () => { if (window.confirm('Excluir usuário?')) { await supabase.from('usuarios').delete().eq('id', user.id); toast({ title: 'Usuário excluído' }); fetchUsers(); } }, title: 'Excluir', color: '#EF4444' },
+                                { icon: Edit, fn: () => { setEditingUser(user as any); setShowEditModal(true); }, title: 'Editar', color: '#2D2B6F' },
+                                { icon: Trash2, fn: async () => { if (window.confirm('Excluir usuário?')) { await supabase.from('usuarios').delete().eq('id', user.id); toast({ title: 'Usuário excluído' }); fetchUsers(); } }, title: 'Excluir', color: '#EF4444' },
                               ].map(({ icon: Icon, fn, title, color }) => (
                                 <Button key={title} variant="ghost" size="sm" onClick={fn} title={title}
                                   className="h-7 w-7 p-0 hover:bg-[#F8F7FF]" style={{ color }}>
@@ -409,7 +475,7 @@ const Usuarios = () => {
           </DialogHeader>
           {editingUser && (
             <div className="space-y-4 py-2">
-              {[['nome','Nome',editingUser.nome],['email','Email',editingUser.email]].map(([id, label, val]) => (
+              {[['nome', 'Nome', editingUser.nome], ['email', 'Email', editingUser.email]].map(([id, label, val]) => (
                 <div key={id}>
                   <Label className="text-xs font-medium text-gray-600 mb-1.5 block">{label}</Label>
                   <Input value={val as string} onChange={e => setEditingUser({ ...editingUser, [id]: e.target.value })}

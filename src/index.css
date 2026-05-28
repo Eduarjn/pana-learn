@@ -26,103 +26,95 @@
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
 @layer base {
   :root {
-    --background: 0 0% 100%; /* #FFFFFF */
-    --foreground: 0 0% 0%; /* #000000 */
+    --background: 250 100% 98%; /* #FAFAFC lavanda muito claro */
+    --foreground: 215 28% 17%; /* #1F2937 cinza escuro */
 
-    --card: 0 0% 100%; /* #FFFFFF */
-    --card-foreground: 0 0% 0%; /* #000000 */
+    --card: 0 0% 100%; /* #FFFFFF branco puro */
+    --card-foreground: 215 28% 17%; /* #1F2937 cinza escuro */
 
-    --popover: 0 0% 100%; /* #FFFFFF */
-    --popover-foreground: 0 0% 0%; /* #000000 */
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 28% 17%;
 
-    --primary: 142 76% 52%; /* #34C759 */
-    --primary-foreground: 0 0% 0%; /* #000000 */
+    --primary: 160 84% 39%; /* #10B981 verde */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF */
 
-    --secondary: 0 0% 96%; /* #F5F5F5 */
-    --secondary-foreground: 0 0% 29%; /* #4A4A4A */
+    --secondary: 220 13% 91%; /* #E5E7EB cinza claro */
+    --secondary-foreground: 215 28% 17%; /* #1F2937 */
 
-    --muted: 0 0% 96%; /* #F5F5F5 */
-    --muted-foreground: 0 0% 29%; /* #4A4A4A */
+    --muted: 215 16% 95%; /* #F3F4F6 */
+    --muted-foreground: 215 16% 47%; /* #6B7280 cinza medio */
 
-    --accent: 0 0% 96%; /* #F5F5F5 */
-    --accent-foreground: 0 0% 29%; /* #4A4A4A */
+    --accent: 262 80% 50%; /* #7C3AED roxo (padrão de Quizzes) */
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 0%; /* #000000 */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 90%; /* #E5E5E5 */
-    --input: 0 0% 90%; /* #E5E5E5 */
-    --ring: 142 76% 52%; /* #34C759 */
+    --border: 220 13% 91%; /* #E5E7EB cinza muito claro */
+    --input: 220 13% 91%;
+    --ring: 160 84% 39%; /* verde */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 0%; /* #000000 */
+    --sidebar-background: 215 28% 17%; /* #1F2937 */
     --sidebar-foreground: 0 0% 100%; /* #FFFFFF */
-    --sidebar-primary: 142 76% 52%; /* #34C759 */
+    --sidebar-primary: 160 84% 39%; /* #34C759 */
     --sidebar-primary-foreground: 0 0% 0%; /* #000000 */
-    --sidebar-accent: 0 0% 10%; /* #1A1A1A */
+    --sidebar-accent: 215 28% 25%;
     --sidebar-accent-foreground: 0 0% 100%; /* #FFFFFF */
-    --sidebar-border: 0 0% 20%; /* #333333 */
-    --sidebar-ring: 142 76% 52%; /* #34C759 */
+    --sidebar-border: 215 28% 20%; 
+    --sidebar-ring: 160 84% 39%;
 
-    /* ERA colors with the specified palette */
-    --era-white: 0 0% 100%; /* #FFFFFF */
-    --era-black: 0 0% 0%; /* #000000 */
-    --era-green: 142 76% 52%; /* #34C759 */
-    --era-gray-light: 0 0% 96%; /* #F5F5F5 */
-    --era-gray-medium: 0 0% 29%; /* #4A4A4A */
-    --era-text-primary: 0 0% 0%; /* #000000 */
-    --era-text-secondary: 0 0% 29%; /* #4A4A4A */
-    --era-background: 0 0% 100%; /* #FFFFFF */
-    --era-border: 0 0% 90%; /* #E5E5E5 */
-
-    /* Legacy colors for compatibility */
-    --primary-color: #34C759;
-    --secondary-color: #4A4A4A;
+    /* Compatibility colors */
+    --era-text-primary: 215 28% 17%;
+    --era-text-secondary: 215 16% 47%;
+    --era-background: 250 100% 98%;
+    --era-border: 220 13% 91%;
   }
 
   .dark {
-    --background: 0 0% 0%; /* #000000 */
-    --foreground: 0 0% 100%; /* #FFFFFF */
+    --background: 222 47% 11%; /* #0F172A azul-marinho escuro */
+    --foreground: 210 20% 98%; /* #F9FAFB branco */
 
-    --card: 0 0% 10%; /* #1A1A1A */
-    --card-foreground: 0 0% 100%; /* #FFFFFF */
+    --card: 217 33% 17%; /* #111827 azul escuro */
+    --card-foreground: 210 20% 98%; /* #F9FAFB */
 
-    --popover: 0 0% 10%; /* #1A1A1A */
-    --popover-foreground: 0 0% 100%; /* #FFFFFF */
+    --popover: 217 33% 17%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 142 76% 52%; /* #34C759 */
-    --primary-foreground: 0 0% 0%; /* #000000 */
+    --primary: 38 92% 50%; /* #F59E0B laranja/âmbar */
+    --primary-foreground: 0 0% 100%; /* #FFFFFF */
 
-    --secondary: 0 0% 15%; /* #262626 */
-    --secondary-foreground: 0 0% 100%; /* #FFFFFF */
+    --secondary: 215 25% 27%; /* #1E293B */
+    --secondary-foreground: 210 20% 98%;
 
-    --muted: 0 0% 15%; /* #262626 */
-    --muted-foreground: 0 0% 70%; /* #B3B3B3 */
+    --muted: 215 25% 20%;
+    --muted-foreground: 215 14% 65%; /* #9CA3AF cinza claro */
 
-    --accent: 0 0% 15%; /* #262626 */
-    --accent-foreground: 0 0% 100%; /* #FFFFFF */
+    --accent: 38 92% 50%; /* #F59E0B laranja/âmbar */
+    --accent-foreground: 222 47% 11%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 100%; /* #FFFFFF */
+    --destructive-foreground: 210 20% 98%;
 
-    --border: 0 0% 20%; /* #333333 */
-    --input: 0 0% 20%; /* #333333 */
-    --ring: 142 76% 52%; /* #34C759 */
-    --sidebar-background: 0 0% 0%; /* #000000 */
-    --sidebar-foreground: 0 0% 100%; /* #FFFFFF */
-    --sidebar-primary: 142 76% 52%; /* #34C759 */
-    --sidebar-primary-foreground: 0 0% 0%; /* #000000 */
-    --sidebar-accent: 0 0% 10%; /* #1A1A1A */
-    --sidebar-accent-foreground: 0 0% 100%; /* #FFFFFF */
-    --sidebar-border: 0 0% 20%; /* #333333 */
-    --sidebar-ring: 142 76% 52%; /* #34C759 */
+    --border: 215 25% 27%; /* #1E293B azul escuro sutil */
+    --input: 215 25% 27%;
+    --ring: 38 92% 50%; /* laranja */
 
-    /* Dark mode ERA colors */
-    --era-text-primary: 0 0% 100%; /* #FFFFFF */
-    --era-text-secondary: 0 0% 70%; /* #B3B3B3 */
-    --era-background: 0 0% 0%; /* #000000 */
-    --era-border: 0 0% 20%; /* #333333 */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 38 92% 50%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 215 25% 27%;
+    --sidebar-ring: 38 92% 50%;
+
+    /* Compatibility colors */
+    --era-text-primary: 210 20% 98%;
+    --era-text-secondary: 215 14% 65%;
+    --era-background: 222 47% 11%;
+    --era-border: 215 25% 27%;
   }
 
   * {

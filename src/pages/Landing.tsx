@@ -348,7 +348,7 @@ export default function Landing() {
       const prices: Record<string, { monthly: number; annual: number }> = {
         starter: { monthly: 297, annual: 237 },
         pro: { monthly: 497, annual: 397 },
-        enterprise: { monthly: 697, annual: 557 }
+        enterprise: { monthly: 897, annual: 717 }
       };
       for (const [plan, vals] of Object.entries(prices)) {
         const price = document.getElementById('lp-p-' + plan);
@@ -683,7 +683,7 @@ export default function Landing() {
               <div><span className="lp-plan-old" id="lp-o-starter">R$&nbsp;297</span><span className="lp-plan-price" id="lp-p-starter">R$&nbsp;297</span><span className="lp-plan-per">/mês</span></div>
               <div className="lp-plan-desc">Ideal para pequenas equipes e empresas começando no e-learning.</div>
               <ul className="lp-plan-feats">
-                {['Até 50 usuários ativos','Biblioteca de até 20h de vídeo','Cursos ilimitados','Certificados automáticos','Quizzes inclusos','White-label: Não','IA de suporte: Não'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
+                {['Até 40 usuários ativos','Cursos limitados','Quizzes inclusos','Certificados automáticos','Painel básico de progresso','Sem white-label'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
               </ul>
               <a href="/onboarding" className="lp-plan-cta lp-btn lp-btn-op">Começar agora</a>
             </div>
@@ -693,16 +693,16 @@ export default function Landing() {
               <div><span className="lp-plan-old" id="lp-o-pro">R$&nbsp;497</span><span className="lp-plan-price" id="lp-p-pro">R$&nbsp;497</span><span className="lp-plan-per">/mês</span></div>
               <div className="lp-plan-desc">Para empresas em crescimento que precisam de personalização e IA.</div>
               <ul className="lp-plan-feats">
-                {['Até 200 usuários ativos','Biblioteca de até 60h de vídeo','Cursos ilimitados','Certificados automáticos','Quizzes inclusos','White-label: Sim','IA de suporte: Sim'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
+                {['Até 180 usuários ativos','Cursos ilimitados','Quizzes + certificados','White-label habilitado','Relatórios e analytics','Gestão de usuários'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
               </ul>
               <a href="/onboarding" className="lp-plan-cta lp-btn lp-btn-dark">Começar agora</a>
             </div>
             <div className="lp-plan">
               <div className="lp-plan-name">Enterprise</div>
-              <div><span className="lp-plan-old" id="lp-o-enterprise">R$&nbsp;697</span><span className="lp-plan-price" id="lp-p-enterprise">R$&nbsp;697</span><span className="lp-plan-per">/mês</span></div>
+              <div><span className="lp-plan-old" id="lp-o-enterprise">R$&nbsp;897</span><span className="lp-plan-price" id="lp-p-enterprise">R$&nbsp;897</span><span className="lp-plan-per">/mês</span></div>
               <div className="lp-plan-desc">Para grandes organizações com necessidades avançadas e escala.</div>
               <ul className="lp-plan-feats">
-                {['Usuários ilimitados','Biblioteca de até 200h de vídeo','Horas extras: R$15 por 10h','Cursos ilimitados','Certificados automáticos','Quizzes inclusos','White-label: Sim','IA avançada: Sim'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
+                {['Até 500 usuários ativos','Cursos ilimitados','Quizzes + certificados','White-label completo','Integrações via API','Suporte prioritário','IA de suporte incluída 🤖'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
               </ul>
               <a href="/login" className="lp-plan-cta lp-btn lp-btn-op">Falar com especialista</a>
             </div>

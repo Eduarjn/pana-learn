@@ -17,6 +17,9 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { Volume2 } from 'lucide-react';
+import { useQuizAudios, type QuizAudio } from '@/hooks/useQuizAudios';
+import { AudioPlayer } from '@/components/AudioPlayer';
 
 interface QuizQuestion {
   id: string;
@@ -25,6 +28,7 @@ interface QuizQuestion {
   resposta_correta: number;
   explicacao?: string;
   ordem: number;
+  audio_id?: string | null;
 }
 
 interface QuizConfig {
@@ -55,6 +59,10 @@ const QuizConfig: React.FC = () => {
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Audio library
+  const { audios: audioLibrary } = useQuizAudios();
+  const getAudioById = (id?: string | null): QuizAudio | undefined => id ? audioLibrary.find(a => a.id === id) : undefined;
 
   // Hooks devem ser chamados sempre, independentemente do tipo de usuário
   useEffect(() => {
@@ -172,7 +180,8 @@ const QuizConfig: React.FC = () => {
       pergunta: '',
       opcoes: ['', '', '', ''],
       resposta_correta: 0,
-      ordem: quizConfig.perguntas.length + 1
+      ordem: quizConfig.perguntas.length + 1,
+      audio_id: null
     };
 
     setQuizConfig(prev => ({
@@ -555,6 +564,34 @@ const QuizConfig: React.FC = () => {
                               placeholder="Digite a pergunta..."
                               rows={2}
                             />
+                          </div>
+
+                          {/* Audio */}
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1.5">
+                              <Volume2 className="h-4 w-4" /> Áudio (opcional)
+                            </label>
+                            <Select 
+                              value={question.audio_id || 'none'} 
+                              onValueChange={(val) => updateQuestion(qIndex, 'audio_id', val === 'none' ? undefined : val)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Selecione um áudio..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Nenhum áudio</SelectItem>
+                                {audioLibrary.map(a => (
+                                  <SelectItem key={a.id} value={a.id}>
+                                    {a.categoria ? `[${a.categoria}] ` : ''}{a.nome}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {question.audio_id && getAudioById(question.audio_id) && (
+                              <div className="mt-2">
+                                <AudioPlayer src={getAudioById(question.audio_id)!.audio_url} title={getAudioById(question.audio_id)!.nome} compact />
+                              </div>
+                            )}
                           </div>
 
                           {/* Tipo */}

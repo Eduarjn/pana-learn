@@ -126,7 +126,62 @@ const CursoDetalhe = () => {
   const currentCourseData = allCourses.find(c => c.id === id);
   const currentCategory = currentCourseData?.categoria;
   const { data: modules = [] } = useCourseModules(id || '');
-  
+
+  // ── Final Quiz binding (admin) ─────────────────────────────────
+  const [availableQuizzes, setAvailableQuizzes] = React.useState<{ id: string; titulo: string; categoria: string }[]>([]);
+  const [selectedFinalQuizId, setSelectedFinalQuizId] = React.useState<string>('');
+  const [linkedQuizTitle, setLinkedQuizTitle] = React.useState<string>('');
+  const [linkedQuizId, setLinkedQuizId] = React.useState<string>('');
+  const [savingQuiz, setSavingQuiz] = React.useState(false);
+
+  // Load available quizzes and current mapping on mount
+  React.useEffect(() => {
+    const fetchQuizData = async () => {
+      const { data: quizList } = await supabase
+        .from('quizzes')
+        .select('id, titulo, categoria')
+        .eq('ativo', true)
+        .order('titulo');
+      if (quizList) setAvailableQuizzes(quizList);
+
+      // Load the current mapping from curso_quiz_mapping
+      if (id) {
+        const { data: mapping } = await supabase
+          .from('curso_quiz_mapping')
+          .select('quiz_id')
+          .eq('curso_id', id)
+          .maybeSingle();
+        if (mapping?.quiz_id) {
+          setSelectedFinalQuizId(mapping.quiz_id);
+          setLinkedQuizId(mapping.quiz_id);
+          const linked = quizList?.find(q => q.id === mapping.quiz_id);
+          if (linked) setLinkedQuizTitle(linked.titulo);
+        }
+      }
+    };
+    fetchQuizData();
+  }, [id]);
+
+  const handleSaveFinalQuiz = async () => {
+    if (!id || !selectedFinalQuizId) return;
+    setSavingQuiz(true);
+    // Upsert into curso_quiz_mapping (delete old, insert new for clean 1-to-1)
+    await supabase.from('curso_quiz_mapping').delete().eq('curso_id', id);
+    const { error } = await supabase
+      .from('curso_quiz_mapping')
+      .insert({ curso_id: id, quiz_id: selectedFinalQuizId });
+    setSavingQuiz(false);
+    if (error) {
+      toast({ title: 'Erro', description: 'Não foi possível salvar o quiz.', variant: 'destructive' });
+    } else {
+      const linked = availableQuizzes.find(q => q.id === selectedFinalQuizId);
+      setLinkedQuizTitle(linked?.titulo || '');
+      setLinkedQuizId(selectedFinalQuizId);
+      toast({ title: 'Vínculo salvo!', description: `Quiz "${linked?.titulo}" vinculado ao curso.` });
+    }
+  };
+  // ─────────────────────────────────────────────────────────────
+
   // Hook para gerenciar quiz opcional (não interfere no fluxo atual)
   const { quizState, loading: quizLoading, checkCourseCompletion } = useOptionalQuiz(id || '');
   
@@ -305,89 +360,106 @@ const CursoDetalhe = () => {
     let finalVideos: VideoWithModulo[] = [];
     
     try {
-      // Consulta direta por curso_id
-      const { data: videosData, error: videosError } = await supabase
-        .from('videos')
-        .select('*')
-        .eq('curso_id', id)
-        .order('data_criacao', { ascending: false });
+      if (!isAdmin) {
+        // ========== DIAGNÓSTICO COMPLETO PARA ALUNOS ==========
+        console.log('🔎 [ALUNO] Iniciando busca de vídeos...');
+        console.log('🔎 [ALUNO] curso_id:', id);
+        console.log('🔎 [ALUNO] currentCategory:', currentCategory);
 
-      if (videosError) {
-        console.error('❌ Erro ao buscar vídeos por curso_id:', videosError);
-      } else {
-        console.log('🔍 CursoDetalhe - Vídeos encontrados por curso_id:', videosData);
-      }
-
-      // Buscar vídeos específicos deste curso OU vídeos da mesma categoria sem curso_id
-      if (videosData && videosData.length > 0) {
-        console.log('✅ Vídeos encontrados especificamente para este curso:', videosData);
-        finalVideos = videosData;
-      } else {
-        console.log('🔍 CursoDetalhe - Nenhum vídeo encontrado por curso_id, verificando por categoria...');
+        // Teste 1: Busca simples SEM filtros (verifica se RLS bloqueia tudo)
+        const { data: allVideosTest, error: allVideosError } = await supabase
+          .from('videos')
+          .select('id, titulo, curso_id, categoria')
+          .limit(5);
         
-        // Buscar o curso para obter a categoria
-        const { data: cursoData, error: cursoError } = await supabase
-          .from('cursos')
-          .select('categoria')
-          .eq('id', id)
-          .single();
+        console.log('🔎 [ALUNO] Teste RLS - SELECT sem filtro:', {
+          count: allVideosTest?.length ?? 'null',
+          error: allVideosError?.message ?? 'nenhum',
+          errorCode: allVideosError?.code ?? 'nenhum',
+          data: allVideosTest
+        });
 
-        if (cursoError) {
-          console.error('❌ Erro ao buscar curso:', cursoError);
-        } else if (cursoData?.categoria) {
-          console.log('🔍 CursoDetalhe - Categoria do curso:', cursoData.categoria);
-          
-          // Buscar vídeos da mesma categoria que não têm curso_id definido
-          const { data: videosByCategory, error: categoryError } = await supabase
+        // Teste 2: Busca por curso_id
+        const { data: videosByCourse, error: courseError } = await supabase
+          .from('videos')
+          .select('*')
+          .eq('curso_id', id)
+          .order('data_criacao', { ascending: true });
+
+        console.log('🔎 [ALUNO] Busca por curso_id:', {
+          count: videosByCourse?.length ?? 'null',
+          error: courseError?.message ?? 'nenhum',
+          errorCode: courseError?.code ?? 'nenhum'
+        });
+
+        if (videosByCourse && videosByCourse.length > 0) {
+          finalVideos = videosByCourse;
+        } else if (currentCategory) {
+          // Teste 3: Busca por categoria (sem restringir curso_id null)
+          const { data: videosByCategory, error: catError } = await supabase
             .from('videos')
             .select('*')
-            .eq('categoria', cursoData.categoria)
-            .is('curso_id', null)
-            .order('ordem', { ascending: true });
+            .eq('categoria', currentCategory)
+            .order('data_criacao', { ascending: true });
 
-          if (categoryError) {
-            console.error('❌ Erro ao buscar vídeos por categoria:', categoryError);
-          } else {
-            console.log('🔍 CursoDetalhe - Vídeos encontrados por categoria (sem curso_id):', videosByCategory);
+          console.log('🔎 [ALUNO] Busca por categoria:', {
+            categoria: currentCategory,
+            count: videosByCategory?.length ?? 'null',
+            error: catError?.message ?? 'nenhum',
+            errorCode: catError?.code ?? 'nenhum'
+          });
             
+          if (!catError && videosByCategory) {
+            finalVideos = videosByCategory;
+          }
+        }
+        
+        console.log('🔎 [ALUNO] Final - vídeos encontrados:', finalVideos.length);
+        // ========== FIM DIAGNÓSTICO ==========
+      } else {
+        // Logica para ADMINS (com atualizacao de orfaos)
+        const { data: videosData, error: videosError } = await supabase
+          .from('videos')
+          .select('*')
+          .eq('curso_id', id)
+          .order('data_criacao', { ascending: false });
+
+        if (videosError) {
+          console.error('❌ Erro ao buscar vídeos por curso_id:', videosError);
+        }
+
+        if (videosData && videosData.length > 0) {
+          finalVideos = videosData;
+        } else {
+          console.log('🔍 CursoDetalhe - Nenhum vídeo encontrado por curso_id, verificando por categoria...');
+          
+          const { data: cursoData } = await supabase
+            .from('cursos')
+            .select('categoria')
+            .eq('id', id)
+            .single();
+
+          if (cursoData?.categoria) {
+            const { data: videosByCategory } = await supabase
+              .from('videos')
+              .select('*')
+              .eq('categoria', cursoData.categoria)
+              .is('curso_id', null)
+              .order('data_criacao', { ascending: true });
+
             if (videosByCategory && videosByCategory.length > 0) {
               console.log('🔧 CursoDetalhe - Associando vídeos órfãos ao curso atual...');
-              
-              // Associar vídeos órfãos ao curso atual
               for (const video of videosByCategory) {
-                const { error: updateError } = await supabase
-                  .from('videos')
-                  .update({ curso_id: id })
-                  .eq('id', video.id);
-                
-                if (updateError) {
-                  console.error(`❌ Erro ao associar vídeo ${video.titulo}:`, updateError);
-                } else {
-                  console.log(`✅ Vídeo "${video.titulo}" associado ao curso ${id}`);
-                }
+                await supabase.from('videos').update({ curso_id: id }).eq('id', video.id);
               }
-              
-              // Recarregar vídeos após associação
-              const { data: updatedVideos, error: reloadError } = await supabase
+              const { data: updatedVideos } = await supabase
                 .from('videos')
                 .select('*')
                 .eq('curso_id', id)
                 .order('data_criacao', { ascending: false });
-
-              if (reloadError) {
-                console.error('❌ Erro ao recarregar vídeos:', reloadError);
-              } else {
-                console.log('✅ Vídeos recarregados após associação:', updatedVideos);
-                finalVideos = updatedVideos || [];
-              }
-            } else {
-              console.log('📋 Nenhum vídeo órfão encontrado para esta categoria');
-              finalVideos = [];
+              finalVideos = updatedVideos || [];
             }
           }
-        } else {
-          console.log('📋 Nenhum vídeo encontrado para este curso específico');
-          finalVideos = [];
         }
       }
     } catch (error) {
@@ -439,7 +511,8 @@ const CursoDetalhe = () => {
   // Filtrar vídeos do curso atual
   const filteredVideos = videos.filter(v => {
     // Verificar se o vídeo pertence ao curso atual
-    return v.curso_id === id;
+    // Ou se é um aluno e o vídeo é órfão da mesma categoria (carregado via fallback)
+    return v.curso_id === id || (!isAdmin && !v.curso_id && v.categoria === currentCategory);
   });
 
   // Log apenas quando necessário para debug
@@ -563,6 +636,51 @@ const CursoDetalhe = () => {
           )}
         </div>
 
+        {/* ── Admin: Final Quiz Configuration ───────────────────────── */}
+        {isAdmin && (
+          <div
+            className="mb-6 p-5 rounded-2xl"
+            style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.18)' }}
+          >
+            <h2 className="text-base font-bold mb-3" style={{ color: '#E5E5E5' }}>
+              Configuração da Prova Final
+            </h2>
+            <div className="flex items-center gap-3">
+              <select
+                value={selectedFinalQuizId}
+                onChange={e => setSelectedFinalQuizId(e.target.value)}
+                className="flex-1 rounded-lg px-3 py-2 text-sm border"
+                style={{
+                  background: '#0d1828',
+                  borderColor: 'rgba(252,163,17,0.25)',
+                  color: '#E5E5E5',
+                }}
+              >
+                <option value="">— Selecionar quiz —</option>
+                {availableQuizzes.map(q => (
+                  <option key={q.id} value={q.id}>
+                    {q.titulo}
+                  </option>
+                ))}
+              </select>
+              <Button
+                onClick={handleSaveFinalQuiz}
+                disabled={savingQuiz || !selectedFinalQuizId}
+                style={{ background: '#FCA311', color: '#000000', fontWeight: 700, whiteSpace: 'nowrap' }}
+              >
+                {savingQuiz ? 'Salvando...' : 'Salvar vínculo'}
+              </Button>
+            </div>
+            {linkedQuizTitle && (
+              <p className="mt-2 text-sm">
+                <span style={{ color: 'rgba(229,229,229,0.5)' }}>Quiz atualmente vinculado: </span>
+                <span className="font-semibold" style={{ color: '#FCA311' }}>{linkedQuizTitle}</span>
+              </p>
+            )}
+          </div>
+        )}
+        {/* ─────────────────────────────────────────────────────── */}
+
         {/* Progress Bar */}
         {filteredVideos.length > 0 && (
           <div className="mb-6">
@@ -617,8 +735,8 @@ const CursoDetalhe = () => {
                     progresso={progress[selectedVideo.id]}
                   />
                   
-                  {/* Seção de Quiz (quando vídeos estão completos) */}
-                  {isCourseComplete && quizConfig && (
+                  {/* Prova Final (student: shows when all videos done + quiz mapped) */}
+                  {isCourseComplete && linkedQuizId && (
                     <div className="mt-6 p-4 rounded-lg" style={{ background: 'rgba(252,163,17,0.08)', border: '1px solid rgba(252,163,17,0.25)' }}>
                       <div className="flex items-center justify-between">
                         <div>
@@ -626,16 +744,15 @@ const CursoDetalhe = () => {
                             🎯 Prova Final Disponível
                           </h3>
                           <p className="text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>
-                            {quizConfig.perguntas?.length || 0} perguntas • Nota mínima: {quizConfig.nota_minima || 70}%
+                            {quizConfig ? `${quizConfig.perguntas?.length || 0} perguntas • Nota mínima: ${quizConfig.nota_minima || 70}%` : 'Carregando quiz...'}
                           </p>
                         </div>
                         <Button
                           onClick={() => setShowQuizModal(true)}
-                          className=""
                           style={{ background: '#FCA311', color: '#000000', fontWeight: 700 }}
                         >
                           <FileText className="h-4 w-4 mr-2" />
-                          Apresentar Prova
+                          Iniciar Prova Final
                         </Button>
                       </div>
                     </div>

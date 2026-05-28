@@ -9,7 +9,7 @@ import { Loader2, CreditCard, Gift, ShieldCheck } from 'lucide-react';
 const PLANO_INFO: Record<string, { nome: string; preco: string }> = {
   starter:    { nome: 'Starter',    preco: 'R$ 297,00/mês' },
   pro:        { nome: 'Pro',        preco: 'R$ 497,00/mês' },
-  enterprise: { nome: 'Enterprise', preco: 'R$ 697,00/mês' },
+  enterprise: { nome: 'Enterprise', preco: 'R$ 897,00/mês' },
 };
 
 interface Props {

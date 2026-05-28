@@ -48,7 +48,7 @@ export const VideoChecklist: React.FC<VideoChecklistProps> = ({
           .from('videos')
           .select('*')
           .eq('modulo_id', moduloId)
-          .order('ordem', { ascending: true });
+          .order('data_criacao', { ascending: true });
 
         if (videosError) {
           console.error('Erro ao carregar vídeos:', videosError);
@@ -63,7 +63,7 @@ export const VideoChecklist: React.FC<VideoChecklistProps> = ({
           const { data: progress, error: progressError } = await supabase
             .from('video_progress')
             .select('*')
-            .eq('usuario_id', userId)
+            .eq('user_id', userId)
             .eq('curso_id', cursoId)
             .in('video_id', videoIds);
 

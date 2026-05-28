@@ -16,9 +16,11 @@ import {
   Search, Filter, Edit, Eye, Calendar, BookOpen,
   CheckCircle, XCircle, Clock, FileText, HelpCircle,
   Users, Target, Plus, Trash2, Save, Loader2,
-  ArrowLeft, ArrowRight, MoreVertical, Link2
+  ArrowLeft, ArrowRight, MoreVertical, Link2, Music, Volume2
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { AudioPlayer } from '@/components/AudioPlayer';
+import { useQuizAudios, type QuizAudio } from '@/hooks/useQuizAudios';
 
 interface QuizQuestion {
   id: string;
@@ -27,6 +29,7 @@ interface QuizQuestion {
   resposta_correta: number;
   explicacao?: string;
   ordem: number;
+  audio_id?: string | null;
 }
 
 interface Quiz {
@@ -60,6 +63,7 @@ interface NewQuizQuestion {
   resposta_correta: number;
   explicacao: string;
   ordem: number;
+  audio_id?: string | null;
 }
 
 interface CursoDB {
@@ -77,7 +81,7 @@ const getCategoryColor = (categoria: string) => {
 };
 
 const emptyNewQuestion = (): NewQuizQuestion => ({
-  pergunta: '', opcoes: ['', '', '', ''], resposta_correta: 0, explicacao: '', ordem: 1,
+  pergunta: '', opcoes: ['', '', '', ''], resposta_correta: 0, explicacao: '', ordem: 1, audio_id: null,
 });
 
 const Quizzes: React.FC = () => {
@@ -121,6 +125,10 @@ const Quizzes: React.FC = () => {
   const [newQuestionForExisting, setNewQuestionForExisting] = useState<NewQuizQuestion>(emptyNewQuestion());
 
   const isAdmin = userProfile?.tipo_usuario === 'admin' || userProfile?.tipo_usuario === 'admin_master';
+
+  // Audio library
+  const { audios: audioLibrary } = useQuizAudios();
+  const getAudioById = (id?: string | null): QuizAudio | undefined => id ? audioLibrary.find(a => a.id === id) : undefined;
 
   useEffect(() => { if (userProfile) { loadQuizzes(); loadCursos(); } }, [userProfile]);
   useEffect(() => { filterQuizzes(); }, [quizzes, searchTerm, statusFilter, categoriaFilter]);
@@ -256,7 +264,8 @@ const Quizzes: React.FC = () => {
       const { error } = await supabase.from('quiz_perguntas').update({
         pergunta: editingQuestion.pergunta, opcoes: editingQuestion.opcoes,
         resposta_correta: editingQuestion.resposta_correta,
-        explicacao: editingQuestion.explicacao, ordem: editingQuestion.ordem
+        explicacao: editingQuestion.explicacao, ordem: editingQuestion.ordem,
+        audio_id: editingQuestion.audio_id || null,
       }).eq('id', editingQuestion.id);
       if (error) throw error;
       setQuestions(prev => prev.map(q => q.id === editingQuestion.id ? editingQuestion : q));
@@ -319,6 +328,7 @@ const Quizzes: React.FC = () => {
         resposta_correta: newQuestionForExisting.resposta_correta,
         explicacao: newQuestionForExisting.explicacao.trim() || null,
         ordem: questions.length + 1,
+        audio_id: newQuestionForExisting.audio_id || null,
       }).select().single();
       if (error) throw error;
       setQuestions(prev => [...prev, data]);
@@ -367,6 +377,7 @@ const Quizzes: React.FC = () => {
         resposta_correta: q.resposta_correta,
         explicacao: q.explicacao.trim() || null,
         ordem: i + 1,
+        audio_id: q.audio_id || null,
       }));
       const { error: qErr } = await supabase.from('quiz_perguntas').insert(questionsPayload);
       if (qErr) throw qErr;
@@ -429,7 +440,7 @@ const Quizzes: React.FC = () => {
   // ─── Loading ─────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F8F7FF' }}>
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#2D2B6F' }}></div>
           <p style={{ color: '#2D2B6F' }} className="font-medium">Carregando quizzes...</p>
@@ -440,7 +451,7 @@ const Quizzes: React.FC = () => {
 
   return (
     <ERALayout>
-      <div className="min-h-screen" style={{ background: '#F8F7FF' }}>
+      <div className="min-h-screen bg-background">
 
         {/* Hero */}
         <div className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
@@ -511,26 +522,25 @@ const Quizzes: React.FC = () => {
                 { label: 'Total Perguntas', value: stats.total_perguntas, icon: <HelpCircle className="h-6 w-6" />, color: '#7C3AED' },
                 { label: 'Media Geral', value: `${stats.media_nota_geral}%`, icon: <Target className="h-6 w-6" />, color: '#F97316' },
               ].map((card) => (
-                <div key={card.label} className="bg-white rounded-xl p-5 shadow-sm flex items-center gap-4"
-                  style={{ border: '1px solid #EDE9FE' }}>
+                <div key={card.label} className="bg-card rounded-xl p-5 shadow-sm flex items-center gap-4 border border-border">
                   <div className="rounded-lg p-2 flex-shrink-0" style={{ background: card.color + '18', color: card.color }}>
                     {card.icon}
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 font-medium">{card.label}</p>
-                    <p className="text-2xl font-bold" style={{ color: '#1E1B4B' }}>{card.value}</p>
+                    <p className="text-2xl font-bold text-foreground">{card.value}</p>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Filters */}
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden" style={{ border: '1px solid #EDE9FE' }}>
-              <div className="px-5 py-4 flex items-center gap-3" style={{ borderBottom: '1px solid #EDE9FE' }}>
+            <div className="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
+              <div className="px-5 py-4 flex items-center gap-3 border-b border-border">
                 <div className="p-2 rounded-lg" style={{ background: '#EDE9FE' }}>
                   <Filter className="h-4 w-4" style={{ color: '#2D2B6F' }} />
                 </div>
-                <span className="font-semibold" style={{ color: '#1E1B4B' }}>Buscar Quizzes</span>
+                <span className="font-semibold text-foreground">Buscar Quizzes</span>
               </div>
               <div className="p-5">
                 <div className="flex flex-col md:flex-row gap-4">
@@ -538,10 +548,10 @@ const Quizzes: React.FC = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input placeholder="Buscar por titulo ou categoria..."
                       value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 h-10 border-2 rounded-lg" style={{ borderColor: '#EDE9FE' }} />
+                      className="pl-10 h-10 border-2 rounded-lg border-border" />
                   </div>
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full md:w-44 h-10 border-2 rounded-lg" style={{ borderColor: '#EDE9FE' }}>
+                    <SelectTrigger className="w-full md:w-44 h-10 border-2 rounded-lg border-border">
                       <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -551,7 +561,7 @@ const Quizzes: React.FC = () => {
                     </SelectContent>
                   </Select>
                   <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
-                    <SelectTrigger className="w-full md:w-52 h-10 border-2 rounded-lg" style={{ borderColor: '#EDE9FE' }}>
+                    <SelectTrigger className="w-full md:w-52 h-10 border-2 rounded-lg border-border">
                       <SelectValue placeholder="Categoria" />
                     </SelectTrigger>
                     <SelectContent>
@@ -567,9 +577,9 @@ const Quizzes: React.FC = () => {
 
             {/* Quizzes Grid */}
             {filteredQuizzes.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm p-12 text-center" style={{ border: '1px solid #EDE9FE' }}>
+              <div className="bg-card rounded-xl shadow-sm p-12 text-center border border-border">
                 <FileText className="h-12 w-12 mx-auto mb-4" style={{ color: '#A5B4FC' }} />
-                <h3 className="text-lg font-semibold mb-2" style={{ color: '#1E1B4B' }}>Nenhum quiz encontrado</h3>
+                <h3 className="text-lg font-semibold mb-2 text-foreground">Nenhum quiz encontrado</h3>
                 <p className="text-gray-500">
                   {searchTerm || statusFilter !== 'todos' || categoriaFilter !== 'todos'
                     ? 'Tente ajustar os filtros de busca.' : 'Ainda nao ha quizzes configurados.'}
@@ -582,15 +592,15 @@ const Quizzes: React.FC = () => {
                   const linkedCurso = getCursoNameForQuiz(quiz.id);
                   return (
                     <div key={quiz.id}
-                      className="bg-white rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 relative group"
-                      style={{ border: '1px solid #EDE9FE', borderTop: `4px solid ${colors.border}` }}>
+                      className="bg-card rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 relative group border border-border"
+                      style={{ borderTop: `4px solid ${colors.border}` }}>
 
                       {/* Admin action menu */}
                       {isAdmin && (
                         <div className="absolute top-3 right-3 z-10">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="w-7 h-7 rounded-lg flex items-center justify-center bg-white/90 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white">
+                              <button className="w-7 h-7 rounded-lg flex items-center justify-center bg-background/90 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background">
                                 <MoreVertical className="h-4 w-4 text-slate-500"/>
                               </button>
                             </DropdownMenuTrigger>
@@ -612,7 +622,7 @@ const Quizzes: React.FC = () => {
                       <div className="p-5">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1 min-w-0 pr-8">
-                            <h3 className="font-bold text-base mb-2 truncate" style={{ color: '#1E1B4B' }}>
+                            <h3 className="font-bold text-base mb-2 truncate text-foreground">
                               {quiz.titulo}
                             </h3>
                             <div className="flex flex-wrap gap-2">
@@ -636,8 +646,7 @@ const Quizzes: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="rounded-lg p-3 space-y-2 mb-4"
-                          style={{ background: '#F8F7FF', border: '1px solid #EDE9FE' }}>
+                        <div className="rounded-lg p-3 space-y-2 mb-4 bg-muted border border-border">
                           <div className="flex items-center gap-2 text-sm text-gray-600">
                             <HelpCircle className="h-3.5 w-3.5 flex-shrink-0" style={{ color: colors.border }} />
                             <span className="font-medium">Perguntas:</span><span>{quiz.total_perguntas}</span>
@@ -653,7 +662,7 @@ const Quizzes: React.FC = () => {
                         </div>
 
                         {quiz.descricao && (
-                          <p className="text-xs text-gray-500 mb-4 line-clamp-2">{quiz.descricao}</p>
+                          <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{quiz.descricao}</p>
                         )}
 
                         <Button size="sm" onClick={() => handleViewQuestions(quiz)}
@@ -669,15 +678,14 @@ const Quizzes: React.FC = () => {
 
                 {/* Add new quiz card */}
                 {isAdmin && (
-                  <div className="bg-white rounded-xl overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer"
-                    style={{ border: '2px dashed #A5B4FC' }}
+                  <div className="bg-card rounded-xl overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer border-2 border-dashed border-primary/30"
                     onClick={openNewQuizDialog}>
                     <div className="p-8 flex flex-col items-center justify-center text-center h-full min-h-[220px]">
                       <div className="w-14 h-14 rounded-full flex items-center justify-center mb-3" style={{ background: '#EDE9FE' }}>
                         <Plus className="h-7 w-7" style={{ color: '#2D2B6F' }} />
                       </div>
-                      <h3 className="font-bold text-base mb-1" style={{ color: '#1E1B4B' }}>Adicionar Novo Quiz</h3>
-                      <p className="text-sm text-gray-500">Crie um novo quiz para um curso</p>
+                      <h3 className="font-bold text-base mb-1 text-foreground">Adicionar Novo Quiz</h3>
+                      <p className="text-sm text-muted-foreground">Crie um novo quiz para um curso</p>
                     </div>
                   </div>
                 )}
@@ -710,8 +718,7 @@ const Quizzes: React.FC = () => {
                     </div>
                   ) : (
                     questions.map((question, index) => (
-                      <div key={question.id} className="bg-white rounded-xl overflow-hidden shadow-sm"
-                        style={{ border: '1px solid #EDE9FE' }}>
+                      <div key={question.id} className="bg-card rounded-xl overflow-hidden shadow-sm border border-border">
                         <div className="px-5 py-4 flex items-center justify-between"
                           style={{ background: 'linear-gradient(135deg, #1E1B4B, #2D2B6F)' }}>
                           <div className="flex items-center gap-3">
@@ -752,13 +759,13 @@ const Quizzes: React.FC = () => {
                           {isEditing && editingQuestion?.id === question.id ? (
                             <div className="space-y-4">
                               <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Pergunta</label>
+                                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Pergunta</label>
                                 <Textarea value={editingQuestion.pergunta}
                                   onChange={(e) => setEditingQuestion({ ...editingQuestion, pergunta: e.target.value })}
                                   placeholder="Digite a pergunta..." rows={3} />
                               </div>
                               <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Opcoes</label>
+                                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Opcoes</label>
                                 <div className="space-y-2">
                                   {editingQuestion.opcoes.map((option, optionIndex) => (
                                     <div key={optionIndex} className="flex items-center gap-2">
@@ -782,10 +789,24 @@ const Quizzes: React.FC = () => {
                                 </div>
                               </div>
                               <div>
-                                <label className="text-sm font-medium text-gray-700 mb-1.5 block">Explicacao (opcional)</label>
+                                <label className="text-sm font-medium text-muted-foreground mb-1.5 block">Explicacao (opcional)</label>
                                 <Textarea value={editingQuestion.explicacao || ''}
                                   onChange={(e) => setEditingQuestion({ ...editingQuestion, explicacao: e.target.value })}
                                   placeholder="Explicacao da resposta correta..." rows={2} />
+                              </div>
+                              {/* Audio selector */}
+                              <div>
+                                <label className="text-sm font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5"><Volume2 className="h-3.5 w-3.5" />Áudio (opcional)</label>
+                                <Select value={editingQuestion.audio_id || 'none'} onValueChange={(val) => setEditingQuestion({ ...editingQuestion, audio_id: val === 'none' ? null : val })}>
+                                  <SelectTrigger className="w-full"><SelectValue placeholder="Selecione um áudio..." /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Nenhum áudio</SelectItem>
+                                    {audioLibrary.map(a => <SelectItem key={a.id} value={a.id}>{a.categoria ? `[${a.categoria}] ` : ''}{a.nome}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
+                                {editingQuestion.audio_id && getAudioById(editingQuestion.audio_id) && (
+                                  <div className="mt-2"><AudioPlayer src={getAudioById(editingQuestion.audio_id)!.audio_url} title={getAudioById(editingQuestion.audio_id)!.nome} compact /></div>
+                                )}
                               </div>
                               <div className="flex gap-2 pt-2">
                                 <Button onClick={handleSaveQuestion} disabled={saving}
@@ -799,6 +820,12 @@ const Quizzes: React.FC = () => {
                             </div>
                           ) : (
                             <div className="space-y-2">
+                              {/* Audio player in view mode */}
+                              {question.audio_id && getAudioById(question.audio_id) && (
+                                <div className="mb-3">
+                                  <AudioPlayer src={getAudioById(question.audio_id)!.audio_url} title={getAudioById(question.audio_id)!.nome} />
+                                </div>
+                              )}
                               {question.opcoes.map((option, optionIndex) => (
                                 <div key={optionIndex} className="p-3 rounded-lg flex items-center gap-2"
                                   style={{
@@ -835,16 +862,16 @@ const Quizzes: React.FC = () => {
                   )}
 
                   {isAdmin && addingNewQuestion && (
-                    <div className="bg-white rounded-xl shadow-sm p-5 space-y-4" style={{ border: '1px solid #EDE9FE' }}>
-                      <p className="text-sm font-semibold" style={{ color: '#1E1B4B' }}>Nova Pergunta</p>
+                    <div className="bg-card rounded-xl shadow-sm p-5 space-y-4 border border-border">
+                      <p className="text-sm font-semibold text-foreground">Nova Pergunta</p>
                       <div>
-                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">Pergunta *</Label>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Pergunta *</Label>
                         <Textarea value={newQuestionForExisting.pergunta}
                           onChange={e => setNewQuestionForExisting(p => ({ ...p, pergunta: e.target.value }))}
                           placeholder="Digite a pergunta..." rows={2} />
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">Opções</Label>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Opções</Label>
                         <div className="space-y-2">
                           {newQuestionForExisting.opcoes.map((opt, i) => (
                             <div key={i} className="flex items-center gap-2">
@@ -875,10 +902,24 @@ const Quizzes: React.FC = () => {
                         </div>
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">Explicação (opcional)</Label>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Explicação (opcional)</Label>
                         <Input value={newQuestionForExisting.explicacao}
                           onChange={e => setNewQuestionForExisting(p => ({ ...p, explicacao: e.target.value }))}
                           placeholder="Explicação da resposta..." />
+                      </div>
+                      {/* Audio selector for new question */}
+                      <div>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5"><Volume2 className="h-3.5 w-3.5" />Áudio (opcional)</Label>
+                        <Select value={newQuestionForExisting.audio_id || 'none'} onValueChange={(val) => setNewQuestionForExisting(p => ({ ...p, audio_id: val === 'none' ? null : val }))}>
+                          <SelectTrigger className="w-full"><SelectValue placeholder="Selecione um áudio..." /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Nenhum áudio</SelectItem>
+                            {audioLibrary.map(a => <SelectItem key={a.id} value={a.id}>{a.categoria ? `[${a.categoria}] ` : ''}{a.nome}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        {newQuestionForExisting.audio_id && getAudioById(newQuestionForExisting.audio_id) && (
+                          <div className="mt-2"><AudioPlayer src={getAudioById(newQuestionForExisting.audio_id)!.audio_url} title={getAudioById(newQuestionForExisting.audio_id)!.nome} compact /></div>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <Button onClick={handleSaveNewQuestionToExisting} disabled={saving}
@@ -903,9 +944,9 @@ const Quizzes: React.FC = () => {
             <Dialog open={showNewQuizModal} onOpenChange={setShowNewQuizModal}>
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2" style={{ color: '#1E1B4B' }}>
-                    <div className="p-2 rounded-lg" style={{ background: '#EDE9FE' }}>
-                      <Plus className="h-5 w-5" style={{ color: '#2D2B6F' }} />
+                  <DialogTitle className="flex items-center gap-2 text-foreground">
+                    <div className="p-2 rounded-lg bg-muted">
+                      <Plus className="h-5 w-5 text-muted-foreground" />
                     </div>
                     Novo Quiz — Etapa {newQuizStep} de 2
                   </DialogTitle>
@@ -921,32 +962,32 @@ const Quizzes: React.FC = () => {
                   /* ── Etapa 1: Dados do quiz ─── */
                   <div className="space-y-4 mt-2">
                     <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-1.5 block">Título *</Label>
+                      <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Título *</Label>
                       <Input value={newQuizForm.titulo}
                         onChange={e => setNewQuizForm(p => ({ ...p, titulo: e.target.value }))}
                         placeholder="Ex: Quiz PABX — Módulo 1" />
                     </div>
                     <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-1.5 block">Descrição</Label>
+                      <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Descrição</Label>
                       <Textarea value={newQuizForm.descricao}
                         onChange={e => setNewQuizForm(p => ({ ...p, descricao: e.target.value }))}
                         placeholder="Descrição do quiz..." rows={3} />
                     </div>
                     <div>
-                      <Label className="text-xs font-medium text-gray-700 mb-1.5 block">Categoria</Label>
+                      <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Categoria</Label>
                       <Input value={newQuizForm.categoria}
                         onChange={e => setNewQuizForm(p => ({ ...p, categoria: e.target.value }))}
                         placeholder="Ex: PABX, CALLCENTER, PYTHON..." />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">Nota mínima (%)</Label>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Nota mínima (%)</Label>
                         <Input type="number" value={newQuizForm.nota_minima}
                           onChange={e => setNewQuizForm(p => ({ ...p, nota_minima: parseInt(e.target.value) || 70 }))}
                           min={0} max={100} />
                       </div>
                       <div>
-                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">Status</Label>
+                        <Label className="text-xs font-medium text-muted-foreground mb-1.5 block">Status</Label>
                         <button
                           onClick={() => setNewQuizForm(p => ({ ...p, ativo: !p.ativo }))}
                           className={`w-full h-10 rounded-lg border-2 text-sm font-medium transition-all ${
@@ -975,9 +1016,9 @@ const Quizzes: React.FC = () => {
                   /* ── Etapa 2: Perguntas ─── */
                   <div className="space-y-4 mt-2">
                     {newQuizQuestions.map((q, qIndex) => (
-                      <div key={qIndex} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-3">
+                      <div key={qIndex} className="p-4 rounded-xl border border-border bg-muted space-y-3">
                         <div className="flex items-center justify-between">
-                          <p className="text-sm font-semibold text-slate-700">Pergunta {qIndex + 1}</p>
+                          <p className="text-sm font-semibold text-foreground">Pergunta {qIndex + 1}</p>
                           {newQuizQuestions.length > 1 && (
                             <button onClick={() => setNewQuizQuestions(p => p.filter((_, i) => i !== qIndex))}
                               className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-red-50 transition-colors">
@@ -1034,6 +1075,23 @@ const Quizzes: React.FC = () => {
                             setNewQuizQuestions(upd);
                           }}
                           placeholder="Explicação (opcional)" />
+                        {/* Audio selector for new quiz question */}
+                        <div>
+                          <Label className="text-xs font-medium text-muted-foreground mb-1.5 flex items-center gap-1.5"><Volume2 className="h-3.5 w-3.5" />Áudio (opcional)</Label>
+                          <Select value={q.audio_id || 'none'} onValueChange={(val) => {
+                            const upd = [...newQuizQuestions]; upd[qIndex] = { ...upd[qIndex], audio_id: val === 'none' ? null : val };
+                            setNewQuizQuestions(upd);
+                          }}>
+                            <SelectTrigger className="w-full"><SelectValue placeholder="Selecione um áudio..." /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Nenhum áudio</SelectItem>
+                              {audioLibrary.map(a => <SelectItem key={a.id} value={a.id}>{a.categoria ? `[${a.categoria}] ` : ''}{a.nome}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          {q.audio_id && getAudioById(q.audio_id) && (
+                            <div className="mt-2"><AudioPlayer src={getAudioById(q.audio_id)!.audio_url} title={getAudioById(q.audio_id)!.nome} compact /></div>
+                          )}
+                        </div>
                       </div>
                     ))}
 
@@ -1063,13 +1121,13 @@ const Quizzes: React.FC = () => {
             <Dialog open={showLinkCursoModal} onOpenChange={setShowLinkCursoModal}>
               <DialogContent className="max-w-sm">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center gap-2" style={{ color: '#1E1B4B' }}>
+                  <DialogTitle className="flex items-center gap-2 text-foreground">
                     <Link2 className="h-5 w-5" style={{ color: '#3AB26A' }} />
                     Vincular a curso
                   </DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4 mt-2">
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-muted-foreground">
                     Vincular <strong>{linkingQuiz?.titulo}</strong> a um curso:
                   </p>
                   <Select value={selectedCursoId} onValueChange={setSelectedCursoId}>

@@ -5,20 +5,25 @@ import { Label } from '@/components/ui/label';
 import {
   Settings, Globe, Mail, Shield, Database, Bell,
   Palette, UserCheck, Award, Image as ImageIcon,
-  Building, Upload, Check, Eye, RefreshCw, Loader2
+  Building, Upload, Check, Eye, RefreshCw, Loader2,
+  Music, Trash2, Plus, Link, FileAudio, X
 } from 'lucide-react';
+import { AudioPlayer } from '@/components/AudioPlayer';
+import { useQuizAudios } from '@/hooks/useQuizAudios';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useBranding, defaultBranding } from '@/context/BrandingContext';
+import { useTheme } from '@/components/theme-provider';
 
-type TabKey = 'preferencias' | 'conta' | 'whitelabel' | 'integracoes' | 'seguranca';
+type TabKey = 'preferencias' | 'conta' | 'whitelabel' | 'audios' | 'integracoes' | 'seguranca';
 
 const CONFIG_SECTIONS: { key: TabKey; label: string; icon: React.ComponentType<{className?:string}>; adminOnly: boolean }[] = [
   { key: 'preferencias', label: 'Preferências',     icon: Settings,  adminOnly: false },
   { key: 'conta',        label: 'Minha conta',      icon: UserCheck, adminOnly: false },
   { key: 'whitelabel',   label: 'White-Label',      icon: Palette,   adminOnly: true  },
+  { key: 'audios',       label: 'Biblioteca de Áudios', icon: Music, adminOnly: true  },
   { key: 'integracoes',  label: 'Integrações & API', icon: Database, adminOnly: true  },
   { key: 'seguranca',    label: 'Segurança',        icon: Shield,    adminOnly: true  },
 ];
@@ -27,13 +32,12 @@ const CONFIG_SECTIONS: { key: TabKey; label: string; icon: React.ComponentType<{
 
 const Preferencias = () => {
   const { toast } = useToast();
-  const [theme, setTheme] = useState(localStorage.getItem('pl-theme') || 'light');
+  const { theme, setTheme } = useTheme();
   const [fontSize, setFontSize] = useState(localStorage.getItem('pl-fontsize') || 'medium');
   const [language, setLanguage] = useState(localStorage.getItem('pl-lang') || 'pt-BR');
   const [saved, setSaved] = useState(false);
 
   const handleSave = () => {
-    localStorage.setItem('pl-theme', theme);
     localStorage.setItem('pl-fontsize', fontSize);
     localStorage.setItem('pl-lang', language);
     setSaved(true);
@@ -52,8 +56,8 @@ const Preferencias = () => {
                 <button key={val} onClick={() => setTheme(val)}
                   className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium border transition-colors ${
                     theme === val
-                      ? 'bg-slate-900 text-white border-slate-900'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background text-muted-foreground border-border hover:border-primary/50'
                   }`}>
                   {label}
                 </button>
@@ -608,13 +612,235 @@ const SaveButton = ({ onClick, saved, loading = false, label = 'Salvar alteraç�
     </Button>
   </div>
 );
+// ─── Seção: Biblioteca de Áudios ──────────────────────────────────────────────
 
-// ─── Componente raiz ──────────────────────────────────────────────────────────
+const BibliotecaAudios = () => {
+  const { toast } = useToast();
+  const { audios, loading, uploading, uploadAudioFile, addAudioByUrl, deleteAudio } = useQuizAudios();
+  const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState<'upload' | 'url'>('upload');
+  const [nome, setNome] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [categoria, setCategoria] = useState('');
+  const [urlExterna, setUrlExterna] = useState('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const resetForm = () => {
+    setNome(''); setDescricao(''); setCategoria(''); setUrlExterna('');
+    setSelectedFile(null); setShowForm(false);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('audio/')) {
+      toast({ title: 'Erro', description: 'Selecione um arquivo de áudio (MP3, WAV, etc.)', variant: 'destructive' });
+      return;
+    }
+    setSelectedFile(file);
+    if (!nome) setNome(file.name.replace(/\.[^.]+$/, ''));
+  };
+
+  const handleSubmit = async () => {
+    if (!nome.trim()) {
+      toast({ title: 'Erro', description: 'Informe o nome do áudio.', variant: 'destructive' });
+      return;
+    }
+    try {
+      if (formMode === 'upload') {
+        if (!selectedFile) {
+          toast({ title: 'Erro', description: 'Selecione um arquivo.', variant: 'destructive' });
+          return;
+        }
+        await uploadAudioFile(selectedFile, { nome: nome.trim(), descricao: descricao.trim(), categoria: categoria.trim() });
+      } else {
+        if (!urlExterna.trim()) {
+          toast({ title: 'Erro', description: 'Informe a URL do áudio.', variant: 'destructive' });
+          return;
+        }
+        await addAudioByUrl({ nome: nome.trim(), descricao: descricao.trim(), audio_url: urlExterna.trim(), categoria: categoria.trim() });
+      }
+      toast({ title: 'Sucesso', description: 'Áudio adicionado à biblioteca!' });
+      resetForm();
+    } catch {
+      toast({ title: 'Erro', description: 'Falha ao importar áudio.', variant: 'destructive' });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Excluir este áudio da biblioteca?')) return;
+    setDeleting(id);
+    try {
+      await deleteAudio(id);
+      toast({ title: 'Sucesso', description: 'Áudio excluído!' });
+    } catch {
+      toast({ title: 'Erro', description: 'Falha ao excluir.', variant: 'destructive' });
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const formatSize = (bytes: number | null) => {
+    if (!bytes) return '—';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div className="space-y-5">
+      <SectionCard icon={Music} title="Biblioteca de Áudios" desc="Importe áudios para usar nas perguntas de quiz">
+        {/* Add button */}
+        {!showForm && (
+          <Button
+            onClick={() => setShowForm(true)}
+            style={{ background: '#FCA311', color: '#000', fontWeight: 700 }}
+            className="flex items-center gap-2 text-sm mb-4"
+          >
+            <Plus className="h-4 w-4" />Importar Áudio
+          </Button>
+        )}
+
+        {/* Import form */}
+        {showForm && (
+          <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(252,163,17,0.15)', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+            <div className="flex items-center justify-between mb-4">
+              <h4 style={{ fontSize: 14, fontWeight: 600, color: '#FCA311' }}>Importar Áudio</h4>
+              <button onClick={resetForm} className="text-slate-400 hover:text-white"><X className="h-4 w-4" /></button>
+            </div>
+
+            {/* Mode toggle */}
+            <div className="flex gap-2 mb-4">
+              {([['upload', 'Upload de arquivo', FileAudio], ['url', 'URL externa', Link]] as const).map(([mode, label, Icon]) => (
+                <button key={mode} onClick={() => setFormMode(mode)}
+                  className="flex-1 py-2 px-3 rounded-lg text-xs font-medium border transition-colors flex items-center justify-center gap-2"
+                  style={{
+                    background: formMode === mode ? 'rgba(252,163,17,0.15)' : 'transparent',
+                    borderColor: formMode === mode ? 'rgba(252,163,17,0.4)' : 'rgba(255,255,255,0.1)',
+                    color: formMode === mode ? '#FCA311' : 'rgba(229,229,229,0.6)',
+                  }}>
+                  <Icon className="h-3.5 w-3.5" />{label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              {formMode === 'upload' ? (
+                <div>
+                  <Label className="text-xs font-medium text-slate-400 mb-1.5 block">Arquivo de áudio *</Label>
+                  <input ref={fileInputRef} type="file" accept="audio/*" onChange={handleFileChange} className="hidden" />
+                  <button onClick={() => fileInputRef.current?.click()}
+                    className="w-full py-6 px-4 rounded-lg border-2 border-dashed transition-colors text-center"
+                    style={{ borderColor: selectedFile ? 'rgba(252,163,17,0.4)' : 'rgba(255,255,255,0.1)', background: selectedFile ? 'rgba(252,163,17,0.05)' : 'transparent' }}>
+                    {selectedFile ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <FileAudio className="h-5 w-5" style={{ color: '#FCA311' }} />
+                        <span style={{ color: '#FCA311', fontSize: 13, fontWeight: 500 }}>{selectedFile.name}</span>
+                        <span style={{ color: 'rgba(229,229,229,0.4)', fontSize: 11 }}>({formatSize(selectedFile.size)})</span>
+                      </div>
+                    ) : (
+                      <div>
+                        <Upload className="h-6 w-6 mx-auto mb-2" style={{ color: 'rgba(229,229,229,0.3)' }} />
+                        <p style={{ color: 'rgba(229,229,229,0.5)', fontSize: 13 }}>Clique para selecionar um arquivo MP3</p>
+                        <p style={{ color: 'rgba(229,229,229,0.3)', fontSize: 11, marginTop: 4 }}>MP3, WAV, OGG — até 50MB</p>
+                      </div>
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <Label className="text-xs font-medium text-slate-400 mb-1.5 block">URL do áudio *</Label>
+                  <Input value={urlExterna} onChange={e => setUrlExterna(e.target.value)}
+                    placeholder="https://exemplo.com/audio.mp3"
+                    className="border-slate-700 bg-slate-900 text-white text-sm" />
+                </div>
+              )}
+
+              <div>
+                <Label className="text-xs font-medium text-slate-400 mb-1.5 block">Nome *</Label>
+                <Input value={nome} onChange={e => setNome(e.target.value)}
+                  placeholder="Ex: Gravação de atendimento #1"
+                  className="border-slate-700 bg-slate-900 text-white text-sm" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-medium text-slate-400 mb-1.5 block">Categoria</Label>
+                  <Input value={categoria} onChange={e => setCategoria(e.target.value)}
+                    placeholder="Ex: Call Center"
+                    className="border-slate-700 bg-slate-900 text-white text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs font-medium text-slate-400 mb-1.5 block">Descrição</Label>
+                  <Input value={descricao} onChange={e => setDescricao(e.target.value)}
+                    placeholder="Opcional"
+                    className="border-slate-700 bg-slate-900 text-white text-sm" />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <Button onClick={handleSubmit} disabled={uploading}
+                  className="flex-1 flex items-center justify-center gap-2 text-sm"
+                  style={{ background: '#FCA311', color: '#000', fontWeight: 700 }}>
+                  {uploading ? <><Loader2 className="h-4 w-4 animate-spin" />Importando...</> : <><Upload className="h-4 w-4" />Importar</>}
+                </Button>
+                <Button onClick={resetForm} variant="outline" className="border-slate-700 text-slate-400 text-sm">Cancelar</Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Audio list */}
+        {loading ? (
+          <div className="text-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" style={{ color: '#FCA311' }} />
+            <p style={{ color: 'rgba(229,229,229,0.5)', fontSize: 13 }}>Carregando áudios...</p>
+          </div>
+        ) : audios.length === 0 ? (
+          <div className="text-center py-8">
+            <Music className="h-10 w-10 mx-auto mb-3" style={{ color: 'rgba(229,229,229,0.2)' }} />
+            <p style={{ color: 'rgba(229,229,229,0.5)', fontSize: 13 }}>Nenhum áudio importado ainda.</p>
+            <p style={{ color: 'rgba(229,229,229,0.3)', fontSize: 12, marginTop: 4 }}>Clique em "Importar Áudio" para começar.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {audios.map(audio => (
+              <div key={audio.id} style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(252,163,17,0.1)', borderRadius: 10, padding: '12px 16px' }}>
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <FileAudio className="h-4 w-4 flex-shrink-0" style={{ color: '#FCA311' }} />
+                      <p style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{audio.nome}</p>
+                    </div>
+                    <div className="flex items-center gap-3 mt-1">
+                      {audio.categoria && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: 'rgba(252,163,17,0.1)', color: '#FCA311', fontWeight: 600 }}>{audio.categoria}</span>}
+                      <span style={{ fontSize: 11, color: 'rgba(229,229,229,0.4)' }}>{formatSize(audio.tamanho_bytes)}</span>
+                      <span style={{ fontSize: 11, color: 'rgba(229,229,229,0.4)' }}>{new Date(audio.data_criacao).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                  </div>
+                  <button onClick={() => handleDelete(audio.id)} disabled={deleting === audio.id}
+                    style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid rgba(239,68,68,0.2)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: deleting === audio.id ? 0.5 : 1 }}>
+                    {deleting === audio.id ? <Loader2 className="h-3 w-3 animate-spin" style={{ color: '#f87171' }} /> : <Trash2 className="h-3 w-3" style={{ color: '#f87171' }} />}
+                  </button>
+                </div>
+                <AudioPlayer src={audio.audio_url} compact />
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+    </div>
+  );
+};
+
+
 
 const TAB_COMPONENTS: Record<TabKey, React.FC> = {
   preferencias: Preferencias,
   conta: Conta,
   whitelabel: WhiteLabel,
+  audios: BibliotecaAudios,
   integracoes: Integracoes,
   seguranca: Seguranca,
 };

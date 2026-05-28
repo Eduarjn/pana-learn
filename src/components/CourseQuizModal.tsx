@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle, XCircle, ArrowLeft, ArrowRight, Award, BookOpen } from 'lucide-react';
+import { AudioPlayer } from '@/components/AudioPlayer';
 
 interface CourseQuizModalProps {
   courseId: string;
@@ -340,6 +341,11 @@ export function CourseQuizModal({
           {currentQuestion && (
             <Card>
               <CardContent className="pt-6">
+                {currentQuestion.audio_url && (
+                  <div className="mb-4">
+                    <AudioPlayer src={currentQuestion.audio_url} title={currentQuestion.audio_nome || 'Áudio da pergunta'} />
+                  </div>
+                )}
                 <h3 className="font-semibold mb-4">{currentQuestion.pergunta}</h3>
                 
                 <div className="space-y-3">

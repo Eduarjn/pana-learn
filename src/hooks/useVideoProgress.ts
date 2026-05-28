@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { useVideoUsageLogger } from '@/hooks/useVideoUsageLogger';
 
 type VideoProgress = Database['public']['Tables']['video_progress']['Row'];
 
@@ -18,7 +19,8 @@ export function useVideoProgress(
   userId: string | undefined,
   videoId: string | undefined,
   cursoId: string | undefined,
-  moduloId?: string
+  moduloId?: string,
+  empresaId?: string   // optional — enables usage logging when present
 ) {
   const [progress, setProgress] = useState<VideoProgressState>({
     tempoAssistido: 0,
@@ -33,6 +35,9 @@ export function useVideoProgress(
   const [videoProgressId, setVideoProgressId] = useState<string | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastSaveTimeRef = useRef<number>(0);
+  const lastLoggedSecondsRef = useRef<number>(0); // tracks usage delta for logging
+
+  const { logUsage } = useVideoUsageLogger();
 
   // Carregar progresso existente
   useEffect(() => {
@@ -145,12 +150,29 @@ export function useVideoProgress(
           concluido: result.data.concluido || false,
           dataConclusao: result.data.data_conclusao
         }));
+
+        // ── Usage logging (fire-and-forget) ──────────────────────────
+        if (empresaId && userId && videoId) {
+          const currentSeconds = result.data.tempo_assistido || 0;
+          const delta = currentSeconds - lastLoggedSecondsRef.current;
+          if (delta >= 30) {
+            lastLoggedSecondsRef.current = currentSeconds;
+            logUsage({
+              empresaId,
+              userId,
+              videoId,
+              cursoId,
+              watchedSeconds: delta,
+            });
+          }
+        }
+        // ─────────────────────────────────────────────────────────────
       }
     } catch (error) {
       console.error('❌ Erro ao salvar progresso:', error);
       setProgress(prev => ({ ...prev, error: 'Erro ao salvar progresso' }));
     }
-  }, [userId, videoId, cursoId, progress.concluido]);
+  }, [userId, videoId, cursoId, progress.concluido, empresaId, logUsage]);
 
   // Marcar vídeo como concluído
   const markAsCompleted = useCallback(async () => {

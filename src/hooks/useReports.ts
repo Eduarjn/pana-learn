@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
+import { useEmpresa } from '@/context/EmpresaContext';
 
 // Tipo para dados do relatório
 export interface ReportItem {
@@ -32,6 +33,7 @@ export interface ReportFilters {
 
 export function useReports() {
   const { userProfile } = useAuth();
+  const { empresa } = useEmpresa();
   const [reportData, setReportData] = useState<ReportItem[]>([]);
   const [filteredData, setFilteredData] = useState<ReportItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,14 +50,15 @@ export function useReports() {
       console.log('🔍 Buscando dados do relatório...');
 
       // Query principal que junta progresso_usuario com usuários, cursos e certificados
-      const { data, error } = await supabase
+      let query = supabase
         .from('progresso_usuario')
         .select(`
           *,
-          usuarios!progresso_usuario_usuario_id_fkey (
+          usuarios!progresso_usuario_usuario_id_fkey!inner (
             nome,
             email,
-            matricula
+            matricula,
+            empresa_id
           ),
           cursos!progresso_usuario_curso_id_fkey (
             nome,
@@ -64,11 +67,23 @@ export function useReports() {
         `)
         .order('data_conclusao', { ascending: false });
 
+      if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
+        query = query.eq('usuarios.empresa_id', empresa.id);
+      }
+
+      const { data, error } = await query;
+
       // Buscar certificados separadamente
-      const { data: certificadosData, error: certError } = await supabase
+      let certsQuery = supabase
         .from('certificados')
         .select('*')
         .order('data_emissao', { ascending: false });
+        
+      if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
+        certsQuery = certsQuery.eq('empresa_id', empresa.id);
+      }
+
+      const { data: certificadosData, error: certError } = await certsQuery;
 
       if (error) {
         console.error('❌ Erro ao buscar dados do relatório:', error);
@@ -152,7 +167,7 @@ export function useReports() {
     } finally {
       setLoading(false);
     }
-  }, [userProfile]);
+  }, [userProfile, empresa]);
 
   // Aplicar filtros
   const applyFilters = useCallback((filters: ReportFilters) => {

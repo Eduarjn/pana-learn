@@ -35,8 +35,8 @@ export const defaultBranding: BrandingConfig = {
   sub_logo_url: '/panalearn-icon-dark.png',
   favicon_url: '/panalearn-favicon.png',
   background_url: '',
-  primary_color: '#FCA311',   // ERA Orange
-  secondary_color: '#14213D', // Prussian Blue
+  primary_color: '#22c55e',   // Lime Green Panalearn
+  secondary_color: '#1f2937', // Dark Gray
   company_name: 'Panalearn',
   company_slogan: 'Conhecimento em Conexão',
 };
@@ -142,10 +142,14 @@ const OLD_ASSETS: Record<string, string> = {
 };
 
 const OLD_COLORS: Record<string, string> = {
-  '#3AB26A': '#FCA311',  // verde antigo → laranja ERA
-  '#3ab26a': '#FCA311',
-  '#1E1B4B': '#14213D',  // roxo antigo → prussian blue
-  '#1e1b4b': '#14213D',
+  '#3AB26A': '#22c55e',
+  '#3ab26a': '#22c55e',
+  '#1E1B4B': '#1f2937',
+  '#1e1b4b': '#1f2937',
+  '#FCA311': '#22c55e',
+  '#fca311': '#22c55e',
+  '#14213D': '#1f2937',
+  '#14213d': '#1f2937',
 };
 
 function migrateBranding(cfg: BrandingConfig): BrandingConfig {
