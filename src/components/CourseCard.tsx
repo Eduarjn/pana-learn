@@ -1,11 +1,10 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Clock, BookOpen, Play, Info } from 'lucide-react';
+import { Clock, BookOpen, Play } from 'lucide-react';
 import { Course } from '@/hooks/useCourses';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 interface CourseCardProps {
   course: Course;
@@ -13,115 +12,101 @@ interface CourseCardProps {
 }
 
 export function CourseCard({ course, onStartCourse }: CourseCardProps) {
-  const categoryColor = course.categorias?.cor || '#A435F0';
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const isMock = course.id?.startsWith('mock-');
   const navigate = useNavigate();
 
-  // Debug logs para verificar o curso
-  console.log('🎯 CourseCard renderizado:', {
-    id: course.id,
-    nome: course.nome,
-    categoria: course.categoria,
-    isMock: isMock,
-    hasOnStartCourse: !!onStartCourse
-  });
-
   const handleStart = () => {
-    console.log('🎯 CourseCard - handleStart chamado');
-    console.log('📋 Dados do curso:', {
-      id: course.id,
-      nome: course.nome,
-      categoria: course.categoria,
-      isMock: isMock
-    });
-
-    if (isMock) {
-      console.log('⚠️ Curso mock, não executando ação');
-      return;
-    }
-
+    if (isMock) return;
     if (onStartCourse) {
-      console.log('✅ Chamando onStartCourse com ID:', course.id);
       onStartCourse(course.id);
     } else {
-      console.log('✅ Navegando diretamente para:', `/curso/${course.id}`);
       navigate(`/curso/${course.id}`);
     }
   };
 
   return (
-    <Card
-      className="h-full transition-all duration-200 shadow-md hover:shadow-xl"
-      style={{
-        background: '#14213D',
-        border: '1px solid rgba(252,163,17,0.16)',
-        transition: 'all 0.2s ease',
-      }}
-      onMouseEnter={e => {
-        (e.currentTarget as HTMLElement).style.border = '1px solid rgba(252,163,17,0.40)';
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(-3px)';
-        (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 32px rgba(252,163,17,0.18)';
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.border = '1px solid rgba(252,163,17,0.16)';
-        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
-        (e.currentTarget as HTMLElement).style.boxShadow = '';
-      }}
+    <motion.div
+      whileHover={{ y: -4, scale: 1.015 }}
+      transition={{ type: 'spring', stiffness: 340, damping: 26 }}
+      className="h-full"
+      onHoverStart={() => setHovered(true)}
+      onHoverEnd={() => setHovered(false)}
     >
-      <CardHeader className="pb-3 rounded-t-lg" style={{ background: 'linear-gradient(to right, #08111f, #14213D, #FCA311)' }}>
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <CardTitle className="text-lg font-bold line-clamp-2" style={{ color: '#FFFFFF' }}>
-              {course.nome}
-            </CardTitle>
-            <CardDescription className="mt-2 font-medium line-clamp-3" style={{ color: 'rgba(229,229,229,0.90)' }}>
-              {course.descricao || 'Curso de treinamento profissional'}
-            </CardDescription>
+      <Card
+        className="h-full overflow-hidden"
+        style={{
+          background: '#1F2041',
+          border: hovered
+            ? '1px solid rgba(75,63,114,0.7)'
+            : '1px solid rgba(75,63,114,0.25)',
+          boxShadow: hovered
+            ? '0 12px 40px rgba(31,32,65,0.55), 0 0 0 1px rgba(75,63,114,0.35)'
+            : '0 4px 16px rgba(0,0,0,0.22)',
+          transition: 'border 0.25s, box-shadow 0.25s',
+          borderRadius: 16,
+        }}
+      >
+        {/* Header com gradiente do design system */}
+        <CardHeader
+          className="pb-4"
+          style={{
+            background: 'linear-gradient(135deg, #1F2041 0%, #4B3F72 100%)',
+            borderBottom: '1px solid rgba(75,63,114,0.3)',
+          }}
+        >
+          {/* Pill de categoria */}
+          <div className="mb-2">
+            <span
+              className="text-xs font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(65,123,90,0.22)', color: '#D0CEBA', border: '1px solid rgba(65,123,90,0.4)' }}
+            >
+              {course.categoria}
+            </span>
           </div>
-          {/* Removido badge 'Iniciante' e ícone de telefone */}
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-0">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center space-x-4 text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>
-            <div className="flex items-center">
-              <BookOpen className="h-4 w-4 mr-1" />
-              <span>Múltiplos módulos</span>
-            </div>
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 mr-1" />
-              <span>2-3 horas</span>
-            </div>
+
+          <CardTitle className="text-base font-bold line-clamp-2 leading-snug" style={{ color: '#FFFFFF' }}>
+            {course.nome}
+          </CardTitle>
+          <CardDescription className="mt-1.5 text-xs line-clamp-2 leading-relaxed" style={{ color: 'rgba(208,206,186,0.75)' }}>
+            {course.descricao || 'Curso de treinamento profissional'}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="pt-4" style={{ background: '#1F2041' }}>
+          {/* Meta */}
+          <div className="flex items-center gap-4 mb-5 text-xs" style={{ color: 'rgba(208,206,186,0.5)' }}>
+            <span className="flex items-center gap-1">
+              <BookOpen className="h-3.5 w-3.5" />
+              Múltiplos módulos
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              2-3 horas
+            </span>
           </div>
-        </div>
-        <div className="relative group">
-          <Button
-            className="w-full font-bold transition-all duration-300 rounded-xl py-3 text-base flex items-center justify-center shadow-lg hover:shadow-xl"
-            style={{
-              background: '#FCA311',
-              color: '#000000',
-              fontWeight: 700,
-            }}
-            onClick={handleStart}
-            disabled={isMock}
-            onMouseEnter={() => isMock && setShowTooltip(true)}
-            onMouseLeave={() => setShowTooltip(false)}
-            tabIndex={isMock ? -1 : 0}
-            aria-disabled={isMock}
-          >
-            <Play className="h-4 w-4 mr-2" />
-            Iniciar Curso
-          </Button>
-          {isMock && showTooltip && (
-            <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-10 text-xs rounded-lg px-3 py-2 shadow-lg whitespace-nowrap flex items-center gap-1 animate-fade-in" style={{ background: '#08111f', color: '#FFFFFF' }}>
-              <Info className="h-3 w-3 mr-1" />
-              Curso em breve
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+
+          {/* Botão CTA */}
+          <motion.div whileTap={{ scale: 0.97 }}>
+            <Button
+              className="w-full font-semibold rounded-xl py-2.5 flex items-center justify-center gap-2 transition-all duration-200"
+              style={{
+                background: isMock ? 'rgba(65,123,90,0.35)' : '#417B5A',
+                color: isMock ? 'rgba(208,206,186,0.5)' : '#FFFFFF',
+                border: 'none',
+                boxShadow: isMock ? 'none' : '0 4px 14px rgba(65,123,90,0.35)',
+                cursor: isMock ? 'not-allowed' : 'pointer',
+              }}
+              onClick={handleStart}
+              disabled={isMock}
+              tabIndex={isMock ? -1 : 0}
+            >
+              <Play className="h-4 w-4" />
+              {isMock ? 'Em breve' : 'Iniciar Curso'}
+            </Button>
+          </motion.div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

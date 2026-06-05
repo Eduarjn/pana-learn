@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCourseModules, useCourses } from '@/hooks/useCourses';
 import { useAuth } from '@/hooks/useAuth';
@@ -54,18 +55,18 @@ const ModuleEditForm = ({ modulo, onSaved }: { modulo: Module, onSaved: () => vo
   };
 
   return (
-    <div className="p-2 border rounded mb-2" style={{ background: '#14213D', borderColor: 'rgba(252,163,17,0.18)' }}>
+    <div className="p-2 border rounded mb-2" style={{ background: '#14213D', borderColor: 'rgba(75,63,114,0.28)' }}>
       <label className="block mb-1 font-semibold" style={{ color: '#E5E5E5' }}>Link do vídeo</label>
       <input
         className="border px-2 py-1 w-full mb-2"
-        style={{ background: '#0d1828', borderColor: 'rgba(252,163,17,0.18)', color: '#E5E5E5', borderRadius: 8 }}
+        style={{ background: '#0d1828', borderColor: 'rgba(75,63,114,0.28)', color: '#E5E5E5', borderRadius: 8 }}
         value={link}
         onChange={e => setLink(e.target.value)}
         placeholder="https://youtu.be/..."
       />
       <button
         className="px-3 py-1 rounded font-bold"
-        style={{ background: '#FCA311', color: '#000000' }}
+        style={{ background: '#417B5A', color: '#fff' }}
         onClick={handleSave}
         disabled={loading}
       >
@@ -623,7 +624,7 @@ const CursoDetalhe = () => {
               <h1 className="text-2xl font-bold" style={{ color: '#FFFFFF' }}>
                 {currentCourseData?.nome || 'Carregando...'}
               </h1>
-              <p style={{ color: '#FCA311' }}>
+              <p style={{ color: '#D0CEBA' }}>
                 {currentCourseData?.categoria || 'Categoria não definida'}
               </p>
             </div>
@@ -639,7 +640,7 @@ const CursoDetalhe = () => {
                   console.log('🎯 showVideoUpload depois:', true);
                 }}
                 className=""
-                style={{ background: '#FCA311', color: '#000000', fontWeight: 700 }}
+                style={{ background: '#417B5A', color: '#fff', fontWeight: 700 }}
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
                 Adicionar Vídeo
@@ -652,7 +653,7 @@ const CursoDetalhe = () => {
         {isAdmin && (
           <div
             className="mb-6 p-5 rounded-2xl"
-            style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.18)' }}
+            style={{ background: '#14213D', border: '1px solid rgba(75,63,114,0.28)' }}
           >
             <h2 className="text-base font-bold mb-3" style={{ color: '#E5E5E5' }}>
               Configuração da Prova Final
@@ -664,7 +665,7 @@ const CursoDetalhe = () => {
                 className="flex-1 rounded-lg px-3 py-2 text-sm border"
                 style={{
                   background: '#0d1828',
-                  borderColor: 'rgba(252,163,17,0.25)',
+                  borderColor: 'rgba(65,123,90,0.35)',
                   color: '#E5E5E5',
                 }}
               >
@@ -678,7 +679,7 @@ const CursoDetalhe = () => {
               <Button
                 onClick={handleSaveFinalQuiz}
                 disabled={savingQuiz || !selectedFinalQuizId}
-                style={{ background: '#FCA311', color: '#000000', fontWeight: 700, whiteSpace: 'nowrap' }}
+                style={{ background: '#417B5A', color: '#fff', fontWeight: 700, whiteSpace: 'nowrap' }}
               >
                 {savingQuiz ? 'Salvando...' : 'Salvar vínculo'}
               </Button>
@@ -686,7 +687,7 @@ const CursoDetalhe = () => {
             {linkedQuizTitle && (
               <p className="mt-2 text-sm">
                 <span style={{ color: 'rgba(229,229,229,0.5)' }}>Quiz atualmente vinculado: </span>
-                <span className="font-semibold" style={{ color: '#FCA311' }}>{linkedQuizTitle}</span>
+                <span className="font-semibold" style={{ color: '#D0CEBA' }}>{linkedQuizTitle}</span>
               </p>
             )}
           </div>
@@ -695,26 +696,34 @@ const CursoDetalhe = () => {
 
         {/* Progress Bar */}
         {filteredVideos.length > 0 && (
-          <div className="mb-6">
+          <motion.div
+            className="mb-6"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium" style={{ color: '#E5E5E5' }}>
-                Progresso do Curso
-              </span>
-              <span className="text-sm" style={{ color: '#FCA311', fontWeight: 700 }}>
-                {Math.round(averageProgress)}% completo
+              <span className="text-sm font-medium" style={{ color: '#E5E5E5' }}>Progresso do Curso</span>
+              <span className="text-sm" style={{ color: '#D0CEBA', fontWeight: 700 }}>
+                {completedVideos}/{totalVideos} vídeos · {Math.round(averageProgress)}%
               </span>
             </div>
-            <div style={{ height: 4, background: 'rgba(252,163,17,0.15)', borderRadius: 99, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${averageProgress}%`, background: 'linear-gradient(90deg, #FCA311, #e8940f)', borderRadius: 99, transition: 'width 0.4s' }} />
+            <div style={{ height: 5, background: 'rgba(75,63,114,0.25)', borderRadius: 99, overflow: 'hidden' }}>
+              <motion.div
+                style={{ height: '100%', background: 'linear-gradient(90deg, #417B5A, #55a070)', borderRadius: 99 }}
+                initial={{ width: 0 }}
+                animate={{ width: `${averageProgress}%` }}
+                transition={{ duration: 0.7, ease: 'easeOut', delay: 0.25 }}
+              />
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Loading State */}
         {loading && (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 mx-auto mb-4" style={{ border: '2px solid #FCA311', borderTopColor: 'transparent' }}></div>
+              <div className="animate-spin rounded-full h-8 w-8 mx-auto mb-4" style={{ border: '2px solid #417B5A', borderTopColor: 'transparent' }}></div>
               <p style={{ color: 'rgba(229,229,229,0.5)' }}>Carregando curso...</p>
             </div>
           </div>
@@ -722,11 +731,25 @@ const CursoDetalhe = () => {
 
         {/* Main Content */}
         {!loading && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <motion.div
+            className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          >
             {/* Player e Comentários */}
             <div className="lg:col-span-2 flex flex-col gap-6">
+              <AnimatePresence mode="wait">
               {selectedVideo ? (
-                <div className="rounded-2xl shadow-lg p-6 mb-2" style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)' }}>
+                <motion.div
+                  key={selectedVideo.id}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
+                  className="rounded-2xl shadow-lg p-6 mb-2"
+                  style={{ background: '#14213D', border: '1px solid rgba(75,63,114,0.22)' }}
+                >
                   {/* Player de Vídeo */}
                   <VideoPlayerWithProgress
                     video={selectedVideo}
@@ -750,7 +773,7 @@ const CursoDetalhe = () => {
                   
                   {/* Prova Final (student: shows when all videos done + quiz mapped) */}
                   {isCourseComplete && linkedQuizId && (
-                    <div className="mt-6 p-4 rounded-lg" style={{ background: 'rgba(252,163,17,0.08)', border: '1px solid rgba(252,163,17,0.25)' }}>
+                    <div className="mt-6 p-4 rounded-lg" style={{ background: 'rgba(65,123,90,0.1)', border: '1px solid rgba(65,123,90,0.35)' }}>
                       <div className="flex items-center justify-between">
                         <div>
                           <h3 className="text-lg font-semibold mb-1" style={{ color: '#FFFFFF' }}>
@@ -762,7 +785,7 @@ const CursoDetalhe = () => {
                         </div>
                         <Button
                           onClick={() => setShowQuizModal(true)}
-                          style={{ background: '#FCA311', color: '#000000', fontWeight: 700 }}
+                          style={{ background: '#417B5A', color: '#fff', fontWeight: 700 }}
                         >
                           <FileText className="h-4 w-4 mr-2" />
                           Iniciar Prova Final
@@ -770,18 +793,21 @@ const CursoDetalhe = () => {
                       </div>
                     </div>
                   )}
-                </div>
+                </motion.div>
               ) : (
-                <div className="rounded-2xl shadow-lg p-8 text-center" style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)' }}>
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="rounded-2xl shadow-lg p-8 text-center"
+                  style={{ background: '#14213D', border: '1px solid rgba(75,63,114,0.22)' }}
+                >
                   <Video className="h-12 w-12 mx-auto mb-4" style={{ color: 'rgba(229,229,229,0.3)' }} />
-                  <h3 className="text-lg font-medium mb-2" style={{ color: '#E5E5E5' }}>
-                    Nenhum vídeo selecionado
-                  </h3>
-                  <p style={{ color: 'rgba(229,229,229,0.45)' }}>
-                    Selecione um vídeo da lista ao lado para começar a assistir.
-                  </p>
-                </div>
+                  <h3 className="text-lg font-medium mb-2" style={{ color: '#E5E5E5' }}>Nenhum vídeo selecionado</h3>
+                  <p style={{ color: 'rgba(229,229,229,0.45)' }}>Selecione um vídeo da lista ao lado para começar a assistir.</p>
+                </motion.div>
               )}
+              </AnimatePresence>
 
               {/* Comentários */}
               {selectedVideo && (
@@ -794,9 +820,9 @@ const CursoDetalhe = () => {
             {/* Sidebar */}
             <div className="space-y-6">
               {/* Lista de Vídeos */}
-              <div className="rounded-2xl shadow-lg p-6" style={{ background: '#000000', border: '1px solid rgba(252,163,17,0.12)' }}>
+              <div className="rounded-2xl shadow-lg p-6" style={{ background: '#000000', border: '1px solid rgba(75,63,114,0.22)' }}>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: '#FFFFFF' }}>
-                  <Video className="h-5 w-5" style={{ color: '#FCA311' }} />
+                  <Video className="h-5 w-5" style={{ color: '#D0CEBA' }} />
                   Vídeos do Curso
                 </h3>
                 
@@ -813,18 +839,21 @@ const CursoDetalhe = () => {
                       const videoProgress = progress[video.id];
                       const isCompleted = videoProgress?.concluido === true || videoProgress?.percentual_assistido >= 90;
                       const isSelected = selectedVideo?.id === video.id;
-                      
+
                       return (
-                        <div
+                        <motion.div
                           key={video.id}
-                          className={`p-3 rounded-lg cursor-pointer transition-all duration-200`}
+                          initial={{ opacity: 0, x: 12 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.25, delay: index * 0.05 }}
+                          className="p-3 rounded-xl cursor-pointer transition-colors duration-150"
                           style={{
-                            background: isSelected ? 'rgba(252,163,17,0.1)' : 'transparent',
-                            border: isSelected ? '1px solid rgba(252,163,17,0.3)' : '1px solid rgba(255,255,255,0.04)',
-                            borderLeft: isSelected ? '3px solid #FCA311' : '3px solid transparent',
+                            background: isSelected ? 'rgba(65,123,90,0.12)' : 'transparent',
+                            border: isSelected ? '1px solid rgba(65,123,90,0.45)' : '1px solid rgba(75,63,114,0.15)',
+                            borderLeft: isSelected ? '3px solid #417B5A' : '3px solid transparent',
                           }}
-                          onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(252,163,17,0.05)'; }}
-                          onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.99 }}
                           onClick={() => setSelectedVideo(video)}
                         >
                           <div className="flex items-center gap-3">
@@ -836,7 +865,7 @@ const CursoDetalhe = () => {
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="text-sm font-medium truncate" style={{ color: isSelected ? '#FCA311' : '#E5E5E5' }}>
+                              <h4 className="text-sm font-medium truncate" style={{ color: isSelected ? '#D0CEBA' : '#E5E5E5' }}>
                                 {video.titulo}
                               </h4>
                               <div className="flex items-center gap-2 mt-1">
@@ -845,14 +874,14 @@ const CursoDetalhe = () => {
                                   {video.duracao ? `${Math.round(video.duracao / 60)} min` : 'Duração não definida'}
                                 </span>
                                 {videoProgress && (
-                                  <span className="text-xs font-medium" style={{ color: '#FCA311' }}>
+                                  <span className="text-xs font-medium" style={{ color: '#D0CEBA' }}>
                                     {Math.round(videoProgress.percentual_assistido || 0)}% completo
                                   </span>
                                 )}
                               </div>
                             </div>
                           </div>
-                        </div>
+                        </motion.div>
                       );
                     })}
                   </div>
@@ -861,9 +890,9 @@ const CursoDetalhe = () => {
 
               {/* Estatísticas */}
               {filteredVideos.length > 0 && (
-                <div className="rounded-2xl shadow-lg p-6" style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)' }}>
+                <div className="rounded-2xl shadow-lg p-6" style={{ background: '#14213D', border: '1px solid rgba(75,63,114,0.22)' }}>
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: '#FFFFFF' }}>
-                    <Award className="h-5 w-5" style={{ color: '#FCA311' }} />
+                    <Award className="h-5 w-5" style={{ color: '#D0CEBA' }} />
                     Estatísticas
                   </h3>
                   <div className="space-y-3">
@@ -882,7 +911,7 @@ const CursoDetalhe = () => {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>Progresso geral</span>
-                      <span className="text-sm font-medium" style={{ color: '#FCA311' }}>{Math.round(averageProgress)}%</span>
+                      <span className="text-sm font-medium" style={{ color: '#D0CEBA' }}>{Math.round(averageProgress)}%</span>
                     </div>
                   </div>
                 </div>
@@ -890,9 +919,9 @@ const CursoDetalhe = () => {
 
               {/* Certificado */}
               {certificate && (
-                <div className="rounded-2xl shadow-lg p-6" style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)' }}>
+                <div className="rounded-2xl shadow-lg p-6" style={{ background: '#14213D', border: '1px solid rgba(75,63,114,0.22)' }}>
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: '#FFFFFF' }}>
-                    <FileText className="h-5 w-5" style={{ color: '#FCA311' }} />
+                    <FileText className="h-5 w-5" style={{ color: '#D0CEBA' }} />
                     Certificado
                   </h3>
                   <p className="text-sm mb-4" style={{ color: 'rgba(229,229,229,0.65)' }}>
@@ -901,7 +930,7 @@ const CursoDetalhe = () => {
                   <Button
                     onClick={handleViewCertificate}
                     className="w-full"
-                    style={{ background: '#FCA311', color: '#000000', fontWeight: 700 }}
+                    style={{ background: '#417B5A', color: '#fff', fontWeight: 700 }}
                   >
                     <FileText className="h-4 w-4 mr-2" />
                     Ver Certificado
@@ -909,7 +938,7 @@ const CursoDetalhe = () => {
                 </div>
               )}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Notificação de Quiz (Não-intrusiva) */}
