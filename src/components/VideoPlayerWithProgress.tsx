@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { CheckCircle, Play, Pause, Maximize2 } from 'lucide-react';
+import { CheckCircle, Play, Pause, Maximize2, CircleCheck } from 'lucide-react';
 import { useVideoProgress } from '@/hooks/useVideoProgress';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -25,6 +25,7 @@ interface VideoPlayerWithProgressProps {
   userId?: string;
   onProgressChange?: (progress: number) => void;
   onCourseComplete?: (courseId: string) => void;
+  onVideoCompleted?: () => void;
   totalVideos?: number;
   completedVideos?: number;
   className?: string;
@@ -37,6 +38,7 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
   userId,
   onProgressChange,
   onCourseComplete,
+  onVideoCompleted,
   totalVideos,
   completedVideos,
   className = ''
@@ -179,29 +181,25 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
     try {
       await markAsCompleted();
       setShowCompletionBadge(true);
-      
+
       toast({
-        title: "Vídeo concluído!",
+        title: "✅ Vídeo concluído!",
         description: `Você completou "${video.titulo}"`,
         variant: "default"
       });
 
-      // Verificar se é o último vídeo da categoria
-      if (onProgressChange) {
-        onProgressChange(100); // Notificar que o vídeo foi concluído
-      }
+      // Notificar parent para atualizar sidebar
+      onVideoCompleted?.();
 
-      // Verificar se o curso foi completamente concluído
+      if (onProgressChange) onProgressChange(100);
+
       if (onCourseComplete && totalVideos && completedVideos !== undefined) {
         const newCompletedCount = completedVideos + 1;
         if (newCompletedCount >= totalVideos) {
-          // Curso completamente concluído - chamar imediatamente
-          console.log('🎯 Último vídeo concluído! Chamando onCourseComplete...');
           onCourseComplete(cursoId);
         }
       }
 
-      // Esconder badge após 3 segundos
       setTimeout(() => setShowCompletionBadge(false), 3000);
     } catch (error) {
       console.error('Erro ao marcar vídeo como concluído:', error);
@@ -256,18 +254,8 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
   if (isBunny) {
     return (
       <div className={`space-y-4 ${className}`}>
-        {/* Badge de conclusão */}
-        {progress.concluido && (
-          <div className="flex justify-end">
-            <Badge variant="default" className="bg-green-500 text-white">
-              <CheckCircle className="w-4 h-4 mr-1" />
-              Concluído!
-            </Badge>
-          </div>
-        )}
-
         {/* Bunny Player via iframe */}
-        <div className="relative rounded-lg overflow-hidden bg-black" style={{ aspectRatio: '16/9' }}>
+        <div className="relative rounded-xl overflow-hidden bg-black" style={{ aspectRatio: '16/9' }}>
           {bunnyEmbedUrl ? (
             <iframe
               ref={iframeRef}
@@ -285,30 +273,36 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
           )}
         </div>
 
-        {/* Progresso */}
-        <div className="flex items-center gap-2">
-          <Progress value={progress.percentualAssistido} className="flex-1 h-2" />
-          <span className="text-sm text-gray-600 font-medium">
-            {Math.round(progress.percentualAssistido)}%
-          </span>
-        </div>
+        {/* Barra de acções — status + botão concluir */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            {progress.concluido ? (
+              <>
+                <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                <span className="text-sm font-semibold text-green-600">
+                  Concluído
+                  {progress.dataConclusao && (
+                    <span className="ml-1 font-normal text-muted-foreground">
+                      · {new Date(progress.dataConclusao).toLocaleDateString('pt-BR')}
+                    </span>
+                  )}
+                </span>
+              </>
+            ) : (
+              <Badge variant="outline" className="text-xs">Não concluído</Badge>
+            )}
+          </div>
 
-        {/* Status */}
-        <div className="flex items-center gap-2">
-          {progress.concluido ? (
-            <Badge variant="default" className="bg-green-100 text-green-800">
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Vídeo concluído
-            </Badge>
-          ) : progress.percentualAssistido > 0 ? (
-            <Badge variant="secondary">Em andamento</Badge>
-          ) : (
-            <Badge variant="outline">Não iniciado</Badge>
-          )}
-          {progress.dataConclusao && (
-            <span className="text-xs text-gray-500">
-              Concluído em {new Date(progress.dataConclusao).toLocaleDateString()}
-            </span>
+          {/* Botão principal — oculto se já concluído */}
+          {!progress.concluido && (
+            <button
+              onClick={handleVideoCompletion}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:scale-105 active:scale-95"
+              style={{ background: '#417B5A', color: '#fff' }}
+            >
+              <CircleCheck className="w-4 h-4" />
+              Marcar como concluído
+            </button>
           )}
         </div>
       </div>

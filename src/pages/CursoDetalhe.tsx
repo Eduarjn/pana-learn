@@ -476,30 +476,42 @@ const CursoDetalhe = () => {
     }
 
     // Buscar progresso do usuário para cada vídeo
-    const { data: progressData, error: progressError } = await supabase
-      .from('video_progress')
-      .select('*')
-      .eq('user_id', userId)
-      .in('video_id', videos.map(v => v.id));
+    const videoIds = finalVideos.map(v => v.id);
+    const progressMap: Record<string, Database['public']['Tables']['video_progress']['Row']> = {};
 
-    console.log('🔍 CursoDetalhe - Resultado da consulta de progresso:', {
-      progressData: progressData,
-      progressError: progressError,
-      totalProgress: progressData?.length || 0
-    });
+    if (videoIds.length > 0) {
+      const { data: progressData } = await supabase
+        .from('video_progress')
+        .select('*')
+        .eq('user_id', userId)
+        .in('video_id', videoIds);
 
-    if (progressError) {
-      console.error('❌ Erro ao carregar progresso:', progressError);
-    } else {
-      console.log('✅ Progresso carregado com sucesso:', progressData);
+      (progressData || []).forEach((p) => {
+        if (p.video_id) progressMap[p.video_id] = p;
+      });
     }
 
-    // Indexar por video_id
-    const progressMap: Record<string, Database['public']['Tables']['video_progress']['Row']> = {};
-    (progressData || []).forEach((p) => {
-      if (p.video_id) progressMap[p.video_id] = p;
-    });
     setProgress(progressMap);
+
+    // ── Auto-resume: seleccionar o primeiro vídeo não concluído ──────────────
+    // Só auto-selecciona na primeira carga (quando ainda não há vídeo seleccionado)
+    setSelectedVideo(prev => {
+      if (prev) return prev; // já há um vídeo seleccionado, não interferir
+      if (finalVideos.length === 0) return null;
+      // 1º: vídeo em progresso (assistido mas não concluído)
+      const inProgress = finalVideos.find(v => {
+        const p = progressMap[v.id];
+        return p && !p.concluido && (p.percentual_assistido ?? 0) > 0;
+      });
+      if (inProgress) return inProgress;
+      // 2º: primeiro vídeo sem registo de progresso
+      const notStarted = finalVideos.find(v => !progressMap[v.id]);
+      if (notStarted) return notStarted;
+      // 3º: se todos concluídos, voltar ao último
+      return finalVideos[finalVideos.length - 1];
+    });
+    // ─────────────────────────────────────────────────────────────────────────
+
     setLoading(false);
   };
 
@@ -722,6 +734,7 @@ const CursoDetalhe = () => {
                     moduloId={selectedModule?.id}
                     userId={userId}
                     onCourseComplete={handleCourseComplete}
+                    onVideoCompleted={() => { fetchVideosAndProgress(); calculateCourseProgress(); }}
                     totalVideos={totalVideos}
                     completedVideos={completedVideos}
                     className="mb-6"
