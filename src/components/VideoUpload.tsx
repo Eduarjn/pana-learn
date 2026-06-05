@@ -5,16 +5,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Upload, Video, X, Youtube } from 'lucide-react';
+import { Upload, Video, X, Youtube, Plus, Loader2, Tag, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from '@/hooks/use-toast';
 import { useCourses, useCourseModules } from '@/hooks/useCourses';
 
 // ── Proxy seguro para o Bunny Stream (Supabase Edge Function) ──────────────────
-// A chave API do Bunny fica nos secrets do servidor — nunca exposta no browser.
-const BUNNY_PROXY    = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/super-endpoint`;
-const CDN_HOSTNAME   = import.meta.env.VITE_BUNNY_CDN_HOSTNAME as string;
+const BUNNY_PROXY  = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/super-endpoint`;
+const CDN_HOSTNAME = import.meta.env.VITE_BUNNY_CDN_HOSTNAME as string;
 
 interface VideoUploadProps {
   onClose: () => void;
@@ -24,12 +23,14 @@ interface VideoUploadProps {
 
 type VideoSource = 'upload' | 'youtube';
 
+interface QuickCourse { nome: string; categoria: string; categoria_id: string; }
+interface QuickCategory { nome: string; cor: string; }
+
+const CAT_COLORS = ['#1F2041', '#4B3F72', '#417B5A', '#E9D2C0', '#e8940f', '#6366f1', '#10b981', '#ef4444'];
+
 export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUploadProps) {
-  console.log('🎯 VideoUpload - Componente montado');
-  console.log('🎯 VideoUpload - Props:', { onClose, onSuccess, preSelectedCourseId });
-  
   const { userProfile } = useAuth();
-  const { data: courses = [], isLoading: coursesLoading, error: coursesError } = useCourses();
+  const { data: courses = [], isLoading: coursesLoading, refetch: refetchCourses } = useCourses();
   const [selectedCourseId, setSelectedCourseId] = useState(preSelectedCourseId || '');
   const { data: modules = [], isLoading: modulesLoading } = useCourseModules(selectedCourseId);
   const [selectedModuleId, setSelectedModuleId] = useState('');
@@ -37,711 +38,194 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
   const [uploadStep, setUploadStep] = useState<string>('');
   const [activeTab, setActiveTab] = useState<VideoSource>('upload');
 
-  // Debug logs para módulos
-  console.log('🔍 VideoUpload - Estado dos módulos:', {
-    selectedCourseId,
-    modulesLoading,
-    modulesCount: modules.length,
-    modules: modules.map(m => ({ id: m.id, nome_modulo: m.nome_modulo, ordem: m.ordem })),
-    selectedModuleId
-  });
-  const [videoData, setVideoData] = useState({
-    titulo: '',
-    descricao: '',
-    duracao: 0,
-  });
+  const [videoData, setVideoData] = useState({ titulo: '', descricao: '', duracao: 0 });
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState('');
 
-  // Debug logs
-  console.log('🔍 VideoUpload - Estado dos cursos:', {
-    coursesLoading,
-    coursesError,
-    coursesCount: courses.length,
-    courses: courses.map(c => ({ id: c.id, nome: c.nome, categoria: c.categoria })),
-    selectedCourseId
-  });
+  // ── Estado para criar nova categoria inline ──────────────────────────────────
+  const [categoriesDB, setCategoriesDB] = useState<{ id: string; nome: string; cor: string | null }[]>([]);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [quickCategory, setQuickCategory] = useState<QuickCategory>({ nome: '', cor: '#4B3F72' });
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  // ── Estado para criar novo curso inline ─────────────────────────────────────
+  const [showNewCourse, setShowNewCourse] = useState(false);
+  const [quickCourse, setQuickCourse] = useState<QuickCourse>({ nome: '', categoria: '', categoria_id: '' });
+  const [savingCourse, setSavingCourse] = useState(false);
 
   // Obter categoria do curso selecionado
   const selectedCourse = courses.find(c => c.id === selectedCourseId);
   const courseCategory = selectedCourse?.categoria || '';
 
-  console.log('🔍 VideoUpload - Curso selecionado:', {
-    selectedCourse,
-    courseCategory
-  });
-
-  // Debug logs específicos para OMNICHANNEL
-  console.log('🔍 VideoUpload - Debug OMNICHANNEL:', {
-    selectedCourseId,
-    selectedCourse: selectedCourse,
-    courseCategory: courseCategory,
-    isOmnichannel: courseCategory?.toLowerCase().includes('omnichannel'),
-    selectedCourseName: selectedCourse?.nome,
-    isOmnichannelCourse: selectedCourse?.nome?.toLowerCase().includes('omnichannel')
-  });
-
-  // Atualizar selectedCourseId quando preSelectedCourseId mudar
   useEffect(() => {
-    if (preSelectedCourseId) {
-      setSelectedCourseId(preSelectedCourseId);
-      console.log('🔍 VideoUpload - Curso pré-selecionado:', preSelectedCourseId);
-    }
-  }, [preSelectedCourseId]);
-
-  // Executar padronização de módulos automaticamente quando o componente carregar
-  useEffect(() => {
-    const standardizeModulesOnLoad = async () => {
-      try {
-        console.log('🔧 Verificando e padronizando módulos automaticamente...');
-        
-        // Buscar todos os cursos
-        const { data: allCourses, error: coursesError } = await supabase
-          .from('cursos')
-          .select('id, nome, categoria');
-
-        if (coursesError || !allCourses) {
-          console.error('❌ Erro ao buscar cursos:', coursesError);
-          return;
-        }
-
-        // Verificar se algum curso não tem os módulos padrão
-        for (const course of allCourses) {
-          const { data: courseModules, error: modulesError } = await supabase
-            .from('modulos')
-            .select('nome_modulo')
-            .eq('curso_id', course.id);
-
-          if (modulesError) {
-            console.error(`❌ Erro ao verificar módulos de ${course.nome}:`, modulesError);
-            continue;
-          }
-
-          const hasUsabilidade = courseModules?.some(m => m.nome_modulo === 'Usabilidade');
-          const hasConfiguracao = courseModules?.some(m => m.nome_modulo === 'Configuração');
-
-          if (!hasUsabilidade || !hasConfiguracao) {
-            console.log(`🔧 Padronizando módulos para ${course.nome}...`);
-            
-            // Remover módulos existentes
-            await supabase
-              .from('modulos')
-              .delete()
-              .eq('curso_id', course.id);
-
-            // Inserir módulos padrão
-            await supabase
-              .from('modulos')
-              .insert([
-                {
-                  curso_id: course.id,
-                  nome_modulo: 'Usabilidade',
-                  descricao: `Módulo focado na usabilidade e experiência do usuário do ${course.nome}`,
-                  ordem: 1,
-                  duracao: 0
-                },
-                {
-                  curso_id: course.id,
-                  nome_modulo: 'Configuração',
-                  descricao: `Módulo focado na configuração e setup do ${course.nome}`,
-                  ordem: 2,
-                  duracao: 0
-                }
-              ]);
-
-            console.log(`✅ Módulos padronizados para ${course.nome}`);
-          }
-        }
-
-        console.log('✅ Verificação e padronização de módulos concluída');
-      } catch (error) {
-        console.error('❌ Erro ao padronizar módulos:', error);
-      }
-    };
-
-    standardizeModulesOnLoad();
+    loadCategories();
   }, []);
 
-  // Função para inserir módulos de teste
-  const insertTestModules = async () => {
-    try {
-      console.log('🔧 Inserindo módulos de teste...');
-      
-      // Verificar se há cursos disponíveis
-      const { data: cursos, error: cursosError } = await supabase
-        .from('cursos')
-        .select('id, nome, categoria')
-        .order('ordem', { ascending: true });
+  useEffect(() => {
+    if (preSelectedCourseId) setSelectedCourseId(preSelectedCourseId);
+  }, [preSelectedCourseId]);
 
-      if (cursosError || !cursos || cursos.length === 0) {
-        toast({
-          title: "Erro",
-          description: "Primeiro insira os cursos usando o botão 'Inserir Cursos' na página de Treinamentos",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('📝 Cursos encontrados:', cursos.map(c => ({ id: c.id, nome: c.nome, categoria: c.categoria })));
-
-      // Criar módulos para TODOS os cursos (forçar criação)
-      const modulosToInsert = [];
-      
-      for (const curso of cursos) {
-        console.log(`📝 Criando módulos para o curso "${curso.nome}"...`);
-        
-        // Primeiro, deletar módulos existentes para este curso (se houver)
-        const { error: deleteError } = await supabase
-          .from('modulos')
-          .delete()
-          .eq('curso_id', curso.id);
-
-        if (deleteError) {
-          console.log(`⚠️ Erro ao deletar módulos existentes para "${curso.nome}":`, deleteError);
-        } else {
-          console.log(`🗑️ Módulos existentes deletados para "${curso.nome}"`);
-        }
-        
-        const modulosDoCurso = [
-          {
-            nome_modulo: 'Usabilidade',
-            descricao: `Módulo focado na usabilidade e experiência do usuário do ${curso.nome}`,
-            duracao: 0,
-            ordem: 1,
-            curso_id: curso.id
-          },
-          {
-            nome_modulo: 'Configuração',
-            descricao: `Módulo focado na configuração e setup do ${curso.nome}`,
-            duracao: 0,
-            ordem: 2,
-            curso_id: curso.id
-          }
-        ];
-        
-        modulosToInsert.push(...modulosDoCurso);
-      }
-
-      console.log(`📝 Total de módulos a inserir: ${modulosToInsert.length}`);
-
-      // Inserir módulos
-      const { data: modulos, error: modulosError } = await supabase
-        .from('modulos')
-        .insert(modulosToInsert)
-        .select();
-
-      if (modulosError) {
-        console.error('❌ Erro ao inserir módulos:', modulosError);
-        throw modulosError;
-      }
-
-      console.log('✅ Módulos inseridos com sucesso:', modulos);
-      toast({
-        title: "Sucesso!",
-        description: `Módulos 'Usabilidade' e 'Configuração' criados para ${cursos.length} cursos`,
-      });
-
-      // Recarregar a página para atualizar a lista
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-
-    } catch (err) {
-      console.error('❌ Erro ao inserir módulos de teste:', err);
-      toast({
-        title: "Erro",
-        description: "Erro ao inserir módulos de teste",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Função para limpar cursos duplicados
-  const cleanDuplicateCourses = async () => {
-    try {
-      console.log('🧹 Limpando cursos duplicados...');
-      
-      // Buscar todos os cursos
-      const { data: allCourses, error: coursesError } = await supabase
-        .from('cursos')
-        .select('*')
-        .order('data_criacao', { ascending: true });
-
-      if (coursesError) {
-        console.error('❌ Erro ao buscar cursos:', coursesError);
-        return;
-      }
-
-      console.log('📝 Todos os cursos encontrados:', allCourses?.map(c => ({
-        id: c.id,
-        nome: c.nome,
-        data_criacao: c.data_criacao
-      })));
-
-      // Identificar duplicados por nome (mais agressivo)
-      const courseNames = new Map();
-      const duplicatesToDelete = [];
-      const keepCourses = [];
-
-      for (const course of allCourses) {
-        // Normalizar nome (remover espaços extras, converter para minúsculas)
-        const normalizedName = course.nome.toLowerCase().trim().replace(/\s+/g, ' ');
-        
-        console.log(`🔍 Verificando: "${course.nome}" -> "${normalizedName}"`);
-        
-        if (courseNames.has(normalizedName)) {
-          // Se já existe, adicionar à lista de duplicados
-          duplicatesToDelete.push(course.id);
-          console.log(`❌ Duplicado encontrado: "${course.nome}"`);
-        } else {
-          // Se é novo, adicionar ao mapa e lista de manter
-          courseNames.set(normalizedName, course);
-          keepCourses.push(course);
-          console.log(`✅ Mantendo: "${course.nome}"`);
-        }
-      }
-
-      console.log('📝 Cursos a manter:', keepCourses.map(c => c.nome));
-      console.log('📝 Cursos a deletar:', duplicatesToDelete);
-
-      if (duplicatesToDelete.length > 0) {
-        console.log('🗑️ Deletando cursos duplicados:', duplicatesToDelete);
-        
-        // Deletar duplicados
-        const { error: deleteError } = await supabase
-          .from('cursos')
-          .delete()
-          .in('id', duplicatesToDelete);
-
-        if (deleteError) {
-          console.error('❌ Erro ao deletar duplicados:', deleteError);
-          toast({
-            title: "Erro",
-            description: `Erro ao deletar duplicados: ${deleteError.message}`,
-            variant: "destructive"
-          });
-        } else {
-          console.log('✅ Cursos duplicados removidos:', duplicatesToDelete.length);
-          toast({
-            title: "Sucesso!",
-            description: `${duplicatesToDelete.length} cursos duplicados removidos`,
-          });
-          
-          // Recarregar a página para atualizar a lista
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        }
-      } else {
-        console.log('✅ Nenhum curso duplicado encontrado');
-        toast({
-          title: "Info",
-          description: "Nenhum curso duplicado encontrado",
-        });
-      }
-    } catch (err) {
-      console.error('❌ Erro ao limpar duplicados:', err);
-      toast({
-        title: "Erro",
-        description: "Erro ao limpar cursos duplicados",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Função para corrigir tudo de uma vez
-  const fixAllIssues = async () => {
-    try {
-      console.log('🔧 Iniciando correção completa...');
-      
-      // 1. Limpar duplicados
-      console.log('📝 Passo 1: Limpando duplicados...');
-      await cleanDuplicateCourses();
-      
-      // Aguardar um pouco
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // 2. Criar módulos
-      console.log('📝 Passo 2: Criando módulos...');
-      await insertTestModules();
-      
-      toast({
-        title: "Correção Completa!",
-        description: "Duplicados removidos e módulos criados com sucesso!",
-      });
-      
-    } catch (err) {
-      console.error('❌ Erro na correção completa:', err);
-      toast({
-        title: "Erro",
-        description: "Erro durante a correção completa",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Função para inserir dados de teste
-  const insertTestData = async () => {
-    try {
-      console.log('🔧 Inserindo dados de teste...');
-      
-      // Verificar se o usuário está autenticado
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log('👤 Usuário autenticado:', user?.email);
-      
-      if (!user) {
-        console.error('❌ Usuário não autenticado');
-        toast({
-          title: "Erro",
-          description: "Você precisa estar logado para inserir dados de teste.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Inserir categorias primeiro
-      console.log('📝 Inserindo categorias...');
-      const { data: categorias, error: catError } = await supabase
-        .from('categorias')
-        .upsert([
-          { nome: 'PABX', descricao: 'Treinamentos sobre sistemas PABX', cor: '#3B82F6' },
-          { nome: 'VoIP', descricao: 'Treinamentos sobre tecnologias VoIP', cor: '#10B981' },
-          { nome: 'Omnichannel', descricao: 'Treinamentos sobre plataformas Omnichannel', cor: '#8B5CF6' },
-          { nome: 'CALLCENTER', descricao: 'Treinamentos sobre call center', cor: '#6366F1' },
-          { nome: 'Básico', descricao: 'Treinamentos introdutórios', cor: '#F59E0B' },
-          { nome: 'Avançado', descricao: 'Treinamentos avançados', cor: '#EF4444' },
-          { nome: 'Intermediário', descricao: 'Treinamentos de nível intermediário', cor: '#6B7280' }
-        ], { onConflict: 'nome' });
-
-      if (catError) {
-        console.error('❌ Erro ao inserir categorias:', catError);
-        toast({
-          title: "Erro",
-          description: `Erro ao inserir categorias: ${catError.message}`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('✅ Categorias inseridas:', categorias);
-
-      // Inserir cursos completos (todos os que aparecem na página de Treinamentos)
-      console.log('📝 Inserindo cursos...');
-      const { data: cursos, error: cursosError } = await supabase
-        .from('cursos')
-        .upsert([
-          {
-            nome: 'Fundamentos de PABX',
-            categoria: 'PABX',
-            descricao: 'Curso introdutório sobre sistemas PABX e suas funcionalidades básicas',
-            status: 'ativo',
-            ordem: 1
-          },
-          {
-            nome: 'Fundamentos CALLCENTER',
-            categoria: 'CALLCENTER',
-            descricao: 'Introdução aos sistemas de call center e suas funcionalidades',
-            status: 'ativo',
-            ordem: 2
-          },
-          {
-            nome: 'Configurações Avançadas PABX',
-            categoria: 'PABX',
-            descricao: 'Configurações avançadas para otimização do sistema PABX',
-            status: 'ativo',
-            ordem: 3
-          },
-          {
-            nome: 'Omnichannel para Empresas',
-            categoria: 'Omnichannel',
-            descricao: 'Implementação de soluções omnichannel em ambientes empresariais',
-            status: 'ativo',
-            ordem: 4
-          },
-          {
-            nome: 'Configurações Avançadas OMNI',
-            categoria: 'Omnichannel',
-            descricao: 'Configurações avançadas para sistemas omnichannel',
-            status: 'ativo',
-            ordem: 5
-          },
-          {
-            nome: 'Configuração VoIP Avançada',
-            categoria: 'VoIP',
-            descricao: 'Configurações avançadas para sistemas VoIP corporativos',
-            status: 'ativo',
-            ordem: 6
-          },
-          {
-            nome: 'Telefonia Básica',
-            categoria: 'Básico',
-            descricao: 'Conceitos fundamentais de telefonia e comunicação',
-            status: 'ativo',
-            ordem: 7
-          },
-          {
-            nome: 'Sistemas de Comunicação',
-            categoria: 'Intermediário',
-            descricao: 'Sistemas intermediários de comunicação empresarial',
-            status: 'ativo',
-            ordem: 8
-          }
-        ], { onConflict: 'nome' });
-
-      if (cursosError) {
-        console.error('❌ Erro ao inserir cursos:', cursosError);
-        toast({
-          title: "Erro",
-          description: `Erro ao inserir cursos: ${cursosError.message}`,
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('✅ Cursos inseridos:', cursos);
-      
-      toast({
-        title: "Sucesso",
-        description: "Dados de teste inseridos com sucesso! Recarregando...",
-      });
-      
-      // Recarregar dados após 1 segundo
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-    } catch (error) {
-      console.error('❌ Erro ao inserir dados de teste:', error);
-      toast({
-        title: "Erro",
-        description: "Erro inesperado ao inserir dados de teste.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Reset módulo quando curso muda
   useEffect(() => {
     setSelectedModuleId('');
   }, [selectedCourseId]);
 
+  const loadCategories = async () => {
+    const { data } = await supabase.from('categorias').select('id,nome,cor').order('nome');
+    if (data) setCategoriesDB(data);
+  };
+
+  // ── Criar categoria rapidamente ──────────────────────────────────────────────
+  const handleCreateCategory = async () => {
+    if (!quickCategory.nome.trim()) {
+      toast({ title: 'Campo obrigatório', description: 'Informe o nome da categoria.', variant: 'destructive' });
+      return;
+    }
+    setSavingCategory(true);
+    try {
+      const { data, error } = await supabase
+        .from('categorias')
+        .insert({ nome: quickCategory.nome.trim(), cor: quickCategory.cor })
+        .select()
+        .single();
+      if (error) throw error;
+      toast({ title: 'Categoria criada!', description: quickCategory.nome });
+      await loadCategories();
+      // Se estava a criar um curso, preencher a categoria automaticamente
+      setQuickCourse(p => ({ ...p, categoria: data.nome, categoria_id: data.id }));
+      setShowNewCategory(false);
+      setQuickCategory({ nome: '', cor: '#4B3F72' });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message || 'Erro ao criar categoria.', variant: 'destructive' });
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  // ── Criar curso rapidamente ──────────────────────────────────────────────────
+  const handleCreateCourse = async () => {
+    if (!quickCourse.nome.trim()) {
+      toast({ title: 'Campo obrigatório', description: 'Informe o nome do curso.', variant: 'destructive' });
+      return;
+    }
+    if (!quickCourse.categoria.trim()) {
+      toast({ title: 'Campo obrigatório', description: 'Selecione ou crie uma categoria.', variant: 'destructive' });
+      return;
+    }
+    setSavingCourse(true);
+    try {
+      const { data, error } = await supabase
+        .from('cursos')
+        .insert({
+          nome: quickCourse.nome.trim(),
+          categoria: quickCourse.categoria.trim(),
+          categoria_id: quickCourse.categoria_id || null,
+          status: 'ativo',
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      toast({ title: 'Curso criado!', description: quickCourse.nome });
+      await refetchCourses();
+      setSelectedCourseId(data.id);
+      setShowNewCourse(false);
+      setQuickCourse({ nome: '', categoria: '', categoria_id: '' });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message || 'Erro ao criar curso.', variant: 'destructive' });
+    } finally {
+      setSavingCourse(false);
+    }
+  };
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: 'video' | 'thumbnail') => {
     const file = event.target.files?.[0];
     if (file) {
-      if (type === 'video') {
-        setVideoFile(file);
-      } else {
-        setThumbnailFile(file);
-      }
+      if (type === 'video') setVideoFile(file);
+      else setThumbnailFile(file);
     }
   };
 
   // ── Supabase Storage: usado APENAS para thumbnails ──────────────────────────
   const uploadFile = async (file: File, bucket: string, path: string) => {
-    const { data, error } = await supabase.storage
-      .from(bucket)
-      .upload(path, file, {
-        cacheControl: '3600',
-        upsert: false
-      });
-
+    const { data, error } = await supabase.storage.from(bucket).upload(path, file, { cacheControl: '3600', upsert: false });
     if (error) throw error;
-
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(data.path);
-
+    const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
     return publicUrl;
   };
 
   // ── Bunny Stream: proxy via Supabase Edge Function ──────────────────────────
-  // Os secrets do Bunny ficam no servidor – nunca chegam ao browser.
   const uploadToBunny = async (file: File, title: string): Promise<string> => {
     const { data: { session } } = await supabase.auth.getSession();
-    const authHeader = session?.access_token
-      ? { Authorization: `Bearer ${session.access_token}` }
-      : {};
+    const authHeader = session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {};
 
-    // Passo 1 – criar o registo e obter o GUID
     setUploadStep('Criando registo no Bunny Stream…');
     const createRes = await fetch(BUNNY_PROXY, {
       method: 'POST',
-      headers: {
-        ...authHeader,
-        'Content-Type': 'application/json',
-        'x-action': 'create',
-      },
+      headers: { ...authHeader, 'Content-Type': 'application/json', 'x-action': 'create' },
       body: JSON.stringify({ title }),
     });
-
     if (!createRes.ok) {
       const err = await createRes.json().catch(() => ({ error: createRes.statusText }));
       throw new Error(`Criar vídeo falhou: ${err.error ?? createRes.statusText}`);
     }
-
     const { guid, cdnUrl } = await createRes.json() as { guid: string; cdnUrl: string };
     if (!guid) throw new Error('GUID não encontrado na resposta do servidor.');
 
-    // Passo 2 – enviar os bytes do ficheiro
     setUploadStep('A enviar vídeo para o Bunny Stream…');
     const uploadRes = await fetch(BUNNY_PROXY, {
       method: 'POST',
-      headers: {
-        ...authHeader,
-        'Content-Type': 'application/octet-stream',
-        'x-action': 'upload',
-        'x-video-guid': guid,
-      },
+      headers: { ...authHeader, 'Content-Type': 'application/octet-stream', 'x-action': 'upload', 'x-video-guid': guid },
       body: file,
     });
-
     if (!uploadRes.ok) {
       const err = await uploadRes.json().catch(() => ({ error: uploadRes.statusText }));
       throw new Error(`Upload do vídeo falhou: ${err.error ?? uploadRes.statusText}`);
     }
-
-    // Devolve a URL CDN (ou constrói localmente como fallback)
     return cdnUrl ?? `https://${CDN_HOSTNAME}/${guid}/play_720p.mp4`;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validações melhoradas
     if (!selectedCourseId) {
-      toast({
-        title: "Erro",
-        description: "Selecione um curso.",
-        variant: "destructive"
-      });
+      toast({ title: 'Erro', description: 'Selecione um curso.', variant: 'destructive' });
       return;
     }
-
     if (!videoData.titulo.trim()) {
-      toast({
-        title: "Erro",
-        description: "Digite o título do vídeo.",
-        variant: "destructive"
-      });
+      toast({ title: 'Erro', description: 'Digite o título do vídeo.', variant: 'destructive' });
       return;
     }
-
     if (videoData.duracao <= 0) {
-      toast({
-        title: "Erro",
-        description: "Digite a duração do vídeo em minutos.",
-        variant: "destructive"
-      });
+      toast({ title: 'Erro', description: 'Digite a duração do vídeo em minutos.', variant: 'destructive' });
       return;
     }
-
     if (activeTab === 'upload' && !videoFile) {
-      toast({
-        title: "Erro",
-        description: "Selecione um arquivo de vídeo.",
-        variant: "destructive"
-      });
+      toast({ title: 'Erro', description: 'Selecione um arquivo de vídeo.', variant: 'destructive' });
       return;
     }
-
-    if (activeTab === 'youtube' && !youtubeUrl) {
-      toast({
-        title: "Erro",
-        description: "Insira a URL do vídeo do YouTube.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (activeTab === 'youtube' && !youtubeUrl.includes('youtube.com') && !youtubeUrl.includes('youtu.be')) {
-      toast({
-        title: "Erro",
-        description: "Insira uma URL válida do YouTube.",
-        variant: "destructive"
-      });
+    if (activeTab === 'youtube' && (!youtubeUrl || (!youtubeUrl.includes('youtube.com') && !youtubeUrl.includes('youtu.be')))) {
+      toast({ title: 'Erro', description: 'Insira uma URL válida do YouTube.', variant: 'destructive' });
       return;
     }
 
     setUploading(true);
-
     try {
-      // Debug: Verificar dados antes da inserção
-      console.log('🔍 VideoUpload - Dados para inserção:', {
-        titulo: videoData.titulo,
-        descricao: videoData.descricao,
-        duracao: videoData.duracao,
-        curso_id: selectedCourseId,
-        categoria: courseCategory,
-        modulo_id: selectedModuleId || null,
-        source: activeTab,
-        selectedCourse: selectedCourse
-      });
-
       let videoUrl = '';
-
       if (activeTab === 'upload') {
-        // Vídeo → Bunny Stream (create + PUT binário)
         videoUrl = await uploadToBunny(videoFile!, videoData.titulo);
       } else {
-        // YouTube: guardar URL directamente
         videoUrl = youtubeUrl;
       }
 
-      // Upload da thumbnail (se fornecida)
       let thumbnailUrl = '';
       if (thumbnailFile) {
-        const thumbnailPath = `thumbnails/${Date.now()}_${thumbnailFile.name}`;
-        thumbnailUrl = await uploadFile(thumbnailFile, 'training-videos', thumbnailPath);
+        thumbnailUrl = await uploadFile(thumbnailFile, 'training-videos', `thumbnails/${Date.now()}_${thumbnailFile.name}`);
       }
 
-      // Validação adicional para curso_id
-      if (!selectedCourseId) {
-        console.error('❌ VideoUpload - selectedCourseId está vazio:', selectedCourseId);
-        toast({
-          title: "Erro",
-          description: "ID do curso não foi selecionado corretamente.",
-          variant: "destructive"
-        });
-        return;
-      }
+      const { data: nextOrderData, error: orderError } = await supabase.rpc('obter_proxima_ordem_video', { p_curso_id: selectedCourseId });
+      if (orderError) throw new Error('Erro ao calcular ordem do vídeo');
 
-      // Verificar se o curso existe antes da inserção
-      const { data: courseCheck, error: courseCheckError } = await supabase
-        .from('cursos')
-        .select('id, nome, categoria')
-        .eq('id', selectedCourseId)
-        .single();
-
-      if (courseCheckError || !courseCheck) {
-        console.error('❌ VideoUpload - Curso não encontrado:', {
-          selectedCourseId,
-          courseCheckError,
-          courseCheck
-        });
-        toast({
-          title: "Erro",
-          description: "Curso selecionado não foi encontrado no banco de dados.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log('✅ VideoUpload - Curso validado:', courseCheck);
-
-      // Obter próxima ordem disponível
-      const { data: nextOrderData, error: orderError } = await supabase.rpc('obter_proxima_ordem_video', {
-        p_curso_id: selectedCourseId
-      });
-
-      if (orderError) {
-        console.error('❌ Erro ao obter próxima ordem:', orderError);
-        throw new Error('Erro ao calcular ordem do vídeo');
-      }
-
-      const nextOrder = nextOrderData || 1;
-
-      // Dados para inserção no banco
-      const videoDataToInsert = {
+      const { error: insertError } = await supabase.from('videos').insert({
         titulo: videoData.titulo,
         descricao: videoData.descricao,
         duracao: videoData.duracao,
@@ -750,57 +234,14 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
         categoria: courseCategory,
         curso_id: selectedCourseId,
         modulo_id: selectedModuleId || null,
-        ordem: nextOrder
-      };
+        ordem: nextOrderData || 1,
+      }).select().single();
 
-      console.log('📝 VideoUpload - Dados para inserção:', {
-        ...videoDataToInsert,
-        selectedCourse: selectedCourse?.nome,
-        selectedModule: modules.find(m => m.id === selectedModuleId)?.nome_modulo
-      });
+      if (insertError) throw insertError;
 
-      // Debug específico para OMNICHANNEL
-      console.log('🔍 VideoUpload - Debug OMNICHANNEL Upload:', {
-        cursoId: selectedCourseId,
-        cursoNome: selectedCourse?.nome,
-        categoria: courseCategory,
-        isOmnichannel: courseCategory?.toLowerCase().includes('omnichannel'),
-        videoTitulo: videoData.titulo,
-        videoUrl: videoUrl,
-        moduloId: selectedModuleId,
-        moduloNome: modules.find(m => m.id === selectedModuleId)?.nome_modulo,
-        totalModules: modules.length,
-        modules: modules.map(m => ({ id: m.id, nome: m.nome_modulo, curso_id: m.curso_id }))
-      });
+      toast({ title: 'Sucesso', description: `Vídeo ${activeTab === 'upload' ? 'enviado' : 'importado'} com sucesso!` });
 
-      console.log('📝 VideoUpload - Inserindo vídeo no banco:', videoDataToInsert);
-
-      // Salvar informações do vídeo no banco
-      const { data: insertedVideo, error: insertError } = await supabase
-        .from('videos')
-        .insert(videoDataToInsert)
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('❌ Erro ao inserir vídeo:', insertError);
-        console.error('❌ Dados que tentou inserir:', videoDataToInsert);
-        throw insertError;
-      }
-
-      console.log('✅ Vídeo inserido com sucesso:', insertedVideo);
-
-      toast({
-        title: "Sucesso",
-        description: `Vídeo ${activeTab === 'upload' ? 'enviado' : 'importado'} com sucesso!`,
-      });
-
-      // Limpar formulário
-      setVideoData({
-        titulo: '',
-        descricao: '',
-        duracao: 0,
-      });
+      setVideoData({ titulo: '', descricao: '', duracao: 0 });
       setVideoFile(null);
       setThumbnailFile(null);
       setYoutubeUrl('');
@@ -810,12 +251,7 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
       onSuccess();
       onClose();
     } catch (error) {
-      console.error('❌ Erro no upload:', error);
-      toast({
-        title: "Erro",
-        description: `Erro ao ${activeTab === 'upload' ? 'enviar' : 'importar'} o vídeo. Tente novamente.`,
-        variant: "destructive"
-      });
+      toast({ title: 'Erro', description: `Erro ao ${activeTab === 'upload' ? 'enviar' : 'importar'} o vídeo. Tente novamente.`, variant: 'destructive' });
     } finally {
       setUploading(false);
     }
@@ -840,196 +276,204 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
       <CardContent>
         {/* Abas */}
         <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab('upload')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-              activeTab === 'upload'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Upload className="h-4 w-4" />
-            Upload
+          <button type="button" onClick={() => setActiveTab('upload')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${activeTab === 'upload' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <Upload className="h-4 w-4" /> Upload
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('youtube')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-              activeTab === 'youtube'
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Youtube className="h-4 w-4" />
-            YouTube
+          <button type="button" onClick={() => setActiveTab('youtube')}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${activeTab === 'youtube' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}>
+            <Youtube className="h-4 w-4" /> YouTube
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* ── Seleção de Curso ──────────────────────────────────────────────── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="curso">Curso *</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="curso">Curso *</Label>
+                <button type="button" onClick={() => setShowNewCourse(v => !v)}
+                  className="text-xs text-primary font-semibold flex items-center gap-1 hover:underline">
+                  <Plus className="h-3 w-3" /> Novo curso
+                </button>
+              </div>
               <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
                 <SelectTrigger>
-                  <SelectValue placeholder={coursesLoading ? "Carregando..." : "Selecione o curso"} />
+                  <SelectValue placeholder={coursesLoading ? 'Carregando...' : 'Selecione o curso'} />
                 </SelectTrigger>
                 <SelectContent>
                   {courses.map(course => (
                     <SelectItem key={course.id} value={course.id}>
+                      <span className="text-xs text-muted-foreground mr-1">[{course.categoria}]</span>
                       {course.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+
+              {/* Mini-form: criar novo curso */}
+              {showNewCourse && (
+                <div className="mt-2 p-3 rounded-xl border border-primary/30 bg-primary/5 space-y-2">
+                  <p className="text-xs font-bold text-foreground flex items-center gap-1"><BookOpen className="w-3 h-3" /> Novo curso</p>
+                  <input
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    placeholder="Nome do curso *"
+                    value={quickCourse.nome}
+                    onChange={e => setQuickCourse(p => ({ ...p, nome: e.target.value }))}
+                  />
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <Select
+                        value={quickCourse.categoria_id || '__manual__'}
+                        onValueChange={val => {
+                          if (val === '__nova__') { setShowNewCategory(true); return; }
+                          if (val === '__manual__') { setQuickCourse(p => ({ ...p, categoria_id: '', categoria: '' })); return; }
+                          const cat = categoriesDB.find(c => c.id === val);
+                          setQuickCourse(p => ({ ...p, categoria_id: val, categoria: cat?.nome || '' }));
+                        }}
+                      >
+                        <SelectTrigger className="h-9 text-sm">
+                          <SelectValue placeholder="Categoria *" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categoriesDB.map(cat => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2 h-2 rounded-full" style={{ background: cat.cor || '#ccc' }} />
+                                {cat.nome}
+                              </div>
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="__nova__">
+                            <span className="text-primary font-semibold flex items-center gap-1"><Plus className="w-3 h-3" /> Nova categoria</span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Mini-form: criar nova categoria (dentro do form de curso) */}
+                  {showNewCategory && (
+                    <div className="p-2.5 rounded-lg border border-border bg-background space-y-2">
+                      <p className="text-xs font-bold text-foreground flex items-center gap-1"><Tag className="w-3 h-3" /> Nova categoria</p>
+                      <input
+                        className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                        placeholder="Nome da categoria *"
+                        value={quickCategory.nome}
+                        onChange={e => setQuickCategory(p => ({ ...p, nome: e.target.value }))}
+                      />
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">Cor:</span>
+                        <input type="color" value={quickCategory.cor} onChange={e => setQuickCategory(p => ({ ...p, cor: e.target.value }))} className="w-8 h-8 rounded cursor-pointer border border-border p-0.5 bg-background" />
+                        <div className="flex gap-1">
+                          {CAT_COLORS.map(col => (
+                            <button key={col} type="button" onClick={() => setQuickCategory(p => ({ ...p, cor: col }))}
+                              className={`w-5 h-5 rounded border-2 ${quickCategory.cor === col ? 'border-foreground' : 'border-transparent'}`}
+                              style={{ background: col }} />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={handleCreateCategory} disabled={savingCategory}
+                          className="flex-1 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-1 disabled:opacity-70">
+                          {savingCategory ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Criar'}
+                        </button>
+                        <button type="button" onClick={() => setShowNewCategory(false)} className="py-1.5 px-3 rounded-lg border border-border text-xs font-semibold hover:bg-muted">
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleCreateCourse} disabled={savingCourse}
+                      className="flex-1 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-1 disabled:opacity-70">
+                      {savingCourse ? <><Loader2 className="w-3 h-3 animate-spin" /> Criando...</> : 'Criar curso'}
+                    </button>
+                    <button type="button" onClick={() => setShowNewCourse(false)} className="py-1.5 px-3 rounded-lg border border-border text-xs font-semibold hover:bg-muted">
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Módulo */}
             <div className="space-y-2">
               <Label htmlFor="modulo">Módulo (opcional)</Label>
-              <div className="space-y-2">
-                <Select 
-                  value={selectedModuleId} 
-                  onValueChange={setSelectedModuleId} 
-                  disabled={!selectedCourseId || modulesLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={
-                      !selectedCourseId ? "Selecione um curso primeiro" :
-                      modulesLoading ? "Carregando..." :
-                      modules.length === 0 ? "Nenhum módulo disponível" :
-                      "Selecione o módulo (opcional)"
-                    } />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {modules.map(modulo => (
-                      <SelectItem key={modulo.id} value={modulo.id}>
-                        {modulo.nome_modulo} ({modulo.duracao || 0} min)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedCourseId && modules.length === 0 && (
-                  <div className="text-xs text-gray-500 flex items-center gap-2">
-                    <span>Nenhum módulo encontrado para este curso.</span>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={insertTestModules}
-                      className="text-xs h-6 px-2"
-                    >
-                      Criar Módulos
-                    </Button>
-                  </div>
-                )}
-                {selectedCourseId && modules.length > 0 && (
-                  <div className="text-xs text-gray-500">
-                    {modules.length} módulo(s) disponível(is) para este curso
-                  </div>
-                )}
-              </div>
+              <Select value={selectedModuleId} onValueChange={setSelectedModuleId} disabled={!selectedCourseId || modulesLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder={
+                    !selectedCourseId ? 'Selecione um curso primeiro' :
+                    modulesLoading ? 'Carregando...' :
+                    modules.length === 0 ? 'Nenhum módulo disponível' :
+                    'Selecione o módulo (opcional)'
+                  } />
+                </SelectTrigger>
+                <SelectContent>
+                  {modules.map(modulo => (
+                    <SelectItem key={modulo.id} value={modulo.id}>
+                      {modulo.nome_modulo} ({modulo.duracao || 0} min)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedCourseId && modules.length > 0 && (
+                <p className="text-xs text-muted-foreground">{modules.length} módulo(s) disponível(is)</p>
+              )}
             </div>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="titulo">Título do Vídeo *</Label>
-            <Input
-              id="titulo"
-              value={videoData.titulo}
-              onChange={(e) => setVideoData(prev => ({ ...prev, titulo: e.target.value }))}
-              placeholder="Digite o título do vídeo"
-              required
-            />
+            <Input id="titulo" value={videoData.titulo} onChange={e => setVideoData(p => ({ ...p, titulo: e.target.value }))} placeholder="Digite o título do vídeo" required />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="descricao">Descrição</Label>
-            <Textarea
-              id="descricao"
-              value={videoData.descricao}
-              onChange={(e) => setVideoData(prev => ({ ...prev, descricao: e.target.value }))}
-              placeholder="Descreva o conteúdo do vídeo"
-              rows={3}
-            />
+            <Textarea id="descricao" value={videoData.descricao} onChange={e => setVideoData(p => ({ ...p, descricao: e.target.value }))} placeholder="Descreva o conteúdo do vídeo" rows={3} />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="duracao">Duração (em minutos) *</Label>
-            <Input
-              id="duracao"
-              type="number"
-              min="1"
-              value={videoData.duracao}
-              onChange={(e) => setVideoData(prev => ({ ...prev, duracao: parseInt(e.target.value) || 0 }))}
-              placeholder="Ex: 15"
-              required
-            />
+            <Input id="duracao" type="number" min="1" value={videoData.duracao} onChange={e => setVideoData(p => ({ ...p, duracao: parseInt(e.target.value) || 0 }))} placeholder="Ex: 15" required />
           </div>
 
-          {/* Aba Upload */}
+          {/* Upload */}
           {activeTab === 'upload' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="video">Arquivo de Vídeo *</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="video"
-                    type="file"
-                    accept="video/*"
-                    onChange={(e) => handleFileChange(e, 'video')}
-                    required
-                  />
-                  {videoFile && (
-                    <span className="text-sm text-green-600">✓</span>
-                  )}
+                  <Input id="video" type="file" accept="video/*" onChange={e => handleFileChange(e, 'video')} required />
+                  {videoFile && <span className="text-sm text-green-600">✓</span>}
                 </div>
                 <p className="text-xs text-gray-500">Formatos aceitos: MP4, MOV, AVI, etc.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="thumbnail">Thumbnail (opcional)</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="thumbnail"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e, 'thumbnail')}
-                  />
-                  {thumbnailFile && (
-                    <span className="text-sm text-green-600">✓</span>
-                  )}
+                  <Input id="thumbnail" type="file" accept="image/*" onChange={e => handleFileChange(e, 'thumbnail')} />
+                  {thumbnailFile && <span className="text-sm text-green-600">✓</span>}
                 </div>
                 <p className="text-xs text-gray-500">Imagem de capa do vídeo</p>
               </div>
             </div>
           )}
 
-          {/* Aba YouTube */}
+          {/* YouTube */}
           {activeTab === 'youtube' && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="youtube-url">URL do Vídeo do YouTube *</Label>
-                <Input
-                  id="youtube-url"
-                  type="url"
-                  value={youtubeUrl}
-                  onChange={(e) => setYoutubeUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  required
-                />
+                <Input id="youtube-url" type="url" value={youtubeUrl} onChange={e => setYoutubeUrl(e.target.value)} placeholder="https://www.youtube.com/watch?v=..." required />
                 <p className="text-xs text-gray-500">Cole a URL completa do vídeo do YouTube</p>
               </div>
-              
               <div className="space-y-2">
                 <Label htmlFor="thumbnail-youtube">Thumbnail (opcional)</Label>
                 <div className="flex items-center gap-2">
-                  <Input
-                    id="thumbnail-youtube"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleFileChange(e, 'thumbnail')}
-                  />
-                  {thumbnailFile && (
-                    <span className="text-sm text-green-600">✓</span>
-                  )}
+                  <Input id="thumbnail-youtube" type="file" accept="image/*" onChange={e => handleFileChange(e, 'thumbnail')} />
+                  {thumbnailFile && <span className="text-sm text-green-600">✓</span>}
                 </div>
                 <p className="text-xs text-gray-500">Imagem de capa personalizada (opcional)</p>
               </div>
@@ -1037,48 +481,21 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
           )}
 
           <div className="flex gap-2 pt-4">
-            <Button
-              type="submit"
-              disabled={
-                uploading || 
-                !selectedCourseId || 
-                !videoData.titulo || 
-                !videoData.duracao || 
-                (activeTab === 'upload' && !videoFile) ||
-                (activeTab === 'youtube' && !youtubeUrl)
-              }
+            <Button type="submit"
+              disabled={uploading || !selectedCourseId || !videoData.titulo || !videoData.duracao || (activeTab === 'upload' && !videoFile) || (activeTab === 'youtube' && !youtubeUrl)}
               className="era-green-button flex-1"
             >
-              {uploading ? (
-                <>{uploadStep || 'Enviando…'}</>
-              ) : (
-                <>
-                  {activeTab === 'upload' ? (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Importar Vídeo
-                    </>
-                  ) : (
-                    <>
-                      <Youtube className="mr-2 h-4 w-4" />
-                      Importar do YouTube
-                    </>
-                  )}
-                </>
+              {uploading ? (uploadStep || 'Enviando…') : (
+                activeTab === 'upload'
+                  ? <><Upload className="mr-2 h-4 w-4" /> Importar Vídeo</>
+                  : <><Youtube className="mr-2 h-4 w-4" /> Importar do YouTube</>
               )}
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-              disabled={uploading}
-            >
+            <Button type="button" variant="outline" onClick={onClose} disabled={uploading}>
               Cancelar
             </Button>
           </div>
         </form>
-
-
       </CardContent>
     </Card>
   );

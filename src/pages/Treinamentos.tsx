@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Search, Filter, Plus, Video, Eye, BookOpen, Clock, Users, Settings, ListOrdered, ArrowLeft, Play, Trash, ChevronRight, GraduationCap, Award, Edit, Loader2, MoreVertical, Tag } from 'lucide-react';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cardHover } from '@/lib/animations';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,13 +32,6 @@ const LEVEL_STYLE: Record<string, { bg: string; text: string; border: string }> 
   'Avancado': { bg: 'rgba(75,63,114,0.18)', text: '#E9D2C0', border: 'rgba(75,63,114,0.4)' },
 };
 
-const COURSES_MOCK = [
-  { nome: 'Fundamentos de PABX', categoria: 'PABX', level: 'Iniciante', duration: '2-3h', modules: 5 },
-  { nome: 'Fundamentos CALLCENTER', categoria: 'CALLCENTER', level: 'Iniciante', duration: '2-3h', modules: 4 },
-  { nome: 'Configuracoes Avancadas PABX', categoria: 'PABX', level: 'Avancado', duration: '3-4h', modules: 6 },
-  { nome: 'OMNICHANNEL para Empresas', categoria: 'OMNICHANNEL', level: 'Intermediario', duration: '4-5h', modules: 8 },
-  { nome: 'Configuracoes Avancadas OMNI', categoria: 'OMNICHANNEL', level: 'Avancado', duration: '5-6h', modules: 10 },
-];
 const CAT_COLORS = ['#E9D2C0', '#e8940f', '#d4860e', '#f0b84a', '#1F2041', '#1e3152', '#2a4070', '#0d1a2e'];
 
 const CatIcon = ({ cat, size = 20 }: { cat: string; size?: number }) => {
@@ -98,32 +91,14 @@ export const Treinamentos = () => {
     } catch { } finally { setLoadingVideos(false); }
   };
 
-  // Set para lookup O(1) em vez de Array.includes O(N) dentro de filter O(N)
-  const mergedNames = useMemo(() => COURSES_MOCK.map(m => m.nome), []);
-  const mergedNameSet = useMemo(() => new Set(mergedNames), [mergedNames]);
-
-  // Lookup de nível memoizado por nome do curso — evita COURSES_MOCK.find em cada render
-  const levelByName = useMemo(() =>
-    Object.fromEntries(COURSES_MOCK.map(m => [m.nome, m.level])),
-  []);
-  const getLevel = useCallback((c: any) => levelByName[c.nome] ?? 'Iniciante', [levelByName]);
-
   const searchLower = useMemo(() => searchTerm.toLowerCase(), [searchTerm]);
 
-  const allFilteredCourses = useMemo(() => {
-    const merged = mergedNames.map(nome =>
-      courses.find(c => c.nome === nome) ?? {
-        ...COURSES_MOCK.find(m => m.nome === nome)!,
-        id: `mock-${nome.replace(/\s+/g, '-').toLowerCase()}`,
-        status: 'ativo' as const, imagem_url: null, categoria_id: null, ordem: null, descricao: null,
-      }
-    );
-    const realOnly = courses.filter(c => !mergedNameSet.has(c.nome));
-    return [...merged, ...realOnly].filter(c =>
+  const allFilteredCourses = useMemo(() =>
+    courses.filter(c =>
       (c.nome.toLowerCase().includes(searchLower) || c.categoria.toLowerCase().includes(searchLower)) &&
       (selectedCategory === 'all' || c.categoria === selectedCategory)
-    );
-  }, [courses, mergedNames, mergedNameSet, searchLower, selectedCategory]);
+    ),
+  [courses, searchLower, selectedCategory]);
 
   const categories = useMemo(
     () => Array.from(new Set(courses.map(c => c.categoria))),
@@ -135,16 +110,13 @@ export const Treinamentos = () => {
     allFilteredCourses.forEach(c => {
       if (!map[c.categoria]) map[c.categoria] = { categoria: c.categoria, cursos: [], totalHoras: 0, niveis: [], cursosAtivos: 0 };
       map[c.categoria].cursos.push(c as Course);
-      const lvl = getLevel(c); const h = lvl === 'Avancado' ? 5 : lvl === 'Intermediario' ? 4 : 2;
-      map[c.categoria].totalHoras += h;
-      if (!map[c.categoria].niveis.includes(lvl)) map[c.categoria].niveis.push(lvl);
+      map[c.categoria].totalHoras += 2;
       if (c.status === 'ativo') map[c.categoria].cursosAtivos++;
     });
     return Object.values(map).sort((a, b) => b.cursos.length - a.cursos.length);
-  }, [allFilteredCourses, getLevel]);
+  }, [allFilteredCourses]);
 
   const handleStartCourse = (courseId: string) => {
-    if (courseId.startsWith('mock-')) { toast({ title: 'Curso em breve', description: 'Este curso ainda nao esta disponivel.', variant: 'destructive' }); return; }
     if (!courseId) { toast({ title: 'Erro', description: 'ID invalido.', variant: 'destructive' }); return; }
     navigate(`/curso/${courseId}`);
   };
@@ -476,7 +448,7 @@ export const Treinamentos = () => {
                         <div className="h-full rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300">
                           <CourseCard course={c as unknown as Course} onStartCourse={handleStartCourse} />
                         </div>
-                        {isAdmin && !c.id.startsWith('mock-') && (
+                        {isAdmin && (
                           <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
@@ -550,7 +522,7 @@ export const Treinamentos = () => {
                     <div className="h-full rounded-2xl shadow-sm hover:shadow-xl transition-shadow duration-300">
                       <CourseCard course={c as unknown as Course} onStartCourse={handleStartCourse} />
                     </div>
-                    {isAdmin && !c.id.startsWith('mock-') && (
+                    {isAdmin && (
                       <div className="absolute top-3 right-3 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
