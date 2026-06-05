@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import { useCourses, useCourseModules } from '@/hooks/useCourses';
 
 // ── Proxy seguro para o Bunny Stream (Supabase Edge Function) ──────────────────
-const BUNNY_PROXY  = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/super-endpoint`;
+const BUNNY_PROXY  = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bunny-upload`;
 const CDN_HOSTNAME = import.meta.env.VITE_BUNNY_CDN_HOSTNAME as string;
 
 interface VideoUploadProps {
