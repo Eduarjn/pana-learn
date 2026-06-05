@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+import { fadeInUp, staggerContainer, staggerFast, cardItem, cardHover } from '@/lib/animations';
 import { ERALayout } from '@/components/ERALayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,8 +38,8 @@ const formatLastLogin = (d: string | null | undefined) => {
 };
 
 const USER_TYPE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
-  admin_master: { bg: '#EDE9FE', text: '#5B21B6', label: 'Admin Master' },
-  admin: { bg: '#F0FDF4', text: '#166534', label: 'Admin' },
+  admin_master: { bg: '#e4e5f0', text: '#4B3F72', label: 'Admin Master' },
+  admin: { bg: '#F0FDF4', text: '#417B5A', label: 'Admin' },
   cliente: { bg: '#F1F5F9', text: '#475569', label: 'Cliente' },
 };
 const getUserTypeStyle = (t: string) => USER_TYPE_STYLE[t] ?? USER_TYPE_STYLE.cliente;
@@ -77,12 +79,17 @@ const Usuarios = () => {
   }, []);
 
   const fetchUsers = async (search = searchTerm) => {
-    if (!empresa?.id && userProfile?.tipo_usuario !== 'admin_master') return;
-    
+    const isAdminMaster = userProfile?.tipo_usuario === 'admin_master';
+    // Bloqueia query até empresa carregar, exceto admin_master que pode ver tudo
+    if (!empresa?.id && !isAdminMaster) return;
+    // Segurança extra: usuários comuns NUNCA devem chegar aqui sem empresa_id
+    if (!isAdminMaster && !empresa?.id) return;
+
     setLoading(true);
     try {
       let query = supabase.from('usuarios').select('*', { count: 'exact' }).order(sortField, { ascending: sortDirection === 'asc' });
-      
+
+      // Filtra por empresa sempre que possível — admin_master sem empresa selecionada vê tudo
       if (empresa?.id) {
         query = query.eq('empresa_id', empresa.id);
       }
@@ -196,48 +203,56 @@ const Usuarios = () => {
   };
 
   const SortIcon = ({ field }: { field: typeof sortField }) =>
-    sortField === field ? <span className="ml-1" style={{ color: '#3AB26A' }}>{sortDirection === 'asc' ? '↑' : '↓'}</span> : null;
+    sortField === field ? <span className="ml-1" style={{ color: '#417B5A' }}>{sortDirection === 'asc' ? '↑' : '↓'}</span> : null;
 
   return (
     <ERALayout>
-      <div className="min-h-screen" style={{ background: '#F8F7FF' }}>
+      <div className="min-h-screen" style={{ background: '#F6F6FA' }}>
 
         {/* Hero */}
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="w-full rounded-xl lg:rounded-2xl mb-6 overflow-hidden shadow-md"
-          style={{ background: 'linear-gradient(135deg, #1E1B4B 0%, #2D2B6F 60%, #3D3A8F 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #4B3F72 60%, #417B5A 100%)' }}
         >
           <div className="px-6 lg:px-10 py-8 lg:py-10">
-            <div className="flex items-start justify-between gap-6">
+            <motion.div
+              variants={staggerContainer} initial="hidden" animate="visible"
+              className="flex items-start justify-between gap-6"
+            >
               <div>
-                <div className="flex items-center gap-2 mb-3">
+                <motion.div variants={fadeInUp} className="flex items-center gap-2 mb-3">
                   <span
                     className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(58,178,106,0.15)', border: '1px solid rgba(58,178,106,0.3)', color: '#3AB26A' }}
+                    style={{ background: 'rgba(233,210,192,0.12)', border: '1px solid rgba(233,210,192,0.25)', color: '#E9D2C0' }}
                   >
                     <Users className="w-3 h-3" />
                     Gestão de Usuários
                   </span>
-                </div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Usuários</h1>
-                <p className="text-white/70 text-sm md:text-base">Gerencie usuários e permissões da plataforma.</p>
+                </motion.div>
+                <motion.h1 variants={fadeInUp} className="text-3xl md:text-4xl font-bold text-white mb-2">Usuários</motion.h1>
+                <motion.p variants={fadeInUp} className="text-white/70 text-sm md:text-base">Gerencie usuários e permissões da plataforma.</motion.p>
               </div>
-            </div>
+            </motion.div>
           </div>
-          <div className="px-6 md:px-10 py-4 grid grid-cols-4 gap-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <motion.div
+            variants={staggerFast} initial="hidden" animate="visible"
+            className="px-6 md:px-10 py-4 grid grid-cols-4 gap-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
+          >
             {[
               { value: userStats.total, label: 'Total' },
               { value: userStats.ativos, label: 'Ativos' },
               { value: userStats.administradores, label: 'Admins' },
               { value: userStats.novosEstaSemana, label: 'Novos esta semana' },
             ].map(({ value, label }) => (
-              <div key={label} className="text-center">
+              <motion.div key={label} variants={cardItem} className="text-center">
                 <div className="text-xl md:text-2xl font-bold text-white">{value}</div>
                 <div className="text-xs text-white/50 mt-0.5">{label}</div>
-              </div>
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         <div className="px-1 pb-8 space-y-5">
 
@@ -281,14 +296,14 @@ const Usuarios = () => {
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   className="pl-9 text-sm rounded-lg border-2"
-                  style={{ borderColor: '#EDE9FE' }}
+                  style={{ borderColor: '#e4e5f0' }}
                 />
               </div>
             </div>
             <div className="flex gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="text-sm flex items-center gap-1.5" style={{ borderColor: '#EDE9FE', color: '#2D2B6F' }}>
+                  <Button variant="outline" className="text-sm flex items-center gap-1.5" style={{ borderColor: '#e4e5f0', color: '#4B3F72' }}>
                     <Download className="h-4 w-4" /> Exportar
                   </Button>
                 </DropdownMenuTrigger>
@@ -308,7 +323,7 @@ const Usuarios = () => {
                   : undefined
                 }
                 className="text-white text-sm flex items-center gap-1.5 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: planLimits?.isAtLimit ? '#6B7280' : 'linear-gradient(135deg, #1E1B4B, #2D2B6F)' }}
+                style={{ background: planLimits?.isAtLimit ? '#6B7280' : 'linear-gradient(135deg, #1F2041, #4B3F72)' }}
               >
                 {planLimits?.isAtLimit
                   ? <ShieldAlert className="h-4 w-4" />
@@ -321,8 +336,8 @@ const Usuarios = () => {
 
           {/* Bulk actions */}
           {selectedUsers.length > 0 && (
-            <div className="rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3" style={{ background: '#EDE9FE', border: '1px solid #C4B5FD' }}>
-              <span className="text-sm font-medium" style={{ color: '#2D2B6F' }}>{selectedUsers.length} usuário(s) selecionado(s)</span>
+            <div className="rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3" style={{ background: '#e4e5f0', border: '1px solid #C4B5FD' }}>
+              <span className="text-sm font-medium" style={{ color: '#4B3F72' }}>{selectedUsers.length} usuário(s) selecionado(s)</span>
               <div className="flex gap-2">
                 <Button size="sm" variant="outline" onClick={() => handleBulkAction('activate')} className="text-emerald-700 border-emerald-300 hover:bg-emerald-50 text-xs">Ativar</Button>
                 <Button size="sm" variant="outline" onClick={() => handleBulkAction('deactivate')} className="text-amber-700 border-amber-300 hover:bg-amber-50 text-xs">Desativar</Button>
@@ -334,9 +349,9 @@ const Usuarios = () => {
           {/* Formulário novo usuário */}
           {showNewUserForm && (
             <div className="bg-white rounded-xl p-5" style={{ border: '1px solid #EDE9FE' }}>
-              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2" style={{ color: '#1E1B4B' }}>
-                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#EDE9FE' }}>
-                  <Plus className="h-3.5 w-3.5" style={{ color: '#2D2B6F' }} />
+              <h3 className="text-sm font-semibold mb-4 flex items-center gap-2" style={{ color: '#1F2041' }}>
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: '#e4e5f0' }}>
+                  <Plus className="h-3.5 w-3.5" style={{ color: '#4B3F72' }} />
                 </div>
                 Novo usuário
               </h3>
@@ -347,27 +362,27 @@ const Usuarios = () => {
                 ].map(f => (
                   <div key={f.id}>
                     <Label className="text-xs font-medium text-gray-600 mb-1.5 block">{f.label}</Label>
-                    <Input type={f.type} value={f.val} onChange={e => f.fn(e.target.value)} className="border-2 text-sm rounded-lg" style={{ borderColor: '#EDE9FE' }} />
+                    <Input type={f.type} value={f.val} onChange={e => f.fn(e.target.value)} className="border-2 text-sm rounded-lg" style={{ borderColor: '#e4e5f0' }} />
                   </div>
                 ))}
                 <div>
                   <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Tipo</Label>
                   <select value={newUser.tipo} onChange={e => setNewUser(p => ({ ...p, tipo: e.target.value }))}
-                    className="w-full h-9 px-3 rounded-lg border-2 bg-white text-sm" style={{ borderColor: '#EDE9FE' }}>
+                    className="w-full h-9 px-3 rounded-lg border-2 bg-white text-sm" style={{ borderColor: '#e4e5f0' }}>
                     <option>Cliente</option><option>Admin</option>
                   </select>
                 </div>
                 <div>
                   <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Status</Label>
                   <select value={newUser.status} onChange={e => setNewUser(p => ({ ...p, status: e.target.value }))}
-                    className="w-full h-9 px-3 rounded-lg border-2 bg-white text-sm" style={{ borderColor: '#EDE9FE' }}>
+                    className="w-full h-9 px-3 rounded-lg border-2 bg-white text-sm" style={{ borderColor: '#e4e5f0' }}>
                     <option>Ativo</option><option>Inativo</option>
                   </select>
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleNewUserSubmit} className="text-white text-sm px-4" style={{ background: 'linear-gradient(135deg, #1E1B4B, #2D2B6F)' }}>Criar usuário</Button>
-                <Button variant="outline" onClick={() => setShowNewUserForm(false)} className="text-sm" style={{ borderColor: '#EDE9FE', color: '#2D2B6F' }}>Cancelar</Button>
+                <Button onClick={handleNewUserSubmit} className="text-white text-sm px-4" style={{ background: 'linear-gradient(135deg, #1F2041, #4B3F72)' }}>Criar usuário</Button>
+                <Button variant="outline" onClick={() => setShowNewUserForm(false)} className="text-sm" style={{ borderColor: '#e4e5f0', color: '#4B3F72' }}>Cancelar</Button>
               </div>
             </div>
           )}
@@ -375,17 +390,17 @@ const Usuarios = () => {
           {/* Tabela */}
           <div className="bg-white rounded-xl overflow-hidden" style={{ border: '1px solid #EDE9FE' }}>
             <div className="flex items-center gap-3 px-5 py-4" style={{ borderBottom: '1px solid #EDE9FE' }}>
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#EDE9FE' }}>
-                <Users className="h-4 w-4" style={{ color: '#2D2B6F' }} />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#e4e5f0' }}>
+                <Users className="h-4 w-4" style={{ color: '#4B3F72' }} />
               </div>
-              <h3 className="text-sm font-semibold" style={{ color: '#1E1B4B' }}>Lista de usuários</h3>
+              <h3 className="text-sm font-semibold" style={{ color: '#1F2041' }}>Lista de usuários</h3>
               <span className="ml-auto text-xs text-gray-400">{users.length} registros</span>
             </div>
 
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="hover:bg-transparent" style={{ background: '#F8F7FF' }}>
+                  <TableRow className="hover:bg-transparent" style={{ background: '#F6F6FA' }}>
                     <TableHead className="w-10 pl-5">
                       <Checkbox checked={selectAll} onCheckedChange={handleSelectAll} />
                     </TableHead>
@@ -400,7 +415,7 @@ const Usuarios = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow><TableCell colSpan={7} className="text-center py-12">
-                      <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: '#2D2B6F', borderTopColor: 'transparent' }} />
+                      <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: '#4B3F72', borderTopColor: 'transparent' }} />
                     </TableCell></TableRow>
                   ) : users.length === 0 ? (
                     <TableRow><TableCell colSpan={7} className="text-center py-12">
@@ -410,11 +425,11 @@ const Usuarios = () => {
                   ) : users.map(user => {
                     const typeStyle = getUserTypeStyle(user.tipo_usuario);
                     return (
-                      <TableRow key={user.id} className="hover:bg-[#F8F7FF] transition-colors">
+                      <TableRow key={user.id} className="hover:bg-[#F6F6FA] transition-colors">
                         <TableCell className="pl-5">
                           <Checkbox checked={selectedUsers.includes(user.id)} onCheckedChange={v => handleSelectUser(user.id, v as boolean)} />
                         </TableCell>
-                        <TableCell className="font-medium text-sm" style={{ color: '#1E1B4B' }}>{user.nome}</TableCell>
+                        <TableCell className="font-medium text-sm" style={{ color: '#1F2041' }}>{user.nome}</TableCell>
                         <TableCell className="text-gray-500 text-sm">{user.email}</TableCell>
                         <TableCell className="text-sm">
                           <div className="flex items-center gap-1.5 text-gray-500">
@@ -445,12 +460,12 @@ const Usuarios = () => {
                             <div className="flex gap-1">
                               {[
                                 { icon: Award, fn: () => handleViewCertificates(user.id), title: 'Certificados', color: '#F59E0B' },
-                                { icon: Activity, fn: () => handleViewProgress(user.id, user.nome), title: 'Progresso', color: '#3AB26A' },
-                                { icon: Edit, fn: () => { setEditingUser(user as any); setShowEditModal(true); }, title: 'Editar', color: '#2D2B6F' },
+                                { icon: Activity, fn: () => handleViewProgress(user.id, user.nome), title: 'Progresso', color: '#417B5A' },
+                                { icon: Edit, fn: () => { setEditingUser(user as any); setShowEditModal(true); }, title: 'Editar', color: '#4B3F72' },
                                 { icon: Trash2, fn: async () => { if (window.confirm('Excluir usuário?')) { await supabase.from('usuarios').delete().eq('id', user.id); toast({ title: 'Usuário excluído' }); fetchUsers(); } }, title: 'Excluir', color: '#EF4444' },
                               ].map(({ icon: Icon, fn, title, color }) => (
                                 <Button key={title} variant="ghost" size="sm" onClick={fn} title={title}
-                                  className="h-7 w-7 p-0 hover:bg-[#F8F7FF]" style={{ color }}>
+                                  className="h-7 w-7 p-0 hover:bg-[#F6F6FA]" style={{ color }}>
                                   <Icon className="h-3.5 w-3.5" />
                                 </Button>
                               ))}
@@ -471,7 +486,7 @@ const Usuarios = () => {
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base" style={{ color: '#1E1B4B' }}>Editar usuário</DialogTitle>
+            <DialogTitle className="text-base" style={{ color: '#1F2041' }}>Editar usuário</DialogTitle>
           </DialogHeader>
           {editingUser && (
             <div className="space-y-4 py-2">
@@ -479,29 +494,29 @@ const Usuarios = () => {
                 <div key={id}>
                   <Label className="text-xs font-medium text-gray-600 mb-1.5 block">{label}</Label>
                   <Input value={val as string} onChange={e => setEditingUser({ ...editingUser, [id]: e.target.value })}
-                    className="border-2 text-sm rounded-lg" style={{ borderColor: '#EDE9FE' }} />
+                    className="border-2 text-sm rounded-lg" style={{ borderColor: '#e4e5f0' }} />
                 </div>
               ))}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Tipo</Label>
                   <select value={editingUser.tipo_usuario} onChange={e => setEditingUser({ ...editingUser, tipo_usuario: e.target.value as any })}
-                    className="w-full h-9 px-3 rounded-lg border-2 bg-white text-sm" style={{ borderColor: '#EDE9FE' }}>
+                    className="w-full h-9 px-3 rounded-lg border-2 bg-white text-sm" style={{ borderColor: '#e4e5f0' }}>
                     <option value="cliente">Cliente</option><option value="admin">Admin</option><option value="admin_master">Admin Master</option>
                   </select>
                 </div>
                 <div>
                   <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Status</Label>
                   <select value={editingUser.status} onChange={e => setEditingUser({ ...editingUser, status: e.target.value as any })}
-                    className="w-full h-9 px-3 rounded-lg border-2 bg-white text-sm" style={{ borderColor: '#EDE9FE' }}>
+                    className="w-full h-9 px-3 rounded-lg border-2 bg-white text-sm" style={{ borderColor: '#e4e5f0' }}>
                     <option value="ativo">Ativo</option><option value="inativo">Inativo</option><option value="pendente">Pendente</option>
                   </select>
                 </div>
               </div>
               <div className="pt-4 space-y-3" style={{ borderTop: '1px solid #EDE9FE' }}>
-                <p className="text-xs font-semibold" style={{ color: '#2D2B6F' }}>Alterar senha</p>
-                <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Nova senha (mín. 6 caracteres)" className="border-2 text-sm rounded-lg" style={{ borderColor: '#EDE9FE' }} />
-                <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirmar nova senha" className="border-2 text-sm rounded-lg" style={{ borderColor: '#EDE9FE' }} />
+                <p className="text-xs font-semibold" style={{ color: '#4B3F72' }}>Alterar senha</p>
+                <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Nova senha (mín. 6 caracteres)" className="border-2 text-sm rounded-lg" style={{ borderColor: '#e4e5f0' }} />
+                <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} placeholder="Confirmar nova senha" className="border-2 text-sm rounded-lg" style={{ borderColor: '#e4e5f0' }} />
                 <Button onClick={handleChangeUserPassword} disabled={changingPassword || !newPassword || newPassword !== confirmPassword}
                   className="w-full text-white text-xs px-4" style={{ background: '#DC2626' }}>
                   {changingPassword ? 'Alterando...' : 'Alterar senha'}
@@ -511,8 +526,8 @@ const Usuarios = () => {
           )}
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => { setShowEditModal(false); setNewPassword(''); setConfirmPassword(''); }}
-              className="text-sm" style={{ borderColor: '#EDE9FE', color: '#2D2B6F' }}>Cancelar</Button>
-            <Button onClick={handleSaveEdit} className="text-white text-sm" style={{ background: 'linear-gradient(135deg, #1E1B4B, #2D2B6F)' }}>Salvar</Button>
+              className="text-sm" style={{ borderColor: '#e4e5f0', color: '#4B3F72' }}>Cancelar</Button>
+            <Button onClick={handleSaveEdit} className="text-white text-sm" style={{ background: 'linear-gradient(135deg, #1F2041, #4B3F72)' }}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -521,7 +536,7 @@ const Usuarios = () => {
       <Dialog open={showCertificatesModal} onOpenChange={setShowCertificatesModal}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base" style={{ color: '#1E1B4B' }}>
+            <DialogTitle className="flex items-center gap-2 text-base" style={{ color: '#1F2041' }}>
               <Award className="h-5 w-5" style={{ color: '#F59E0B' }} />
               Certificados do usuário
             </DialogTitle>
@@ -532,18 +547,18 @@ const Usuarios = () => {
               <p className="text-gray-400 text-sm">Nenhum certificado encontrado</p>
             </div>
           ) : selectedUserCertificates.map((cert, i) => (
-            <div key={i} className="rounded-xl p-4 mb-2" style={{ background: '#F8F7FF', border: '1px solid #EDE9FE' }}>
-              <p className="font-medium text-sm mb-2" style={{ color: '#1E1B4B' }}>{cert.cursos?.nome || cert.categoria || 'Curso'}</p>
+            <div key={i} className="rounded-xl p-4 mb-2" style={{ background: '#F6F6FA', border: '1px solid #EDE9FE' }}>
+              <p className="font-medium text-sm mb-2" style={{ color: '#1F2041' }}>{cert.cursos?.nome || cert.categoria || 'Curso'}</p>
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                 <span>Nº {cert.numero_certificado || i + 1}</span>
                 <span>Emissão: {new Date(cert.data_emissao).toLocaleDateString('pt-BR')}</span>
-                <span style={{ color: cert.status === 'ativo' ? '#3AB26A' : undefined }}>{cert.status === 'ativo' ? 'Ativo' : 'Inativo'}</span>
+                <span style={{ color: cert.status === 'ativo' ? '#417B5A' : undefined }}>{cert.status === 'ativo' ? 'Ativo' : 'Inativo'}</span>
                 {cert.nota_final && <span>Nota: {cert.nota_final}/100</span>}
               </div>
             </div>
           ))}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCertificatesModal(false)} className="text-sm" style={{ borderColor: '#EDE9FE', color: '#2D2B6F' }}>Fechar</Button>
+            <Button variant="outline" onClick={() => setShowCertificatesModal(false)} className="text-sm" style={{ borderColor: '#e4e5f0', color: '#4B3F72' }}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -552,8 +567,8 @@ const Usuarios = () => {
       <Dialog open={!!selectedUserProgress} onOpenChange={() => setSelectedUserProgress(null)}>
         <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base" style={{ color: '#1E1B4B' }}>
-              <Activity className="h-5 w-5" style={{ color: '#3AB26A' }} />
+            <DialogTitle className="flex items-center gap-2 text-base" style={{ color: '#1F2041' }}>
+              <Activity className="h-5 w-5" style={{ color: '#417B5A' }} />
               Progresso — {selectedUserProgress?.userName}
             </DialogTitle>
           </DialogHeader>
@@ -563,13 +578,13 @@ const Usuarios = () => {
               <p className="text-gray-400 text-sm">Nenhum progresso registrado</p>
             </div>
           ) : selectedUserProgress?.progress.map((item, i) => (
-            <div key={i} className="rounded-xl p-4 mb-2" style={{ background: '#F8F7FF', border: '1px solid #EDE9FE' }}>
+            <div key={i} className="rounded-xl p-4 mb-2" style={{ background: '#F6F6FA', border: '1px solid #EDE9FE' }}>
               <div className="flex justify-between items-center mb-2">
-                <p className="font-medium text-sm" style={{ color: '#1E1B4B' }}>{item.cursos?.nome || 'Curso'}</p>
-                <span className="text-xs font-semibold" style={{ color: '#3AB26A' }}>{item.percentual_concluido || 0}%</span>
+                <p className="font-medium text-sm" style={{ color: '#1F2041' }}>{item.cursos?.nome || 'Curso'}</p>
+                <span className="text-xs font-semibold" style={{ color: '#417B5A' }}>{item.percentual_concluido || 0}%</span>
               </div>
-              <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: '#EDE9FE' }}>
-                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${item.percentual_concluido || 0}%`, background: '#3AB26A' }} />
+              <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: '#e4e5f0' }}>
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${item.percentual_concluido || 0}%`, background: '#417B5A' }} />
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
                 <span>Status: {item.status || 'Não iniciado'}</span>
@@ -578,7 +593,7 @@ const Usuarios = () => {
             </div>
           ))}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setSelectedUserProgress(null)} className="text-sm" style={{ borderColor: '#EDE9FE', color: '#2D2B6F' }}>Fechar</Button>
+            <Button variant="outline" onClick={() => setSelectedUserProgress(null)} className="text-sm" style={{ borderColor: '#e4e5f0', color: '#4B3F72' }}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

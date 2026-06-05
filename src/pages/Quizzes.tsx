@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ERALayout } from '@/components/ERALayout';
+import { fadeInUp, fadeIn, staggerContainer, cardItem, cardHover } from '@/lib/animations';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import {
@@ -75,9 +78,9 @@ const getCategoryColor = (categoria: string) => {
   const cat = (categoria || '').toUpperCase();
   if (cat.includes('PABX')) return { border: '#3B82F6', bg: '#EFF6FF', text: '#1D4ED8', badge: 'bg-blue-100 text-blue-800' };
   if (cat.includes('CALLCENTER') || cat.includes('CALL')) return { border: '#7C3AED', bg: '#F5F3FF', text: '#5B21B6', badge: 'bg-violet-100 text-violet-800' };
-  if (cat.includes('OMNI')) return { border: '#3AB26A', bg: '#F0FDF4', text: '#166534', badge: 'bg-green-100 text-green-800' };
+  if (cat.includes('OMNI')) return { border: '#417B5A', bg: '#F0FDF4', text: '#166534', badge: 'bg-green-100 text-green-800' };
   if (cat.includes('VOIP') || cat.includes('VOI')) return { border: '#F97316', bg: '#FFF7ED', text: '#9A3412', badge: 'bg-orange-100 text-orange-800' };
-  return { border: '#2D2B6F', bg: '#F5F3FF', text: '#1E1B4B', badge: 'bg-indigo-100 text-indigo-800' };
+  return { border: '#4B3F72', bg: '#F5F3FF', text: '#1F2041', badge: 'bg-indigo-100 text-indigo-800' };
 };
 
 const emptyNewQuestion = (): NewQuizQuestion => ({
@@ -442,8 +445,8 @@ const Quizzes: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#2D2B6F' }}></div>
-          <p style={{ color: '#2D2B6F' }} className="font-medium">Carregando quizzes...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#4B3F72' }}></div>
+          <p style={{ color: '#4B3F72' }} className="font-medium">Carregando quizzes...</p>
         </div>
       </div>
     );
@@ -454,13 +457,14 @@ const Quizzes: React.FC = () => {
       <div className="min-h-screen bg-background">
 
         {/* Hero */}
-        <div className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #1E1B4B 0%, #2D2B6F 60%, #3D3A8F 100%)' }}>
+        <motion.div variants={fadeInUp} initial="hidden" animate="visible"
+          className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #2d2f5e 60%, #4B3F72 100%)' }}>
           <div className="px-6 lg:px-10 py-8 lg:py-12">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#3AB26A' }}></div>
+                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#417B5A' }}></div>
                   <span className="text-xs lg:text-sm font-medium text-white/80">Plataforma de Ensino</span>
                 </div>
                 <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">Quizzes</h1>
@@ -474,7 +478,7 @@ const Quizzes: React.FC = () => {
                     { icon: Users, label: 'Progresso dos alunos' },
                   ].map(({ icon: Icon, label }) => (
                     <div key={label} className="flex items-center gap-2 text-xs lg:text-sm text-white/80">
-                      <Icon className="h-4 w-4" style={{ color: '#3AB26A' }} />
+                      <Icon className="h-4 w-4" style={{ color: '#417B5A' }} />
                       <span>{label}</span>
                     </div>
                   ))}
@@ -492,16 +496,15 @@ const Quizzes: React.FC = () => {
                     <div key={s.label}
                       className="flex flex-col items-center justify-center rounded-xl px-4 py-3 text-center min-w-[72px]"
                       style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)' }}>
-                      <div style={{ color: '#3AB26A' }}>{s.icon}</div>
+                      <div style={{ color: '#417B5A' }}>{s.icon}</div>
                       <span className="text-xl font-bold text-white mt-1">{s.value}</span>
                       <span className="text-xs text-white/70">{s.label}</span>
                     </div>
                   ))}
                 </div>
                 {isAdmin && (
-                  <Button onClick={openNewQuizDialog}
-                    className="text-white font-semibold rounded-xl flex items-center gap-2 justify-center transition-all hover:scale-105"
-                    style={{ background: '#3AB26A' }}>
+                  <Button onClick={openNewQuizDialog} variant="default"
+                    className="font-semibold rounded-xl flex items-center gap-2 justify-center transition-all hover:scale-105">
                     <Plus className="h-4 w-4" />
                     Novo Quiz
                   </Button>
@@ -509,20 +512,22 @@ const Quizzes: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         <div className="px-4 lg:px-6 pb-10">
           <div className="max-w-7xl mx-auto space-y-6">
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div variants={staggerContainer} initial="hidden" animate="visible"
+              className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Total de Quizzes', value: stats.total, icon: <BookOpen className="h-6 w-6" />, color: '#2D2B6F' },
-                { label: 'Quizzes Ativos', value: stats.ativos, icon: <CheckCircle className="h-6 w-6" />, color: '#3AB26A' },
-                { label: 'Total Perguntas', value: stats.total_perguntas, icon: <HelpCircle className="h-6 w-6" />, color: '#7C3AED' },
-                { label: 'Media Geral', value: `${stats.media_nota_geral}%`, icon: <Target className="h-6 w-6" />, color: '#F97316' },
+                { label: 'Total de Quizzes', value: stats.total, icon: <BookOpen className="h-6 w-6" />, color: '#1F2041' },
+                { label: 'Quizzes Ativos', value: stats.ativos, icon: <CheckCircle className="h-6 w-6" />, color: '#417B5A' },
+                { label: 'Total Perguntas', value: stats.total_perguntas, icon: <HelpCircle className="h-6 w-6" />, color: '#4B3F72' },
+                { label: 'Media Geral', value: `${stats.media_nota_geral}%`, icon: <Target className="h-6 w-6" />, color: '#7a5840' },
               ].map((card) => (
-                <div key={card.label} className="bg-card rounded-xl p-5 shadow-sm flex items-center gap-4 border border-border">
+                <motion.div key={card.label} variants={cardItem}
+                  className="bg-card rounded-xl p-5 shadow-sm flex items-center gap-4 border border-border">
                   <div className="rounded-lg p-2 flex-shrink-0" style={{ background: card.color + '18', color: card.color }}>
                     {card.icon}
                   </div>
@@ -530,15 +535,16 @@ const Quizzes: React.FC = () => {
                     <p className="text-xs text-gray-500 font-medium">{card.label}</p>
                     <p className="text-2xl font-bold text-foreground">{card.value}</p>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
             {/* Filters */}
-            <div className="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
+            <motion.div variants={fadeIn} initial="hidden" animate="visible"
+              className="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
               <div className="px-5 py-4 flex items-center gap-3 border-b border-border">
-                <div className="p-2 rounded-lg" style={{ background: '#EDE9FE' }}>
-                  <Filter className="h-4 w-4" style={{ color: '#2D2B6F' }} />
+                <div className="p-2 rounded-lg" style={{ background: '#e8e4f3' }}>
+                  <Filter className="h-4 w-4" style={{ color: '#4B3F72' }} />
                 </div>
                 <span className="font-semibold text-foreground">Buscar Quizzes</span>
               </div>
@@ -573,26 +579,39 @@ const Quizzes: React.FC = () => {
                   </Select>
                 </div>
               </div>
-            </div>
+            </motion.div>
+
+            {/* Tabs de status */}
+            <motion.div variants={fadeIn} initial="hidden" animate="visible">
+            <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+              <TabsList>
+                <TabsTrigger value="todos">Todos ({stats.total})</TabsTrigger>
+                <TabsTrigger value="ativo">Ativos ({stats.ativos})</TabsTrigger>
+                <TabsTrigger value="inativo">Inativos ({stats.inativos})</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            </motion.div>
 
             {/* Quizzes Grid */}
             {filteredQuizzes.length === 0 ? (
-              <div className="bg-card rounded-xl shadow-sm p-12 text-center border border-border">
+              <motion.div variants={fadeIn} initial="hidden" animate="visible"
+                className="bg-card rounded-xl shadow-sm p-12 text-center border border-border">
                 <FileText className="h-12 w-12 mx-auto mb-4" style={{ color: '#A5B4FC' }} />
                 <h3 className="text-lg font-semibold mb-2 text-foreground">Nenhum quiz encontrado</h3>
                 <p className="text-gray-500">
                   {searchTerm || statusFilter !== 'todos' || categoriaFilter !== 'todos'
                     ? 'Tente ajustar os filtros de busca.' : 'Ainda nao ha quizzes configurados.'}
                 </p>
-              </div>
+              </motion.div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <motion.div variants={staggerContainer} initial="hidden" animate="visible"
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredQuizzes.map((quiz) => {
                   const colors = getCategoryColor(quiz.categoria);
                   const linkedCurso = getCursoNameForQuiz(quiz.id);
                   return (
-                    <div key={quiz.id}
-                      className="bg-card rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 relative group border border-border"
+                    <motion.div key={quiz.id} variants={cardItem} whileHover={cardHover}
+                      className="bg-card rounded-xl shadow-sm overflow-hidden relative group border border-border"
                       style={{ borderTop: `4px solid ${colors.border}` }}>
 
                       {/* Admin action menu */}
@@ -630,12 +649,13 @@ const Quizzes: React.FC = () => {
                                 style={{ background: colors.bg, color: colors.text }}>
                                 {quiz.categoria}
                               </span>
-                              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${quiz.ativo ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                              <Badge variant={quiz.ativo ? 'ativo' : 'inativo'}>
                                 {quiz.ativo ? 'Ativo' : 'Inativo'}
-                              </span>
+                              </Badge>
                               {linkedCurso && (
-                                <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
-                                  📚 {linkedCurso}
+                                <span className="text-xs font-medium px-2 py-0.5 rounded-full"
+                                  style={{ background: 'rgba(65,123,90,0.12)', color: '#417B5A' }}>
+                                  {linkedCurso}
                                 </span>
                               )}
                             </div>
@@ -665,31 +685,32 @@ const Quizzes: React.FC = () => {
                           <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{quiz.descricao}</p>
                         )}
 
-                        <Button size="sm" onClick={() => handleViewQuestions(quiz)}
-                          className="w-full text-white font-medium transition-all duration-200 hover:opacity-90"
-                          style={{ background: 'linear-gradient(135deg, #1E1B4B, #2D2B6F)' }}>
+                        <Button size="sm" variant="secondary" onClick={() => handleViewQuestions(quiz)}
+                          className="w-full font-medium transition-all duration-200">
                           <Eye className="h-4 w-4 mr-1.5" />
                           {isAdmin ? 'Ver / Editar Perguntas' : 'Ver Perguntas'}
                         </Button>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
 
                 {/* Add new quiz card */}
                 {isAdmin && (
-                  <div className="bg-card rounded-xl overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer border-2 border-dashed border-primary/30"
+                  <motion.div variants={cardItem}
+                    whileHover={{ y: -3, boxShadow: '0 8px 24px rgba(75,63,114,0.15)', transition: { duration: 0.2 } }}
+                    className="bg-card rounded-xl overflow-hidden cursor-pointer border-2 border-dashed border-primary/30"
                     onClick={openNewQuizDialog}>
                     <div className="p-8 flex flex-col items-center justify-center text-center h-full min-h-[220px]">
-                      <div className="w-14 h-14 rounded-full flex items-center justify-center mb-3" style={{ background: '#EDE9FE' }}>
-                        <Plus className="h-7 w-7" style={{ color: '#2D2B6F' }} />
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center mb-3" style={{ background: '#e8e4f3' }}>
+                        <Plus className="h-7 w-7" style={{ color: '#4B3F72' }} />
                       </div>
                       <h3 className="font-bold text-base mb-1 text-foreground">Adicionar Novo Quiz</h3>
                       <p className="text-sm text-muted-foreground">Crie um novo quiz para um curso</p>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
-              </div>
+              </motion.div>
             )}
 
             {/* ══ MODAL: Perguntas (View/Edit) ══════════════════════════════════ */}
@@ -697,14 +718,14 @@ const Quizzes: React.FC = () => {
               <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <div className="flex items-center justify-between">
-                    <DialogTitle className="flex items-center gap-2" style={{ color: '#1E1B4B' }}>
+                    <DialogTitle className="flex items-center gap-2" style={{ color: '#1F2041' }}>
                       <div className="p-2 rounded-lg" style={{ background: '#EDE9FE' }}>
-                        <HelpCircle className="h-5 w-5" style={{ color: '#2D2B6F' }} />
+                        <HelpCircle className="h-5 w-5" style={{ color: '#4B3F72' }} />
                       </div>
                       <span>Perguntas: {selectedQuiz?.titulo}</span>
                     </DialogTitle>
                     <Button size="sm" onClick={() => setShowQuestionsModal(false)}
-                      className="text-white" style={{ background: 'linear-gradient(135deg, #1E1B4B, #2D2B6F)' }}>
+                      className="text-white" style={{ background: 'linear-gradient(135deg, #1F2041, #4B3F72)' }}>
                       <ArrowLeft className="h-4 w-4 mr-1" />Voltar
                     </Button>
                   </div>
@@ -720,7 +741,7 @@ const Quizzes: React.FC = () => {
                     questions.map((question, index) => (
                       <div key={question.id} className="bg-card rounded-xl overflow-hidden shadow-sm border border-border">
                         <div className="px-5 py-4 flex items-center justify-between"
-                          style={{ background: 'linear-gradient(135deg, #1E1B4B, #2D2B6F)' }}>
+                          style={{ background: 'linear-gradient(135deg, #1F2041, #4B3F72)' }}>
                           <div className="flex items-center gap-3">
                             <span className="text-xs font-bold px-2.5 py-1 rounded-full"
                               style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
@@ -810,7 +831,7 @@ const Quizzes: React.FC = () => {
                               </div>
                               <div className="flex gap-2 pt-2">
                                 <Button onClick={handleSaveQuestion} disabled={saving}
-                                  className="flex-1 text-white" style={{ background: 'linear-gradient(135deg, #1E1B4B, #2D2B6F)' }}>
+                                  className="flex-1 text-white" style={{ background: 'linear-gradient(135deg, #1F2041, #4B3F72)' }}>
                                   {saving ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
                                     : <><Save className="h-4 w-4 mr-2" />Salvar</>}
                                 </Button>
@@ -832,12 +853,12 @@ const Quizzes: React.FC = () => {
                                     background: optionIndex === question.resposta_correta ? '#F0FDF4' : '#F8F7FF',
                                     border: `1px solid ${optionIndex === question.resposta_correta ? '#BBF7D0' : '#EDE9FE'}`
                                   }}>
-                                  <span className="text-sm font-semibold" style={{ color: '#2D2B6F' }}>
+                                  <span className="text-sm font-semibold" style={{ color: '#4B3F72' }}>
                                     {String.fromCharCode(65 + optionIndex)}.
                                   </span>
                                   <span className="text-sm flex-1">{option}</span>
                                   {optionIndex === question.resposta_correta && (
-                                    <CheckCircle className="h-4 w-4 flex-shrink-0" style={{ color: '#3AB26A' }} />
+                                    <CheckCircle className="h-4 w-4 flex-shrink-0" style={{ color: '#417B5A' }} />
                                   )}
                                 </div>
                               ))}
@@ -923,7 +944,7 @@ const Quizzes: React.FC = () => {
                       </div>
                       <div className="flex gap-2">
                         <Button onClick={handleSaveNewQuestionToExisting} disabled={saving}
-                          className="flex-1 text-white" style={{ background: '#3AB26A' }}>
+                          className="flex-1 text-white" style={{ background: '#417B5A' }}>
                           {saving ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Salvando...</> : 'Salvar pergunta'}
                         </Button>
                         <Button variant="outline" onClick={() => setAddingNewQuestion(false)} className="flex-1">Cancelar</Button>
@@ -954,8 +975,8 @@ const Quizzes: React.FC = () => {
 
                 {/* Progress indicator */}
                 <div className="flex items-center gap-2 mb-2">
-                  <div className="flex-1 h-1.5 rounded-full" style={{ background: '#3AB26A' }} />
-                  <div className="flex-1 h-1.5 rounded-full" style={{ background: newQuizStep === 2 ? '#3AB26A' : '#E5E7EB' }} />
+                  <div className="flex-1 h-1.5 rounded-full" style={{ background: '#417B5A' }} />
+                  <div className="flex-1 h-1.5 rounded-full" style={{ background: newQuizStep === 2 ? '#417B5A' : '#E5E7EB' }} />
                 </div>
 
                 {newQuizStep === 1 ? (
@@ -992,7 +1013,7 @@ const Quizzes: React.FC = () => {
                           onClick={() => setNewQuizForm(p => ({ ...p, ativo: !p.ativo }))}
                           className={`w-full h-10 rounded-lg border-2 text-sm font-medium transition-all ${
                             newQuizForm.ativo
-                              ? 'bg-green-50 border-green-300 text-green-800'
+                              ? 'bg-[#d4e8dc] border-[#417B5A] text-[#2a6045]'
                               : 'bg-gray-50 border-gray-200 text-gray-500'
                           }`}>
                           {newQuizForm.ativo ? '✓ Ativo' : '✗ Inativo'}
@@ -1007,7 +1028,7 @@ const Quizzes: React.FC = () => {
                         setNewQuizStep(2);
                       }}
                         className="text-white flex items-center gap-2"
-                        style={{ background: 'linear-gradient(135deg, #1E1B4B, #2D2B6F)' }}>
+                        style={{ background: 'linear-gradient(135deg, #1F2041, #4B3F72)' }}>
                         Próximo: Adicionar perguntas <ArrowRight className="h-4 w-4" />
                       </Button>
                     </div>
@@ -1106,7 +1127,7 @@ const Quizzes: React.FC = () => {
                         <ArrowLeft className="h-4 w-4" />Voltar
                       </Button>
                       <Button onClick={handleSaveNewQuiz} disabled={savingNewQuiz}
-                        className="flex-1 text-white" style={{ background: '#3AB26A' }}>
+                        className="flex-1 text-white" style={{ background: '#417B5A' }}>
                         {savingNewQuiz
                           ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Salvando...</>
                           : <><Save className="h-4 w-4 mr-1" />Salvar quiz</>}
@@ -1122,7 +1143,7 @@ const Quizzes: React.FC = () => {
               <DialogContent className="max-w-sm">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2 text-foreground">
-                    <Link2 className="h-5 w-5" style={{ color: '#3AB26A' }} />
+                    <Link2 className="h-5 w-5" style={{ color: '#417B5A' }} />
                     Vincular a curso
                   </DialogTitle>
                 </DialogHeader>
@@ -1142,7 +1163,7 @@ const Quizzes: React.FC = () => {
                   </Select>
                   <div className="flex gap-2">
                     <Button onClick={handleSaveCursoLink} disabled={savingLink || !selectedCursoId}
-                      className="flex-1 text-white" style={{ background: '#3AB26A' }}>
+                      className="flex-1 text-white" style={{ background: '#417B5A' }}>
                       {savingLink ? <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Salvando...</> : 'Vincular'}
                     </Button>
                     <Button variant="outline" onClick={() => setShowLinkCursoModal(false)}>Cancelar</Button>

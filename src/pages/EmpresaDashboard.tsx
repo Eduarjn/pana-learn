@@ -9,6 +9,7 @@ import { useMonthlyUsage } from '@/hooks/useMonthlyUsage';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -60,6 +61,7 @@ const EmpresaDashboard: React.FC = () => {
   
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('visao-geral');
 
   const { data: planLimits } = usePlanLimits(empresa ? { id: empresa.id, plan: empresa.plan } : undefined);
   const { data: monthlyUsage } = useMonthlyUsage(empresa?.id);
@@ -253,45 +255,33 @@ const EmpresaDashboard: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button 
-              variant="outline" 
-              onClick={() => navigate('/empresas')}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
+            <Button variant="ghost" size="sm" onClick={() => navigate('/empresas')}>
+              <ArrowLeft className="h-4 w-4 mr-1.5" />
               Voltar
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dashboard da Empresa</h1>
-              <div className="flex items-center gap-2 mt-2">
-                <Building2 className="h-5 w-5 text-blue-500" />
-                <span className="text-xl font-semibold text-blue-600">{empresa.nome}</span>
-                <Badge variant="secondary" className="ml-2">
-                  {isNewClient ? 'Nova Empresa' : 'Ativo'}
+              <h1 style={{ fontSize: '22px', fontWeight: 500, color: '#1F2041' }}>Dashboard da empresa</h1>
+              <div className="flex items-center gap-2 mt-1.5">
+                <Building2 className="h-4 w-4" style={{ color: '#4B3F72' }} />
+                <span className="text-[15px] font-medium" style={{ color: '#4B3F72' }}>{empresa.nome}</span>
+                <Badge variant={isNewClient ? 'starter' : 'ativo'} className="ml-1">
+                  {isNewClient ? 'Nova empresa' : 'Ativo'}
                 </Badge>
-                <Badge variant="outline" className="ml-2">
-                  Admin Master
-                </Badge>
+                <Badge variant="principal" className="ml-1">Admin Master</Badge>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="outline"
-              onClick={handleAccessClient}
-              className="flex items-center gap-2"
-            >
-              <ExternalLink className="h-4 w-4" />
-              Acessar Site
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={handleAccessClient}>
+              <ExternalLink className="h-4 w-4 mr-1.5" />
+              Acessar site
             </Button>
             {isNewClient && (
               <Dialog open={showSetupModal} onOpenChange={setShowSetupModal}>
                 <DialogTrigger asChild>
-                  <Button 
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Configurar Empresa
+                  <Button size="sm">
+                    <Plus className="h-4 w-4 mr-1.5" />
+                    Configurar empresa
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -317,11 +307,9 @@ const EmpresaDashboard: React.FC = () => {
             )}
             <Dialog open={showCreateUserModal} onOpenChange={setShowCreateUserModal}>
               <DialogTrigger asChild>
-                <Button 
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Novo Usuário
+                <Button size="sm" variant="secondary">
+                  <UserPlus className="h-4 w-4 mr-1.5" />
+                  Novo usuário
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -458,8 +446,18 @@ const EmpresaDashboard: React.FC = () => {
           </Card>
         )}
 
+        {/* Tabs: Visão Geral | Usuários | Cursos | Relatórios */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList>
+            <TabsTrigger value="visao-geral">Visão geral</TabsTrigger>
+            <TabsTrigger value="usuarios">Usuários ({users.length})</TabsTrigger>
+            <TabsTrigger value="cursos">Cursos</TabsTrigger>
+            <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="visao-geral" className="space-y-4 mt-4">
         {/* Informações da Empresa */}
-        <Card className="border-0 shadow-lg">
+        <Card style={{ border: '0.5px solid #e4e5f0', borderRadius: '12px' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building2 className="h-5 w-5" />
@@ -490,7 +488,7 @@ const EmpresaDashboard: React.FC = () => {
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Status:</span>
-                    <Badge className={empresa.plan_status === 'active' ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}>
+                    <Badge variant={empresa.plan_status === 'active' ? 'ativo' : 'inativo'}>
                       {empresa.plan_status === 'active' ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </div>
@@ -688,13 +686,16 @@ const EmpresaDashboard: React.FC = () => {
           </Card>
         </div>
 
+          </TabsContent>
+
+          <TabsContent value="usuarios" className="mt-4">
         {/* Lista de Usuários */}
-        <Card className="border-0 shadow-lg">
+        <Card style={{ border: '0.5px solid #e4e5f0', borderRadius: '12px' }}>
           <CardHeader>
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex items-center justify-between text-[16px] font-medium" style={{ color: '#1F2041' }}>
               <div className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Usuários da Empresa
+                <Users className="h-4 w-4" style={{ color: '#4B3F72' }} />
+                Usuários da empresa
               </div>
               <Button 
                 onClick={() => setShowCreateUserModal(true)}
@@ -788,32 +789,26 @@ const EmpresaDashboard: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* Ações Rápidas */}
-        <Card className="border-0 shadow-lg">
-          <CardHeader>
-            <CardTitle>Ações Rápidas</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
-                <Users className="h-5 w-5 mb-1" />
-                <span className="text-sm">Gerenciar Usuários</span>
-              </Button>
-              <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
-                <BookOpen className="h-5 w-5 mb-1" />
-                <span className="text-sm">Gerenciar Cursos</span>
-              </Button>
-              <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
-                <Database className="h-5 w-5 mb-1" />
-                <span className="text-sm">Importar Dados</span>
-              </Button>
-              <Button variant="outline" className="h-16 flex flex-col items-center justify-center">
-                <Settings className="h-5 w-5 mb-1" />
-                <span className="text-sm">Configurações</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </TabsContent>
+
+          <TabsContent value="cursos" className="mt-4">
+            <Card style={{ border: '0.5px solid #e4e5f0', borderRadius: '12px' }}>
+              <CardContent className="py-12 text-center text-gray-400">
+                <BookOpen className="h-10 w-10 mx-auto mb-3" style={{ color: '#e4e5f0' }} />
+                <p className="text-[14px]">Cursos deste tenant serão exibidos aqui.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="relatorios" className="mt-4">
+            <Card style={{ border: '0.5px solid #e4e5f0', borderRadius: '12px' }}>
+              <CardContent className="py-12 text-center text-gray-400">
+                <BarChart3 className="h-10 w-10 mx-auto mb-3" style={{ color: '#e4e5f0' }} />
+                <p className="text-[14px]">Relatórios de uso e progresso em breve.</p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </ERALayout>
   );

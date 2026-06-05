@@ -109,13 +109,15 @@ export function useCertificates(userId: string | undefined) {
     }
   }, [userId, fetchCertificates]);
 
-  // Buscar certificado específico
+  // Buscar certificado específico — validado pelo usuario_id para evitar IDOR
   const getCertificate = useCallback(async (certificateId: string): Promise<Certificate | null> => {
+    if (!userId) return null;
     try {
       const { data, error: fetchError } = await supabase
         .from('certificados')
         .select('*')
         .eq('id', certificateId)
+        .eq('usuario_id', userId) // impede acesso a certificados de outros usuários
         .single();
 
       if (fetchError) {
@@ -128,7 +130,7 @@ export function useCertificates(userId: string | undefined) {
       console.error('Erro ao buscar certificado:', err);
       return null;
     }
-  }, []);
+  }, [userId]);
 
   // Buscar certificado por curso
   const getCertificateByCourse = useCallback(async (cursoId: string): Promise<Certificate | null> => {

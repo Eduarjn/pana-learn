@@ -7,8 +7,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Search, Filter, Plus, Video, Eye, BookOpen, Clock, Users, Settings, ListOrdered, ArrowLeft, Play, Trash, ChevronRight, GraduationCap, Award, Edit, Loader2, MoreVertical, Tag } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cardHover } from '@/lib/animations';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -26,9 +27,9 @@ interface CategoryForm { nome: string; descricao: string; cor: string; }
 interface CourseForm { nome: string; descricao: string; categoria: string; categoria_id: string; status: 'ativo' | 'inativo' | 'em_breve'; ordem: number; manualCategory: boolean; }
 
 const LEVEL_STYLE: Record<string, { bg: string; text: string; border: string }> = {
-  'Iniciante': { bg: 'rgba(252,163,17,0.12)', text: '#FCA311', border: 'rgba(252,163,17,0.3)' },
+  'Iniciante': { bg: 'rgba(252,163,17,0.12)', text: '#E9D2C0', border: 'rgba(252,163,17,0.3)' },
   'Intermediário': { bg: 'rgba(229,229,229,0.08)', text: '#E5E5E5', border: 'rgba(229,229,229,0.2)' },
-  'Avancado': { bg: 'rgba(252,163,17,0.2)', text: '#fff', border: 'rgba(252,163,17,0.5)' },
+  'Avancado': { bg: 'rgba(75,63,114,0.18)', text: '#E9D2C0', border: 'rgba(75,63,114,0.4)' },
 };
 
 const COURSES_MOCK = [
@@ -38,7 +39,7 @@ const COURSES_MOCK = [
   { nome: 'OMNICHANNEL para Empresas', categoria: 'OMNICHANNEL', level: 'Intermediario', duration: '4-5h', modules: 8 },
   { nome: 'Configuracoes Avancadas OMNI', categoria: 'OMNICHANNEL', level: 'Avancado', duration: '5-6h', modules: 10 },
 ];
-const CAT_COLORS = ['#FCA311', '#e8940f', '#d4860e', '#f0b84a', '#14213D', '#1e3152', '#2a4070', '#0d1a2e'];
+const CAT_COLORS = ['#E9D2C0', '#e8940f', '#d4860e', '#f0b84a', '#1F2041', '#1e3152', '#2a4070', '#0d1a2e'];
 
 const CatIcon = ({ cat, size = 20 }: { cat: string; size?: number }) => {
   const c = 'hsl(var(--primary))';
@@ -81,48 +82,55 @@ export const Treinamentos = () => {
   const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
   const [savingCourse, setSavingCourse] = useState(false);
 
-  useEffect(() => { if (userProfile) loadVideos(); }, [userProfile]);
+  useEffect(() => { if (userProfile) loadVideos(); }, [userProfile?.id]);
   useEffect(() => { if (isAdmin) loadCategories(); }, [isAdmin]);
 
   const loadVideos = async () => {
     setLoadingVideos(true);
     try {
-      const { data: vd, error: vErr } = await supabase.from('videos').select('*').order('data_criacao', { ascending: false });
+      // Join direto — elimina o N+1 (era: query videos + query cursos separada)
+      const { data: vd, error: vErr } = await supabase
+        .from('videos')
+        .select('id, titulo, duracao, storage_path, url_video, curso_id, data_criacao, cursos!videos_curso_id_fkey(id, nome, categoria)')
+        .order('data_criacao', { ascending: false });
       if (vErr) throw vErr;
-      if (vd && vd.length > 0) {
-        const ids = [...new Set(vd.map((v: any) => v.curso_id).filter(Boolean))];
-        if (ids.length > 0) {
-          const { data: cd } = await supabase.from('cursos').select('id,nome,categoria').in('id', ids);
-          setVideos(vd.map((v: any) => ({ ...v, cursos: cd?.find((c: any) => c.id === v.curso_id) || null })));
-          return;
-        }
-      }
       setVideos(vd || []);
     } catch { } finally { setLoadingVideos(false); }
   };
 
-  const mergedNames = COURSES_MOCK.map(m => m.nome);
-  const filteredCourses = mergedNames.map(nome =>
-    courses.find(c => c.nome === nome) ?? {
-      ...COURSES_MOCK.find(m => m.nome === nome)!,
-      id: `mock-${nome.replace(/\s+/g, '-').toLowerCase()}`,
-      status: 'ativo' as const, imagem_url: null, categoria_id: null, ordem: null, descricao: null,
-    }
-  ).filter(c => {
-    const s = searchTerm.toLowerCase();
-    return (c.nome.toLowerCase().includes(s) || c.categoria.toLowerCase().includes(s)) &&
-      (selectedCategory === 'all' || c.categoria === selectedCategory);
-  });
-  const realOnlyCourses = courses.filter(c => !mergedNames.includes(c.nome)).filter(c => {
-    const s = searchTerm.toLowerCase();
-    return (c.nome.toLowerCase().includes(s) || c.categoria.toLowerCase().includes(s)) &&
-      (selectedCategory === 'all' || c.categoria === selectedCategory);
-  });
-  const allFilteredCourses = [...filteredCourses, ...realOnlyCourses];
-  const getLevel = (c: any) => COURSES_MOCK.find(m => m.nome === c.nome)?.level ?? 'Iniciante';
-  const categories = Array.from(new Set(courses.map(c => c.categoria)));
+  // Set para lookup O(1) em vez de Array.includes O(N) dentro de filter O(N)
+  const mergedNames = useMemo(() => COURSES_MOCK.map(m => m.nome), []);
+  const mergedNameSet = useMemo(() => new Set(mergedNames), [mergedNames]);
 
-  const getCoursesByCategory = (): CategoryGroup[] => {
+  // Lookup de nível memoizado por nome do curso — evita COURSES_MOCK.find em cada render
+  const levelByName = useMemo(() =>
+    Object.fromEntries(COURSES_MOCK.map(m => [m.nome, m.level])),
+  []);
+  const getLevel = useCallback((c: any) => levelByName[c.nome] ?? 'Iniciante', [levelByName]);
+
+  const searchLower = useMemo(() => searchTerm.toLowerCase(), [searchTerm]);
+
+  const allFilteredCourses = useMemo(() => {
+    const merged = mergedNames.map(nome =>
+      courses.find(c => c.nome === nome) ?? {
+        ...COURSES_MOCK.find(m => m.nome === nome)!,
+        id: `mock-${nome.replace(/\s+/g, '-').toLowerCase()}`,
+        status: 'ativo' as const, imagem_url: null, categoria_id: null, ordem: null, descricao: null,
+      }
+    );
+    const realOnly = courses.filter(c => !mergedNameSet.has(c.nome));
+    return [...merged, ...realOnly].filter(c =>
+      (c.nome.toLowerCase().includes(searchLower) || c.categoria.toLowerCase().includes(searchLower)) &&
+      (selectedCategory === 'all' || c.categoria === selectedCategory)
+    );
+  }, [courses, mergedNames, mergedNameSet, searchLower, selectedCategory]);
+
+  const categories = useMemo(
+    () => Array.from(new Set(courses.map(c => c.categoria))),
+    [courses]
+  );
+
+  const catGroups = useMemo((): CategoryGroup[] => {
     const map: Record<string, CategoryGroup> = {};
     allFilteredCourses.forEach(c => {
       if (!map[c.categoria]) map[c.categoria] = { categoria: c.categoria, cursos: [], totalHoras: 0, niveis: [], cursosAtivos: 0 };
@@ -133,7 +141,7 @@ export const Treinamentos = () => {
       if (c.status === 'ativo') map[c.categoria].cursosAtivos++;
     });
     return Object.values(map).sort((a, b) => b.cursos.length - a.cursos.length);
-  };
+  }, [allFilteredCourses, getLevel]);
 
   const handleStartCourse = (courseId: string) => {
     if (courseId.startsWith('mock-')) { toast({ title: 'Curso em breve', description: 'Este curso ainda nao esta disponivel.', variant: 'destructive' }); return; }
@@ -205,7 +213,6 @@ export const Treinamentos = () => {
   if (isLoading) return (<ERALayout><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', background: 'hsl(var(--background))' }}><div style={{ textAlign: 'center' }}><div style={{ width: 40, height: 40, border: `3px solid ${'hsl(var(--primary))'}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto 12px', animation: 'era-spin 0.8s linear infinite' }} /><p style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Carregando treinamentos...</p></div></div></ERALayout>);
   if (error) return (<ERALayout><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}><div style={{ textAlign: 'center' }}><BookOpen style={{ width: 40, height: 40, color: '#ef4444', margin: '0 auto 8px' }} /><p style={{ color: '#f87171', fontSize: 13 }}>Erro ao carregar treinamentos.</p></div></div></ERALayout>);
 
-  const catGroups = getCoursesByCategory();
 
   return (
     <ERALayout>
@@ -229,55 +236,87 @@ export const Treinamentos = () => {
       <div className="min-h-screen bg-background pb-10">
         
         {/* HERO */}
-        <div className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #1E1B4B 0%, #2D2B6F 60%, #3D3A8F 100%)' }}>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #4B3F72 60%, #417B5A 100%)' }}
+        >
           <div className="px-6 lg:px-10 py-8 lg:py-12">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#3AB26A' }}></div>
+
+              <motion.div
+                className="flex-1"
+                initial="hidden" animate="visible"
+                variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07 } } }}
+              >
+                <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22,1,0.36,1] } } }}
+                  className="flex items-center gap-2 mb-3"
+                >
+                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#D0CEBA' }}></div>
                   <span className="text-xs lg:text-sm font-medium text-white/80">Plataforma de Ensino</span>
-                </div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">
+                </motion.div>
+                <motion.h1
+                  variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22,1,0.36,1] } } }}
+                  className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2"
+                >
                   Treinamentos
-                </h1>
-                <p className="text-sm sm:text-base lg:text-lg text-white/80 max-w-2xl mb-4">
+                </motion.h1>
+                <motion.p
+                  variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22,1,0.36,1] } } }}
+                  className="text-sm sm:text-base lg:text-lg text-white/80 max-w-2xl mb-4"
+                >
                   Cursos estruturados em trilhas de aprendizado - do básico ao avançado, com certificação.
-                </p>
-                <div className="flex flex-wrap items-center gap-4">
+                </motion.p>
+                <motion.div
+                  variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
+                  className="flex flex-wrap items-center gap-4"
+                >
                   {[
                     { icon: BookOpen, label: `${allFilteredCourses.length} cursos` },
                     { icon: Clock, label: '50+ horas' },
                     { icon: Users, label: '1.000+ alunos' },
                     { icon: Award, label: 'Certificados' }
                   ].map(({ icon: Icon, label }) => (
-                    <div key={label} className="flex items-center gap-2 text-xs lg:text-sm text-white/80">
-                      <Icon className="h-4 w-4" style={{ color: '#3AB26A' }} />
+                    <motion.div
+                      key={label}
+                      variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3 } } }}
+                      className="flex items-center gap-2 text-xs lg:text-sm text-white/80"
+                    >
+                      <Icon className="h-4 w-4" style={{ color: '#D0CEBA' }} />
                       <span>{label}</span>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
 
-              <div className="flex flex-col gap-3">
-                <div className="flex gap-3 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.15, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="flex flex-col gap-3"
+              >
+                <motion.div
+                  initial="hidden" animate="visible"
+                  variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
+                  className="flex gap-3 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar"
+                >
                   {[
-                    { value: courses.length, label: 'Cursos' }, 
-                    { value: categories.length, label: 'Categorias' }, 
+                    { value: courses.length, label: 'Cursos' },
+                    { value: categories.length, label: 'Categorias' },
                     { value: isAdmin ? videos.length : '50+', label: isAdmin ? 'Vídeos' : 'Horas' }
                   ].map(({ value, label }) => (
-                    <div key={label}
+                    <motion.div key={label}
+                      variants={{ hidden: { opacity: 0, scale: 0.92 }, visible: { opacity: 1, scale: 1, transition: { duration: 0.3 } } }}
                       className="flex flex-col items-center justify-center rounded-xl px-4 py-3 text-center min-w-[76px]"
                       style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)' }}>
                       <span className="text-xl font-bold text-white leading-tight">{value}</span>
                       <span className="text-[11px] text-white/70 uppercase tracking-wider font-semibold mt-1">{label}</span>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
                 {isAdmin && (
                   <div className="flex gap-2">
-                    <button onClick={() => setShowUpload(true)} className="flex-1 py-2.5 px-4 text-sm text-white font-semibold rounded-xl flex items-center justify-center transition-transform hover:scale-105" style={{ background: '#3AB26A' }}>
+                    <button onClick={() => setShowUpload(true)} className="flex-1 py-2.5 px-4 text-sm text-white font-semibold rounded-xl flex items-center justify-center transition-transform hover:scale-105" style={{ background: '#417B5A' }}>
                       <Settings className="w-4 h-4 mr-2" /> Novo treinamento
                     </button>
                     <button onClick={() => { setShowCategoryDialog(true); loadCategories(); }} className="px-3 rounded-xl border border-white/20 text-white hover:bg-white/10 transition-colors" style={{ background: 'rgba(255,255,255,0.05)' }}>
@@ -288,11 +327,11 @@ export const Treinamentos = () => {
                     </button>
                   </div>
                 )}
-              </div>
+              </motion.div>
 
             </div>
           </div>
-        </div>
+        </motion.div>
 
         <div className="max-w-7xl mx-auto px-4 lg:px-6 space-y-6">
           {/* SAAS FILTER HEADER */}

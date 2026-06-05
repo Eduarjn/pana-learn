@@ -55,7 +55,7 @@ export const resolveLogoPath = (customLogoUrl?: string): string => {
   }
   
   // Fallback para o logo padrão
-  return resolveImagePath('/panalearn-logo.png');
+  return resolveImagePath('/brand/panalearn-horizontal-on-white.png');
 };
 
 /**
@@ -114,13 +114,13 @@ export const testImageLoad = (url: string): Promise<boolean> => {
  */
 export const imageFallbacks = {
   logo: [
-    '/panalearn-logo.png',
-    '/logotipoeralearn.png',
-    '/placeholder.svg'
+    '/brand/panalearn-horizontal-on-white.png',
+    '/brand/panalearn-horizontal-color.png',
+    '/placeholder.svg',
   ],
   favicon: [
-    '/panalearn-favicon.png',
-    '/panalearn-logo.png'
+    '/brand/favicon-32.png',
+    '/brand/app-icon-indigo-192.png',
   ],
   background: [
     '/lovable-uploads/aafcc16a-d43c-4f66-9fa4-70da46d38ccb.png',

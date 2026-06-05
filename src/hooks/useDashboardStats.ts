@@ -81,7 +81,7 @@ export const useDashboardStats = () => {
         completionRate,
       };
     },
-    refetchInterval: 10000, // Atualiza a cada 10s
+    refetchInterval: 120_000, // Atualiza a cada 2 min
   });
 };
 
@@ -96,72 +96,79 @@ export const useRecentActivity = () => {
       const activities: RecentActivity[] = [];
 
       try {
-        // 1. Certificados recentes (últimos 7 dias)
+        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+        // 1. Certificados recentes — usa data_emissao (coluna correta da tabela)
         let certsQuery = supabase
           .from('certificados')
-          .select('*')
-          .gte('data_conclusao', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-          .order('data_conclusao', { ascending: false })
+          .select('id, data_emissao, nota_final, usuario_id, curso_id, usuarios!certificados_usuario_id_fkey(nome), cursos!certificados_curso_id_fkey(nome, categoria)')
+          .gte('data_emissao', sevenDaysAgo)
+          .order('data_emissao', { ascending: false })
           .limit(5);
-          
+
         if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
           certsQuery = certsQuery.eq('empresa_id', empresa.id);
         }
 
-        const { data: recentCertificates } = await certsQuery;
+        const { data: recentCertificates, error: certsErr } = await certsQuery;
+        if (certsErr) throw certsErr;
 
         if (recentCertificates) {
           recentCertificates.forEach((cert: any) => {
             activities.push({
               id: cert.id,
               type: 'certificate_earned',
-              user_name: cert.usuario_nome || 'Usuário',
-              category_name: cert.categoria_nome,
-              created_at: cert.data_conclusao,
-              nota: cert.nota
+              user_name: cert.usuarios?.nome || 'Usuário',
+              category_name: cert.cursos?.categoria,
+              course_name: cert.cursos?.nome,
+              created_at: cert.data_emissao,
+              nota: cert.nota_final
             });
           });
         }
 
-        // 2. Progresso de vídeos recentes (últimos 7 dias)
+        // 2. Progresso recente — join com usuarios e cursos para nomes reais
         let progressQuery = supabase
           .from('progresso_usuario')
-          .select('*, usuarios!inner(empresa_id)')
-          .gte('data_conclusao', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-          .order('data_conclusao', { ascending: false })
+          .select('id, status, data_conclusao, data_atualizacao, usuarios!inner(nome, empresa_id), cursos!progresso_usuario_curso_id_fkey(nome, categoria)')
+          .not('status', 'eq', 'nao_iniciado')
+          .order('data_atualizacao', { ascending: false })
           .limit(10);
-          
+
         if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
           progressQuery = progressQuery.eq('usuarios.empresa_id', empresa.id);
         }
 
-        const { data: recentProgress } = await progressQuery;
+        const { data: recentProgress, error: progressErr } = await progressQuery;
+        if (progressErr) throw progressErr;
 
         if (recentProgress) {
           recentProgress.forEach((progress: any) => {
+            const eventDate = progress.data_conclusao || progress.data_atualizacao;
             if (progress.status === 'concluido') {
               activities.push({
                 id: progress.id,
                 type: 'course_completed',
-                user_name: progress.usuario_nome || 'Usuário',
-                course_name: progress.video_titulo || 'Curso',
-                category_name: progress.categoria_nome,
-                created_at: progress.data_conclusao
+                user_name: progress.usuarios?.nome || 'Usuário',
+                course_name: progress.cursos?.nome,
+                category_name: progress.cursos?.categoria,
+                created_at: eventDate,
               });
             } else if (progress.status === 'em_andamento') {
               activities.push({
                 id: progress.id,
                 type: 'course_started',
-                user_name: progress.usuario_nome || 'Usuário',
-                course_name: progress.video_titulo || 'Curso',
-                category_name: progress.categoria_nome,
-                created_at: progress.data_conclusao
+                user_name: progress.usuarios?.nome || 'Usuário',
+                course_name: progress.cursos?.nome,
+                category_name: progress.cursos?.categoria,
+                created_at: eventDate,
               });
             }
           });
         }
       } catch (error) {
         console.error('Erro ao buscar atividades recentes:', error);
+        throw error; // re-throw para o React Query registrar o estado de erro
       }
 
       // Ordenar por data e retornar os 5 mais recentes
@@ -180,53 +187,45 @@ export const useCategoryProgress = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return [];
 
-      try {
-        // Buscar progresso do usuário por categoria
-        const { data: userProgress } = await supabase
-          .from('progresso_usuario')
-          .select('*')
-          .eq('usuario_id', userId);
+      // Buscar progresso com join em cursos para obter categoria e nome reais
+      const { data: userProgress, error } = await supabase
+        .from('progresso_usuario')
+        .select('status, cursos!progresso_usuario_curso_id_fkey(nome, categoria)')
+        .eq('usuario_id', userId);
 
-        if (!userProgress) return [];
+      if (error) throw error;
+      if (!userProgress) return [];
 
-        // Agrupar por categoria
-        const categoryMap = new Map<string, CategoryProgress>();
+      // Agrupar por categoria usando dados do join
+      const categoryMap = new Map<string, CategoryProgress>();
 
-        userProgress.forEach((progress: any) => {
-          const categoryName = progress.categoria_nome || 'Geral';
-          const courseName = progress.video_titulo || 'Curso';
-          
-          if (!categoryMap.has(categoryName)) {
-            categoryMap.set(categoryName, {
-              categoria: categoryName,
-              progress: 0,
-              modules_completed: 0,
-              total_modules: 0,
-              course_name: courseName
-            });
-          }
+      userProgress.forEach((progress: any) => {
+        const categoryName = progress.cursos?.categoria || 'Geral';
+        const courseName   = progress.cursos?.nome       || 'Curso';
 
-          const category = categoryMap.get(categoryName)!;
-          category.total_modules++;
-          
-          if (progress.status === 'concluido') {
-            category.modules_completed++;
-          }
-        });
+        if (!categoryMap.has(categoryName)) {
+          categoryMap.set(categoryName, {
+            categoria: categoryName,
+            progress: 0,
+            modules_completed: 0,
+            total_modules: 0,
+            course_name: courseName,
+          });
+        }
 
-        // Calcular progresso percentual
-        const results = Array.from(categoryMap.values()).map(category => ({
-          ...category,
-          progress: category.total_modules > 0 
-            ? Math.round((category.modules_completed / category.total_modules) * 100)
-            : 0
-        }));
+        const category = categoryMap.get(categoryName)!;
+        category.total_modules++;
+        if (progress.status === 'concluido') category.modules_completed++;
+      });
 
-        return results.sort((a, b) => b.progress - a.progress);
-      } catch (error) {
-        console.error('Erro ao buscar progresso por categoria:', error);
-        return [];
-      }
+      return Array.from(categoryMap.values())
+        .map(cat => ({
+          ...cat,
+          progress: cat.total_modules > 0
+            ? Math.round((cat.modules_completed / cat.total_modules) * 100)
+            : 0,
+        }))
+        .sort((a, b) => b.progress - a.progress);
     },
     enabled: !!userId,
     refetchInterval: 60000, // Atualiza a cada 1 min

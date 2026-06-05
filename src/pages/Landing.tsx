@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 const LANDING_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Quicksand:wght@600;700&display=swap');
 
 .lp-root *, .lp-root *::before, .lp-root *::after { box-sizing: border-box; }
 .lp-root { font-family: 'Inter', system-ui, sans-serif; color: #374151; -webkit-font-smoothing: antialiased; }
@@ -15,8 +15,8 @@ const LANDING_CSS = `
 .lp-root h1, .lp-root h2, .lp-root h3, .lp-root h4 { margin: 0; }
 
 .lp-container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 20px; }
-.lp-tag { display: inline-block; background: rgba(58,178,106,0.12); color: #3AB26A; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 14px; border-radius: 50px; margin-bottom: 16px; }
-.lp-title { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 800; color: #1E1B4B; line-height: 1.2; margin-bottom: 12px; }
+.lp-tag { display: inline-block; background: rgba(65,123,90,0.12); color: #417B5A; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 6px 14px; border-radius: 50px; margin-bottom: 16px; }
+.lp-title { font-size: clamp(1.8rem, 4vw, 2.6rem); font-weight: 700; color: #1F2041; line-height: 1.2; margin-bottom: 12px; font-family: 'Quicksand', 'Inter', sans-serif; }
 .lp-subtitle { font-size: 1.05rem; color: #6B7280; max-width: 560px; line-height: 1.6; margin: 0; }
 .lp-center { text-align: center; }
 .lp-center .lp-subtitle { margin: 0 auto; }
@@ -26,48 +26,51 @@ const LANDING_CSS = `
 
 /* NAVBAR */
 .lp-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; padding: 16px 0; transition: background 0.25s ease, box-shadow 0.25s ease, padding 0.25s ease; }
-.lp-nav.lp-scrolled { background: #fff; box-shadow: 0 2px 16px rgba(45,43,111,0.09); padding: 10px 0; }
+.lp-nav.lp-scrolled { background: #fff; box-shadow: 0 2px 16px rgba(75,63,114,0.09); padding: 10px 0; }
 .lp-nav-inner { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.lp-logo { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 1.25rem; color: #fff; transition: color 0.25s; }
-.lp-nav.lp-scrolled .lp-logo { color: #1E1B4B; }
-.lp-logo-sym { width: 36px; height: 36px; background: #3AB26A; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.lp-logo-sym svg { width: 20px; height: 20px; }
+.lp-logo { display: flex; align-items: center; gap: 8px; transition: opacity 0.25s; }
+.lp-logo-sym { display: none; }
+.lp-logo-img { height: 34px; object-fit: contain; display: block; }
+.lp-logo-img-dark { display: block; }
+.lp-logo-img-light { display: none; }
+.lp-nav.lp-scrolled .lp-logo-img-dark { display: none; }
+.lp-nav.lp-scrolled .lp-logo-img-light { display: block; }
 .lp-nav-links { display: flex; align-items: center; gap: 6px; }
 .lp-nav-links a { padding: 8px 14px; border-radius: 8px; font-size: 0.92rem; font-weight: 500; color: rgba(255,255,255,0.85); transition: all 0.25s; }
 .lp-nav.lp-scrolled .lp-nav-links a { color: #374151; }
 .lp-nav-links a:hover { color: #fff; background: rgba(255,255,255,0.12); }
-.lp-nav.lp-scrolled .lp-nav-links a:hover { color: #2D2B6F; background: #F8F7FF; }
+.lp-nav.lp-scrolled .lp-nav-links a:hover { color: #4B3F72; background: #F4F3FA; }
 .lp-nav-actions { display: flex; align-items: center; gap: 10px; }
 .lp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; transition: all 0.25s; cursor: pointer; }
 .lp-btn-ow { border: 1.5px solid rgba(255,255,255,0.6); color: #fff; background: transparent; }
 .lp-btn-ow:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
-.lp-btn-op { border: 1.5px solid #2D2B6F; color: #2D2B6F; background: transparent; }
-.lp-btn-op:hover { background: #F8F7FF; }
-.lp-btn-g { background: #3AB26A; color: #fff; border: none; }
-.lp-btn-g:hover { background: #2e9a5a; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(58,178,106,0.35); }
-.lp-btn-dark { background: #2D2B6F; color: #fff; border: none; }
-.lp-btn-dark:hover { background: #1E1B4B; transform: translateY(-1px); }
+.lp-btn-op { border: 1.5px solid #4B3F72; color: #4B3F72; background: transparent; }
+.lp-btn-op:hover { background: #F4F3FA; }
+.lp-btn-g { background: #417B5A; color: #fff; border: none; }
+.lp-btn-g:hover { background: #356848; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(65,123,90,0.35); }
+.lp-btn-dark { background: #4B3F72; color: #fff; border: none; }
+.lp-btn-dark:hover { background: #1F2041; transform: translateY(-1px); }
 .lp-btn-lg { padding: 14px 28px; font-size: 1rem; border-radius: 10px; }
 
 .lp-ham { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 6px; background: none; border: none; }
 .lp-ham span { display: block; width: 22px; height: 2px; background: #fff; border-radius: 2px; transition: all 0.3s; }
-.lp-nav.lp-scrolled .lp-ham span { background: #1E1B4B; }
+.lp-nav.lp-scrolled .lp-ham span { background: #1F2041; }
 .lp-ham.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
 .lp-ham.open span:nth-child(2) { opacity: 0; }
 .lp-ham.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
 .lp-mob { display: none; position: fixed; top: 66px; left: 0; right: 0; background: #fff; padding: 16px 20px 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.1); flex-direction: column; gap: 4px; z-index: 999; }
 .lp-mob.open { display: flex; }
 .lp-mob a { padding: 12px 16px; border-radius: 8px; font-weight: 500; color: #374151; }
-.lp-mob a:hover { background: #F8F7FF; color: #2D2B6F; }
+.lp-mob a:hover { background: #F4F3FA; color: #4B3F72; }
 .lp-mob-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #E5E7EB; }
 .lp-mob-actions .lp-btn { width: 100%; justify-content: center; }
 
 /* HERO */
-.lp-hero { min-height: 100vh; display: flex; align-items: center; padding: 120px 0 80px; background: linear-gradient(135deg, #1E1B4B 0%, #2D2B6F 100%); position: relative; overflow: hidden; }
+.lp-hero { min-height: 100vh; display: flex; align-items: center; padding: 120px 0 80px; background: linear-gradient(135deg, #1F2041 0%, #4B3F72 100%); position: relative; overflow: hidden; }
 .lp-hero-pat { position: absolute; inset: 0; pointer-events: none; }
 .lp-hero-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; position: relative; z-index: 1; }
-.lp-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(58,178,106,0.18); border: 1px solid rgba(58,178,106,0.35); color: #7EE8A2; font-size: 0.82rem; font-weight: 600; padding: 7px 16px; border-radius: 50px; margin-bottom: 24px; }
-.lp-h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 900; color: #fff; line-height: 1.15; margin-bottom: 20px; }
+.lp-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(65,123,90,0.18); border: 1px solid rgba(65,123,90,0.35); color: #D0CEBA; font-size: 0.82rem; font-weight: 600; padding: 7px 16px; border-radius: 50px; margin-bottom: 24px; }
+.lp-h1 { font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 700; color: #fff; line-height: 1.15; margin-bottom: 20px; font-family: 'Quicksand', 'Inter', sans-serif; }
 .lp-hsub { font-size: 1.08rem; color: rgba(255,255,255,0.72); line-height: 1.7; margin-bottom: 36px; max-width: 500px; }
 .lp-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 48px; }
 .lp-trust { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
@@ -88,72 +91,72 @@ const LANDING_CSS = `
 .lp-mc-lbl { font-size: 0.7rem; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
 .lp-mc-title { font-size: 0.9rem; color: #fff; font-weight: 600; margin-bottom: 12px; }
 .lp-prog-bg { height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; overflow: hidden; margin-bottom: 6px; }
-.lp-prog-fill { height: 100%; background: linear-gradient(90deg, #3AB26A, #7EE8A2); border-radius: 3px; width: 72%; }
+.lp-prog-fill { height: 100%; background: linear-gradient(90deg, #417B5A, #D0CEBA); border-radius: 3px; width: 72%; }
 .lp-prog-lbl { display: flex; justify-content: space-between; font-size: 0.72rem; color: rgba(255,255,255,0.5); }
 .lp-cert-row { display: flex; align-items: center; gap: 12px; }
-.lp-cert-ico { width: 36px; height: 36px; background: rgba(58,178,106,0.25); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.lp-cert-ico svg { width: 18px; height: 18px; color: #3AB26A; }
+.lp-cert-ico { width: 36px; height: 36px; background: rgba(65,123,90,0.25); border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lp-cert-ico svg { width: 18px; height: 18px; color: #417B5A; }
 .lp-cert-name { font-size: 0.85rem; color: #fff; font-weight: 600; }
 .lp-cert-date { font-size: 0.72rem; color: rgba(255,255,255,0.45); margin-top: 2px; }
-.lp-cert-badge { margin-left: auto; background: rgba(58,178,106,0.25); color: #7EE8A2; font-size: 0.68rem; font-weight: 700; padding: 3px 9px; border-radius: 50px; white-space: nowrap; }
+.lp-cert-badge { margin-left: auto; background: rgba(65,123,90,0.25); color: #D0CEBA; font-size: 0.68rem; font-weight: 700; padding: 3px 9px; border-radius: 50px; white-space: nowrap; }
 .lp-chart-lbl { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
 .lp-chart { display: flex; align-items: flex-end; gap: 6px; height: 50px; }
-.lp-bar { flex: 1; background: rgba(58,178,106,0.35); border-radius: 3px 3px 0 0; }
-.lp-bar.act { background: #3AB26A; }
+.lp-bar { flex: 1; background: rgba(65,123,90,0.35); border-radius: 3px 3px 0 0; }
+.lp-bar.act { background: #417B5A; }
 .lp-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .lp-stat { background: rgba(255,255,255,0.06); border-radius: 8px; padding: 10px; text-align: center; }
-.lp-stat-n { font-size: 1.2rem; font-weight: 800; color: #3AB26A; }
+.lp-stat-n { font-size: 1.2rem; font-weight: 800; color: #417B5A; }
 .lp-stat-l { font-size: 0.68rem; color: rgba(255,255,255,0.45); margin-top: 2px; }
 
 /* SECTIONS */
 .lp-sec { padding: 88px 0; }
 .lp-seg-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; }
 .lp-seg-card { border: 1.5px solid #E5E7EB; border-radius: 12px; padding: 28px 24px; transition: all 0.25s; }
-.lp-seg-card:hover { border-color: #3AB26A; box-shadow: 0 4px 20px rgba(58,178,106,0.12); transform: translateY(-2px); }
-.lp-seg-ico { width: 48px; height: 48px; background: #F8F7FF; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
-.lp-seg-ico svg { width: 24px; height: 24px; color: #2D2B6F; }
-.lp-seg-name { font-size: 1rem; font-weight: 700; color: #1E1B4B; margin-bottom: 6px; }
+.lp-seg-card:hover { border-color: #417B5A; box-shadow: 0 4px 20px rgba(65,123,90,0.12); transform: translateY(-2px); }
+.lp-seg-ico { width: 48px; height: 48px; background: #F4F3FA; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
+.lp-seg-ico svg { width: 24px; height: 24px; color: #4B3F72; }
+.lp-seg-name { font-size: 1rem; font-weight: 700; color: #1F2041; margin-bottom: 6px; }
 .lp-seg-desc { font-size: 0.875rem; color: #6B7280; line-height: 1.5; }
 
 /* NUMBERS */
 .lp-num-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin-top: 48px; }
 .lp-num-item { display: flex; align-items: center; gap: 18px; }
-.lp-num-ico { width: 52px; height: 52px; background: rgba(58,178,106,0.12); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.lp-num-ico svg { width: 26px; height: 26px; color: #3AB26A; }
-.lp-num-val { font-size: 2.2rem; font-weight: 900; color: #3AB26A; line-height: 1; margin-bottom: 4px; }
+.lp-num-ico { width: 52px; height: 52px; background: rgba(65,123,90,0.12); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.lp-num-ico svg { width: 26px; height: 26px; color: #417B5A; }
+.lp-num-val { font-size: 2.2rem; font-weight: 900; color: #417B5A; line-height: 1; margin-bottom: 4px; }
 .lp-num-lbl { font-size: 0.88rem; color: #6B7280; font-weight: 500; }
 
 /* TABS */
-.lp-tabs-hdr { display: flex; gap: 6px; background: #F8F7FF; border-radius: 10px; padding: 5px; margin: 36px 0 32px; max-width: fit-content; }
+.lp-tabs-hdr { display: flex; gap: 6px; background: #F4F3FA; border-radius: 10px; padding: 5px; margin: 36px 0 32px; max-width: fit-content; }
 .lp-tab-btn { padding: 10px 24px; border-radius: 8px; font-size: 0.92rem; font-weight: 600; color: #6B7280; background: transparent; transition: all 0.25s; cursor: pointer; }
-.lp-tab-btn.active { background: #fff; color: #2D2B6F; box-shadow: 0 2px 8px rgba(45,43,111,0.12); }
+.lp-tab-btn.active { background: #fff; color: #4B3F72; box-shadow: 0 2px 8px rgba(75,63,114,0.12); }
 .lp-tab-cont { display: none; }
 .lp-tab-cont.active { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
 .lp-feat { display: flex; align-items: flex-start; gap: 14px; padding: 18px; border: 1.5px solid #E5E7EB; border-radius: 10px; }
-.lp-check { width: 24px; height: 24px; background: rgba(58,178,106,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-.lp-check svg { width: 13px; height: 13px; color: #3AB26A; }
-.lp-ft { font-size: 0.92rem; font-weight: 700; color: #1E1B4B; margin-bottom: 3px; }
+.lp-check { width: 24px; height: 24px; background: rgba(65,123,90,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.lp-check svg { width: 13px; height: 13px; color: #417B5A; }
+.lp-ft { font-size: 0.92rem; font-weight: 700; color: #1F2041; margin-bottom: 3px; }
 .lp-fd { font-size: 0.83rem; color: #6B7280; line-height: 1.5; }
 
 /* STEPS */
 .lp-steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 48px; position: relative; }
-.lp-steps::before { content: ''; position: absolute; top: 28px; left: calc(12.5% + 14px); right: calc(12.5% + 14px); height: 2px; background: linear-gradient(90deg, #3AB26A, #2D2B6F); z-index: 0; }
+.lp-steps::before { content: ''; position: absolute; top: 28px; left: calc(12.5% + 14px); right: calc(12.5% + 14px); height: 2px; background: linear-gradient(90deg, #417B5A, #4B3F72); z-index: 0; }
 .lp-step { text-align: center; padding: 0 16px; position: relative; z-index: 1; }
-.lp-step-n { width: 56px; height: 56px; border-radius: 50%; background: #3AB26A; color: #fff; font-size: 1.3rem; font-weight: 900; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 16px rgba(58,178,106,0.35); }
-.lp-step-t { font-size: 1rem; font-weight: 700; color: #1E1B4B; margin-bottom: 8px; }
+.lp-step-n { width: 56px; height: 56px; border-radius: 50%; background: #417B5A; color: #fff; font-size: 1.3rem; font-weight: 900; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 4px 16px rgba(65,123,90,0.35); }
+.lp-step-t { font-size: 1rem; font-weight: 700; color: #1F2041; margin-bottom: 8px; }
 .lp-step-d { font-size: 0.85rem; color: #6B7280; line-height: 1.6; }
 
 /* BLOG */
 .lp-blog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; }
 .lp-blog-card { border: 1.5px solid #E5E7EB; border-radius: 12px; overflow: hidden; transition: all 0.25s; }
-.lp-blog-card:hover { box-shadow: 0 4px 24px rgba(45,43,111,0.10); transform: translateY(-3px); }
+.lp-blog-card:hover { box-shadow: 0 4px 24px rgba(75,63,114,0.10); transform: translateY(-3px); }
 .lp-blog-stripe { height: 5px; }
 .lp-blog-body { padding: 24px; }
 .lp-blog-tag { display: inline-block; font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 50px; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
-.lp-blog-tag.purple { background: rgba(45,43,111,0.1); color: #2D2B6F; }
-.lp-blog-tag.green { background: rgba(58,178,106,0.12); color: #3AB26A; }
+.lp-blog-tag.purple { background: rgba(75,63,114,0.1); color: #4B3F72; }
+.lp-blog-tag.green { background: rgba(65,123,90,0.12); color: #417B5A; }
 .lp-blog-tag.blue { background: rgba(59,130,246,0.1); color: #3B82F6; }
-.lp-blog-title { font-size: 1rem; font-weight: 700; color: #1E1B4B; line-height: 1.4; margin-bottom: 10px; }
+.lp-blog-title { font-size: 1rem; font-weight: 700; color: #1F2041; line-height: 1.4; margin-bottom: 10px; }
 .lp-blog-sum { font-size: 0.85rem; color: #6B7280; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .lp-blog-date { font-size: 0.78rem; color: #6B7280; margin-top: 14px; }
 .lp-blog-cta { text-align: center; margin-top: 40px; }
@@ -161,69 +164,69 @@ const LANDING_CSS = `
 /* PLANS */
 .lp-toggle { display: flex; align-items: center; justify-content: center; gap: 16px; margin: 32px 0 40px; }
 .lp-tog-lbl { font-size: 0.92rem; font-weight: 600; color: #6B7280; }
-.lp-tog-lbl.active { color: #2D2B6F; }
+.lp-tog-lbl.active { color: #4B3F72; }
 .lp-tog-sw { width: 48px; height: 26px; background: #E5E7EB; border-radius: 13px; position: relative; cursor: pointer; transition: background 0.3s; }
-.lp-tog-sw.annual { background: #3AB26A; }
+.lp-tog-sw.annual { background: #417B5A; }
 .lp-tog-knob { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform 0.3s; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
 .lp-tog-sw.annual .lp-tog-knob { transform: translateX(22px); }
-.lp-ann-badge { background: rgba(58,178,106,0.15); color: #3AB26A; font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 50px; }
+.lp-ann-badge { background: rgba(65,123,90,0.15); color: #417B5A; font-size: 0.75rem; font-weight: 700; padding: 3px 10px; border-radius: 50px; }
 .lp-plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 .lp-plan { background: #fff; border: 1.5px solid #E5E7EB; border-radius: 14px; padding: 32px 28px; position: relative; transition: all 0.25s; }
 .lp-plan:hover { transform: translateY(-3px); }
-.lp-plan.featured { border-color: #2D2B6F; box-shadow: 0 8px 40px rgba(45,43,111,0.15); }
-.lp-plan-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: #2D2B6F; color: #fff; font-size: 0.75rem; font-weight: 700; padding: 4px 16px; border-radius: 50px; white-space: nowrap; }
+.lp-plan.featured { border-color: #4B3F72; box-shadow: 0 8px 40px rgba(75,63,114,0.15); }
+.lp-plan-badge { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: #4B3F72; color: #fff; font-size: 0.75rem; font-weight: 700; padding: 4px 16px; border-radius: 50px; white-space: nowrap; }
 .lp-plan-name { font-size: 1rem; font-weight: 700; color: #6B7280; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
-.lp-plan-price { font-size: 2.4rem; font-weight: 900; color: #1E1B4B; }
+.lp-plan-price { font-size: 2.4rem; font-weight: 900; color: #1F2041; }
 .lp-plan-old { font-size: 1rem; color: #6B7280; text-decoration: line-through; margin-right: 6px; display: none; }
 .lp-plan-old.show { display: inline; }
 .lp-plan-per { font-size: 0.85rem; color: #6B7280; }
 .lp-plan-desc { font-size: 0.85rem; color: #6B7280; margin: 16px 0 20px; line-height: 1.5; padding-bottom: 20px; border-bottom: 1px solid #E5E7EB; }
 .lp-plan-feats { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
 .lp-plan-feat { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; color: #374151; }
-.lp-plan-feat svg { width: 16px; height: 16px; color: #3AB26A; flex-shrink: 0; }
+.lp-plan-feat svg { width: 16px; height: 16px; color: #417B5A; flex-shrink: 0; }
 .lp-plan-cta { width: 100%; padding: 13px; border-radius: 8px; font-size: 0.95rem; font-weight: 700; text-align: center; transition: all 0.25s; display: block; cursor: pointer; }
 
 /* TESTIMONIALS */
 .lp-testi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; }
-.lp-testi-card { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 4px 24px rgba(45,43,111,0.10); }
+.lp-testi-card { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 4px 24px rgba(75,63,114,0.10); }
 .lp-stars { display: flex; gap: 4px; margin-bottom: 16px; }
 .lp-stars svg { width: 16px; height: 16px; color: #FBBF24; }
 .lp-testi-txt { font-size: 0.92rem; color: #374151; line-height: 1.7; margin-bottom: 20px; font-style: italic; }
 .lp-author { display: flex; align-items: center; gap: 12px; }
 .lp-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.9rem; color: #fff; flex-shrink: 0; }
-.lp-author-name { font-size: 0.9rem; font-weight: 700; color: #1E1B4B; }
+.lp-author-name { font-size: 0.9rem; font-weight: 700; color: #1F2041; }
 .lp-author-role { font-size: 0.78rem; color: #6B7280; margin-top: 2px; }
 
 /* FAQ */
 .lp-faq-list { max-width: 720px; margin: 48px auto 0; display: flex; flex-direction: column; gap: 12px; }
 .lp-faq-item { border: 1.5px solid #E5E7EB; border-radius: 10px; overflow: hidden; }
-.lp-faq-q { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; cursor: pointer; font-weight: 600; font-size: 0.95rem; color: #1E1B4B; transition: background 0.25s; }
-.lp-faq-q:hover { background: #F8F7FF; }
+.lp-faq-q { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; cursor: pointer; font-weight: 600; font-size: 0.95rem; color: #1F2041; transition: background 0.25s; }
+.lp-faq-q:hover { background: #F4F3FA; }
 .lp-faq-ico { width: 22px; height: 22px; flex-shrink: 0; transition: transform 0.3s; color: #6B7280; }
-.lp-faq-item.open .lp-faq-ico { transform: rotate(180deg); color: #3AB26A; }
+.lp-faq-item.open .lp-faq-ico { transform: rotate(180deg); color: #417B5A; }
 .lp-faq-a { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
 .lp-faq-ai { padding: 0 24px 20px; font-size: 0.9rem; color: #6B7280; line-height: 1.7; }
 .lp-faq-item.open .lp-faq-a { max-height: 300px; }
 
 /* CTA FINAL */
-.lp-cta-sec { background: linear-gradient(135deg, #1E1B4B 0%, #2D2B6F 100%); padding: 96px 0; text-align: center; }
+.lp-cta-sec { background: linear-gradient(135deg, #1F2041 0%, #4B3F72 100%); padding: 96px 0; text-align: center; }
 .lp-cta-t { font-size: clamp(2rem, 4.5vw, 3rem); font-weight: 900; color: #fff; margin-bottom: 16px; max-width: 700px; margin-left: auto; margin-right: auto; }
 .lp-cta-sub { font-size: 1.08rem; color: rgba(255,255,255,0.65); margin-bottom: 36px; }
 .lp-cta-form { display: flex; gap: 10px; max-width: 480px; margin: 0 auto 24px; }
 .lp-cta-inp { flex: 1; padding: 14px 18px; border-radius: 8px; background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.25); color: #fff; font-size: 0.95rem; }
 .lp-cta-inp::placeholder { color: rgba(255,255,255,0.45); }
-.lp-cta-inp:focus { border-color: #3AB26A; }
+.lp-cta-inp:focus { border-color: #417B5A; }
 .lp-micros { display: flex; align-items: center; justify-content: center; gap: 24px; flex-wrap: wrap; }
 .lp-micro { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: rgba(255,255,255,0.55); }
-.lp-micro svg { width: 14px; height: 14px; color: #3AB26A; }
+.lp-micro svg { width: 14px; height: 14px; color: #417B5A; }
 
 /* FOOTER */
-.lp-footer { background: #1E1B4B; padding: 72px 0 32px; }
+.lp-footer { background: #1F2041; padding: 72px 0 32px; }
 .lp-ft-top { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr 1fr; gap: 40px; margin-bottom: 56px; }
 .lp-ft-slogan { font-size: 0.88rem; color: rgba(255,255,255,0.45); margin-bottom: 20px; line-height: 1.5; }
 .lp-socials { display: flex; gap: 10px; margin-bottom: 28px; }
 .lp-soc { width: 36px; height: 36px; background: rgba(255,255,255,0.08); border-radius: 8px; display: flex; align-items: center; justify-content: center; transition: background 0.25s; }
-.lp-soc:hover { background: #3AB26A; }
+.lp-soc:hover { background: #417B5A; }
 .lp-soc svg { width: 16px; height: 16px; color: #fff; }
 .lp-nl-lbl { font-size: 0.82rem; color: rgba(255,255,255,0.55); margin-bottom: 10px; font-weight: 600; }
 .lp-nl { display: flex; gap: 8px; }
@@ -400,10 +403,8 @@ export default function Landing() {
       <nav className="lp-nav" id="lp-nav">
         <div className="lp-container lp-nav-inner">
           <a href="/" className="lp-logo">
-            <div className="lp-logo-sym">
-              <svg viewBox="0 0 20 20" fill="none"><path d="M4 4h12v2.5L8.5 14H16v2H4v-2.5L11.5 6H4V4z" fill="white"/></svg>
-            </div>
-            <span>Panalearn</span>
+            <img src="/brand/panalearn-horizontal-on-indigo.png" alt="PanaLearn" className="lp-logo-img lp-logo-img-dark" />
+            <img src="/brand/panalearn-horizontal-on-white.png" alt="PanaLearn" className="lp-logo-img lp-logo-img-light" />
           </a>
           <div className="lp-nav-links">
             <a href="#lp-features">Plataforma</a>
@@ -449,13 +450,13 @@ export default function Landing() {
                 Plataforma LMS para qualquer segmento
               </div>
               <h1 className="lp-h1">Treine equipes, certifique talentos e transforme resultados.</h1>
-              <p className="lp-hsub">Panalearn é a plataforma de aprendizado online que se adapta ao seu negócio — de escolas de idiomas a universidades corporativas, de redes de franquias a instituições de ensino.</p>
+              <p className="lp-hsub">PanaLearn é a plataforma de aprendizado online que se adapta ao seu negócio — de escolas de idiomas a universidades corporativas, de redes de franquias a instituições de ensino.</p>
               <div className="lp-ctas">
                 <a href="/onboarding" className="lp-btn lp-btn-g lp-btn-lg">Começar gratuitamente</a>
                 <a href="#lp-features" className="lp-btn lp-btn-ow lp-btn-lg">Ver demonstração</a>
               </div>
               <div className="lp-trust">
-                <span className="lp-trust-txt">Mais de 500 organizações já confiam na Panalearn</span>
+                <span className="lp-trust-txt">Mais de 500 organizações já confiam na PanaLearn</span>
                 <div className="lp-trust-logos">
                   {['ACME Corp','EduMax','TechGroup','FranquiasBR','HealthCare'].map(n => (
                     <span className="lp-trust-pill" key={n}>{n}</span>
@@ -473,7 +474,7 @@ export default function Landing() {
                 <div className="lp-mc-lbl">Curso em andamento</div>
                 <div className="lp-mc-title">Onboarding Comercial 2025</div>
                 <div className="lp-prog-bg"><div className="lp-prog-fill"/></div>
-                <div className="lp-prog-lbl"><span>Progresso</span><span style={{color:'#7EE8A2',fontWeight:700}}>72%</span></div>
+                <div className="lp-prog-lbl"><span>Progresso</span><span style={{color:'#D0CEBA',fontWeight:700}}>72%</span></div>
               </div>
               <div className="lp-mc">
                 <div className="lp-cert-row">
@@ -532,7 +533,7 @@ export default function Landing() {
       </section>
 
       {/* NUMBERS */}
-      <section className="lp-sec" style={{background:'#F8F7FF'}}>
+      <section className="lp-sec" style={{background:'#F4F3FA'}}>
         <div className="lp-container">
           <div className="lp-center lp-fade">
             <div className="lp-tag">Resultados</div>
@@ -609,7 +610,7 @@ export default function Landing() {
       </section>
 
       {/* HOW */}
-      <section className="lp-sec" style={{background:'#F8F7FF'}}>
+      <section className="lp-sec" style={{background:'#F4F3FA'}}>
         <div className="lp-container">
           <div className="lp-center lp-fade">
             <div className="lp-tag">Primeiros passos</div>
@@ -641,8 +642,8 @@ export default function Landing() {
           </div>
           <div className="lp-blog-grid">
             {[
-              { color:'#2D2B6F', tag:'purple', tagTxt:'Nova funcionalidade', title:'Panalearn lança editor de cursos com assistência de IA', sum:'O novo editor inteligente sugere estrutura de módulos, quizzes e objetivos de aprendizagem automaticamente.', date:'Abr 2025' },
-              { color:'#3AB26A', tag:'green', tagTxt:'Case de Sucesso', title:'Como o Grupo Educação Total certificou 1.200 alunos em 3 meses com a Panalearn', sum:'Veja como a maior rede de escolas técnicas do Sul do país transformou seu T&D com a nossa plataforma.', date:'Mar 2025' },
+              { color:'#4B3F72', tag:'purple', tagTxt:'Nova funcionalidade', title:'PanaLearn lança editor de cursos com assistência de IA', sum:'O novo editor inteligente sugere estrutura de módulos, quizzes e objetivos de aprendizagem automaticamente.', date:'Abr 2025' },
+              { color:'#417B5A', tag:'green', tagTxt:'Case de Sucesso', title:'Como o Grupo Educação Total certificou 1.200 alunos em 3 meses com a PanaLearn', sum:'Veja como a maior rede de escolas técnicas do Sul do país transformou seu T&D com a nossa plataforma.', date:'Mar 2025' },
               { color:'#3B82F6', tag:'blue', tagTxt:'Dica de Gestão', title:'7 indicadores para medir o ROI do treinamento corporativo', sum:'Descubra as métricas que gestores de RH e T&D usam para comprovar o valor do aprendizado.', date:'Fev 2025' },
             ].map((b,i) => (
               <div key={b.title} className="lp-blog-card lp-fade" style={{transitionDelay:`${i*0.1}s`}}>
@@ -663,7 +664,7 @@ export default function Landing() {
       </section>
 
       {/* PLANS */}
-      <section id="lp-plans" className="lp-sec" style={{background:'#F8F7FF'}}>
+      <section id="lp-plans" className="lp-sec" style={{background:'#F4F3FA'}}>
         <div className="lp-container">
           <div className="lp-center lp-fade">
             <div className="lp-tag">Preços</div>
@@ -711,17 +712,17 @@ export default function Landing() {
       </section>
 
       {/* TESTIMONIALS */}
-      <section className="lp-sec" style={{background:'#F8F7FF'}}>
+      <section className="lp-sec" style={{background:'#F4F3FA'}}>
         <div className="lp-container">
           <div className="lp-center lp-fade">
             <div className="lp-tag">Depoimentos</div>
-            <h2 className="lp-title">Quem usa a Panalearn, aprova</h2>
+            <h2 className="lp-title">Quem usa a PanaLearn, aprova</h2>
           </div>
           <div className="lp-testi">
             {[
-              { initials:'FA', bg:'linear-gradient(135deg,#7C3AED,#4F46E5)', name:'Fernanda A.', role:'Diretora de Operações · Grupo FranquiasBR', txt:'"Implantamos a Panalearn em toda nossa rede de franquias em menos de uma semana. Cada unidade com branding próprio e relatórios centralizados."' },
+              { initials:'FA', bg:'linear-gradient(135deg,#7C3AED,#4F46E5)', name:'Fernanda A.', role:'Diretora de Operações · Grupo FranquiasBR', txt:'"Implantamos a PanaLearn em toda nossa rede de franquias em menos de uma semana. Cada unidade com branding próprio e relatórios centralizados."' },
               { initials:'RS', bg:'linear-gradient(135deg,#059669,#10B981)', name:'Ricardo S.', role:'Head de T&D · ConnectCorp', txt:'"A flexibilidade é impressionante. Usamos para onboarding de colaboradores e para nossa escola técnica interna ao mesmo tempo."' },
-              { initials:'PL', bg:'linear-gradient(135deg,#DC2626,#F59E0B)', name:'Patrícia L.', role:'Coord. Pedagógica · EduFlex Idiomas', txt:'"A taxa de conclusão dos nossos cursos de idiomas subiu 60% depois que migramos para a Panalearn. Os alunos adoram a experiência mobile."' },
+              { initials:'PL', bg:'linear-gradient(135deg,#DC2626,#F59E0B)', name:'Patrícia L.', role:'Coord. Pedagógica · EduFlex Idiomas', txt:'"A taxa de conclusão dos nossos cursos de idiomas subiu 60% depois que migramos para a PanaLearn. Os alunos adoram a experiência mobile."' },
             ].map((t,i) => (
               <div key={t.name} className="lp-testi-card lp-fade" style={{transitionDelay:`${i*0.1}s`}}>
                 <div className="lp-stars">{[0,1,2,3,4].map(s => <span key={s}>{starSVG}</span>)}</div>
@@ -745,14 +746,14 @@ export default function Landing() {
           </div>
           <div className="lp-faq-list">
             {[
-              { q:'A Panalearn funciona para qualquer segmento ou tem um foco específico?', a:'A Panalearn é uma plataforma universal. Ela já foi configurada para empresas corporativas, escolas de idiomas, faculdades EAD, redes de franquias, hospitais e órgãos públicos. A arquitetura multi-tenant garante que cada cliente tenha uma experiência completamente personalizada, independentemente do segmento.' },
+              { q:'A PanaLearn funciona para qualquer segmento ou tem um foco específico?', a:'A PanaLearn é uma plataforma universal. Ela já foi configurada para empresas corporativas, escolas de idiomas, faculdades EAD, redes de franquias, hospitais e órgãos públicos. A arquitetura multi-tenant garante que cada cliente tenha uma experiência completamente personalizada, independentemente do segmento.' },
               { q:'Posso importar meus vídeos e conteúdos já existentes?', a:'Sim. Você pode fazer upload de vídeos em MP4, MOV e AVI, documentos PDF, apresentações e outros formatos diretamente na plataforma. Também suportamos links de vídeos externos (YouTube, Vimeo) e integração com ferramentas de autoria como Articulate.' },
               { q:'Como funciona o sistema multi-tenant e o branding por cliente?', a:'Cada cliente (tenant) tem seu próprio ambiente isolado: URL personalizada, logo, paleta de cores, e-mails transacionais e certificados com a identidade visual da organização. Os dados são completamente separados entre tenants via Row Level Security.' },
               { q:'Os certificados emitidos têm validade e podem ser verificados online?', a:'Sim. Cada certificado possui um código único e QR Code que direciona para uma página de verificação pública. A validade pode ser configurada pelo gestor do curso (vitalícia ou com prazo de expiração).' },
               { q:'Existe integração com Active Directory, SSO ou ferramentas de RH?', a:'Sim. Nos planos Enterprise, oferecemos SSO via SAML 2.0, OAuth2 e integração com Active Directory / LDAP. Também possuímos APIs para sincronização com sistemas de RH como SAP SuccessFactors, Gupy, Totvs e outros via webhooks.' },
               { q:'Como funciona o período de teste gratuito de 14 dias?', a:'Ao criar sua conta, você tem acesso completo ao plano Profissional por 14 dias sem necessidade de cartão de crédito. Durante esse período, você pode criar cursos, convidar alunos e explorar todas as funcionalidades.' },
-              { q:'Preciso de equipe técnica para configurar a plataforma?', a:'Não. A Panalearn foi projetada para que gestores de RH e coordenadores pedagógicos configurem tudo sem necessidade de TI. Para integrações avançadas (SSO, API), nossa equipe técnica oferece suporte dedicado.' },
-              { q:'Como a Panalearn trata segurança e conformidade com a LGPD?', a:'A plataforma está em conformidade com a LGPD. Os dados dos usuários são armazenados em servidores no Brasil com criptografia em trânsito (TLS 1.3) e em repouso. Disponibilizamos DPA para clientes Enterprise.' },
+              { q:'Preciso de equipe técnica para configurar a plataforma?', a:'Não. A PanaLearn foi projetada para que gestores de RH e coordenadores pedagógicos configurem tudo sem necessidade de TI. Para integrações avançadas (SSO, API), nossa equipe técnica oferece suporte dedicado.' },
+              { q:'Como a PanaLearn trata segurança e conformidade com a LGPD?', a:'A plataforma está em conformidade com a LGPD. Os dados dos usuários são armazenados em servidores no Brasil com criptografia em trânsito (TLS 1.3) e em repouso. Disponibilizamos DPA para clientes Enterprise.' },
             ].map((f,i) => (
               <div key={i} className="lp-faq-item lp-fade" style={{transitionDelay:`${i*0.04}s`}}>
                 <div className="lp-faq-q" onClick={(e) => (window as any).__lpFaq?.(e.currentTarget)}>
@@ -789,8 +790,7 @@ export default function Landing() {
           <div className="lp-ft-top">
             <div>
               <div className="lp-logo" style={{marginBottom:12}}>
-                <div className="lp-logo-sym"><svg viewBox="0 0 20 20" fill="none"><path d="M4 4h12v2.5L8.5 14H16v2H4v-2.5L11.5 6H4V4z" fill="white"/></svg></div>
-                <span>Panalearn</span>
+                <img src="/brand/panalearn-horizontal-on-indigo.png" alt="PanaLearn" className="lp-logo-img" />
               </div>
               <p className="lp-ft-slogan">Aprenda. Certifique. Cresça.<br/>A plataforma LMS para qualquer organização.</p>
               <div className="lp-socials">
@@ -817,7 +817,7 @@ export default function Landing() {
             ))}
           </div>
           <div className="lp-ft-bot">
-            <span className="lp-ft-copy">© 2025 Panalearn. Todos os direitos reservados.</span>
+            <span className="lp-ft-copy">© 2025 PanaLearn. Todos os direitos reservados.</span>
             <span className="lp-ft-copy">Feito com 💚 no Brasil</span>
           </div>
         </div>

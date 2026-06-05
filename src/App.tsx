@@ -32,6 +32,8 @@ import OnboardingSucesso from '@/pages/OnboardingSucesso';
 import PlanoExpirado from '@/pages/PlanoExpirado';
 import { ImageDiagnostic } from '@/components/ImageDiagnostic';
 import GerenciarOrdemVideos from '@/pages/admin/GerenciarOrdemVideos';
+import CertificateTemplates from '@/pages/admin/CertificateTemplates';
+import ValidarCertificado from '@/pages/ValidarCertificado';
 import { runDiagnostics } from '@/utils/debug-env';
 import { ThemeProvider } from "@/components/theme-provider";
 // import AIModulePage from '@/pages/admin/ai';
@@ -173,14 +175,24 @@ const App = () => {
                     </ProtectedRoute>
                   } 
                 />
-                <Route 
-                  path="/admin/gerenciar-ordem-videos/:cursoId" 
+                <Route
+                  path="/admin/gerenciar-ordem-videos/:cursoId"
                   element={
                     <ProtectedRoute>
                       <GerenciarOrdemVideos />
                     </ProtectedRoute>
-                  } 
+                  }
                 />
+                <Route
+                  path="/admin/certificados/templates"
+                  element={
+                    <ProtectedRoute>
+                      <CertificateTemplates />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Validação pública de certificados */}
+                <Route path="/validar/:codigo" element={<ValidarCertificado />} />
                 {/* <Route 
                   path="/admin/ai" 
                   element={

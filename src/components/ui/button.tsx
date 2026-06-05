@@ -4,26 +4,35 @@ import { cva, type VariantProps } from "class-variance-authority"
 
 import { cn } from "@/lib/utils"
 
+// Brandbook v1.0 — 5 variantes PanaLearn
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4B3F72] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
+        // Ação principal: Teal sólido
+        default:
+          "bg-[#417B5A] text-white hover:bg-[#4e9168] active:bg-[#356649]",
+        // Ação secundária importante: Grape sólido
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-[#4B3F72] text-[#E9D2C0] hover:bg-[#5c4e8a] active:bg-[#3D3360]",
+        // Editar / ações de linha: outline Grape
+        outline:
+          "border border-[#4B3F72] bg-transparent text-[#4B3F72] hover:bg-[#4B3F72]/5 active:bg-[#4B3F72]/10",
+        // Ações neutras / refresh: ghost com borda Bone
+        ghost:
+          "border border-[#D0CEBA] bg-transparent text-[#6b7280] hover:bg-[#f3f1ec] hover:text-[#1F2041] active:bg-[#e4e5f0]",
+        // Deletar: danger outline vermelho (sm)
+        destructive:
+          "border border-red-500 bg-transparent text-red-600 text-xs hover:bg-red-50 active:bg-red-100",
+        // Mantido para compatibilidade com shadcn
+        link: "text-[#4B3F72] underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-11 rounded-md px-8",
-        icon: "h-10 w-10",
+        default: "h-9 px-4 py-2",
+        sm:      "h-7 rounded-md px-3 py-1 text-xs",
+        lg:      "h-11 rounded-md px-8",
+        icon:    "h-9 w-9",
       },
     },
     defaultVariants: {

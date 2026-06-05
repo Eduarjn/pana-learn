@@ -31,13 +31,15 @@ interface BrandingContextType {
 // ─── Padrão ───────────────────────────────────────────────────────────────────
 
 export const defaultBranding: BrandingConfig = {
-  logo_url: '/panalearn-logo.png',
-  sub_logo_url: '/panalearn-icon-dark.png',
-  favicon_url: '/panalearn-favicon.png',
+  // ── Assets do Design System (public/brand/) ──
+  logo_url:    '/brand/panalearn-horizontal-on-white.png', // logo para fundos claros
+  sub_logo_url: '/brand/panalearn-mark-white.png',         // símbolo branco (fundos escuros)
+  favicon_url:  '/brand/favicon-32.png',
   background_url: '',
-  primary_color: '#22c55e',   // Lime Green Panalearn
-  secondary_color: '#1f2937', // Dark Gray
-  company_name: 'Panalearn',
+  // ── Cores do Branding Book ──
+  primary_color:   '#417B5A',  // Jungle Teal — CTA principal
+  secondary_color: '#1F2041',  // Space Indigo — sidebar / headers
+  company_name:  'PanaLearn',
   company_slogan: 'Conhecimento em Conexão',
 };
 
@@ -134,11 +136,16 @@ export const useBranding = () => {
 // ─── Migração automática de assets antigos ────────────────────────────────────
 
 const OLD_ASSETS: Record<string, string> = {
-  '/logotipoeralearn.png': '/panalearn-logo.png',
-  '/logotipoeralearn.svg': '/panalearn-logo.png',
-  '/panalearnlogo.jpg': '/panalearn-logo.png',
-  '/era-sub-logo.png': '/panalearn-icon-dark.png',
-  '/favicon.ico': '/panalearn-favicon.png',
+  // assets antigos → novos paths do Design System
+  '/logotipoeralearn.png':      '/brand/panalearn-horizontal-on-white.png',
+  '/logotipoeralearn.svg':      '/brand/panalearn-horizontal-on-white.png',
+  '/panalearnlogo.jpg':         '/brand/panalearn-horizontal-on-white.png',
+  '/panalearn-logo.png':        '/brand/panalearn-horizontal-on-white.png',
+  '/panalearn-logo-horizontal.png': '/brand/panalearn-horizontal-on-white.png',
+  '/era-sub-logo.png':          '/brand/panalearn-mark-white.png',
+  '/panalearn-icon-dark.png':   '/brand/panalearn-mark-white.png',
+  '/favicon.ico':               '/brand/favicon-32.png',
+  '/panalearn-favicon.png':     '/brand/favicon-32.png',
 };
 
 const OLD_COLORS: Record<string, string> = {
@@ -161,7 +168,7 @@ function migrateBranding(cfg: BrandingConfig): BrandingConfig {
   // Migrar URLs completas (Supabase Storage) que contenham nomes antigos
   const oldLogoNames = ['logotipoeralearn', 'panalearnlogo', 'era-sub-logo', 'eralearn'];
   if (migrated.logo_url && oldLogoNames.some(n => migrated.logo_url.includes(n))) {
-    migrated.logo_url = '/panalearn-logo.png';
+    migrated.logo_url = '/brand/panalearn-horizontal-on-white.png';
   }
   if (migrated.sub_logo_url && oldLogoNames.some(n => migrated.sub_logo_url.includes(n))) {
     migrated.sub_logo_url = '/panalearn-icon-dark.png';

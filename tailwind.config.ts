@@ -63,7 +63,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// ERA color palette
+				// ERA color palette (legado)
 				'era-white': '#FFFFFF',
 				'era-black': '#000000',
 				'era-green': '#34C759',
@@ -73,6 +73,19 @@ export default {
 				'era-text-secondary': '#4A4A4A',
 				'era-background': '#FFFFFF',
 				'era-border': '#E5E5E5',
+
+				// PanaLearn design system
+				'pana-indigo':       '#1F2041',
+				'pana-grape':        '#4B3F72',
+				'pana-grape-dark':   '#3D3360',
+				'pana-teal':         '#417B5A',
+				'pana-teal-dark':    '#356649',
+				'pana-bone':         '#D0CEBA',
+				'pana-petal':        '#E9D2C0',
+				'pana-grape-muted':  '#E8E4F3',
+				'pana-teal-muted':   '#D4E8DC',
+				'pana-indigo-muted': '#E4E5F0',
+				'pana-bg':           '#F6F6FA',
 				
 				// Futuristic color palette
 				'accent': 'var(--accent)',

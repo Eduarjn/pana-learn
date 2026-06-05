@@ -9,8 +9,15 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
     "test:local": "node scripts/test-local.js",
-    "test:upload": "echo 'Abra http://localhost:5173/teste-upload-imagens.html para testar upload'"
+    "test:upload": "echo 'Abra http://localhost:5173/teste-upload-imagens.html para testar upload'",
+    "load-test": "node load-test/node-load-test.js",
+    "load-test:stress": "node load-test/node-load-test.js --vus 30 --duration 60",
+    "load-test:k6": "k6 run load-test/k6-load-test.js",
+    "load-test:k6:stress": "k6 run --env SCENARIO=stress load-test/k6-load-test.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -74,21 +81,26 @@
   "devDependencies": {
     "@eslint/js": "^9.9.0",
     "@tailwindcss/typography": "^0.5.15",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^22.5.5",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
+    "@vitest/ui": "^4.1.7",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
+    "jsdom": "^29.1.1",
     "lovable-tagger": "^1.1.7",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "vitest": "^4.1.7"
   }
 }

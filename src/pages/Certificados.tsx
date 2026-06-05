@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { fadeInUp, staggerContainer, staggerFast, cardItem, cardHover } from '@/lib/animations';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { ERALayout } from '@/components/ERALayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Download, Eye, Trophy, FileText, Award, Filter } from 'lucide-react';
+import { Search, Download, Eye, Trophy, FileText, Award, Filter, LayoutTemplate } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { downloadCertificateAsPDF, openCertificateInNewWindow } from '@/utils/certificateGenerator';
-import type { Certificate } from '@/types/certificate';
+import { previewCertificateInNewTab } from '@/utils/generateCertificatePDF';
+import { getDefaultTemplate } from '@/services/certificateService';
+import type { Certificate, CertificateTemplate } from '@/types/certificate';
 
 interface CertificateStats { total: number; ativos: number; revogados: number; expirados: number; mediaNota: number; }
 
 const CATEGORY_ACCENT: Record<string, string> = {
-  PABX: '#2563EB', CALLCENTER: '#7C3AED', OMNICHANNEL: '#059669', VoIP: '#EA580C',
+  PABX: '#3B82F6', CALLCENTER: '#4B3F72', OMNICHANNEL: '#417B5A', VoIP: '#F97316',
 };
-const getCatAccent = (c: string) => CATEGORY_ACCENT[c] ?? '#2D2B6F';
+const getCatAccent = (c: string) => CATEGORY_ACCENT[c] ?? '#4B3F72';
 
 const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> = {
   ativo:    { bg: '#F0FDF4', text: '#166534', label: 'Ativo' },
@@ -25,15 +30,19 @@ const STATUS_STYLE: Record<string, { bg: string; text: string; label: string }> 
 
 const Certificados: React.FC = () => {
   const { userProfile } = useAuth();
+  const navigate = useNavigate();
+  const canManageTemplates =
+    userProfile?.tipo_usuario === 'admin' || userProfile?.tipo_usuario === 'admin_master';
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [filteredCertificates, setFilteredCertificates] = useState<Certificate[]>([]);
   const [stats, setStats] = useState<CertificateStats>({ total: 0, ativos: 0, revogados: 0, expirados: 0, mediaNota: 0 });
+  const [defaultTemplate, setDefaultTemplate] = useState<CertificateTemplate | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [categoriaFilter, setCategoriaFilter] = useState('todos');
 
-  useEffect(() => { loadCertificates(); }, [userProfile]);
+  useEffect(() => { loadCertificates(); getDefaultTemplate().then(setDefaultTemplate).catch(() => {}); }, [userProfile]);
   useEffect(() => { filterCertificates(); }, [certificates, searchTerm, statusFilter, categoriaFilter]);
 
   const loadCertificates = async () => {
@@ -74,8 +83,27 @@ const Certificados: React.FC = () => {
 
   const handleDownload = async (cert: Certificate) => {
     toast({ title: 'Gerando PDF...', description: cert.cursos?.nome || cert.curso_nome });
-    const ok = await downloadCertificateAsPDF(cert);
-    if (!ok) toast({ title: 'Erro', description: 'Falha ao gerar PDF.', variant: 'destructive' });
+    // Use new template-aware PDF if template data available, else fall back
+    if (defaultTemplate && cert.carga_horaria != null) {
+      try {
+        await previewCertificateInNewTab({
+          id: cert.id,
+          student_name: cert.usuarios?.nome || cert.usuario_nome || 'Aluno',
+          course_name: cert.cursos?.nome || cert.curso_nome || 'Curso',
+          carga_horaria: cert.carga_horaria ?? 0,
+          aproveitamento: cert.aproveitamento ?? cert.nota_final ?? cert.nota ?? 0,
+          issued_at: cert.issued_at || cert.data_emissao,
+          validation_code: cert.validation_code || cert.numero_certificado,
+          template: (cert.certificate_templates as CertificateTemplate) ?? defaultTemplate,
+        });
+      } catch {
+        const ok = await downloadCertificateAsPDF(cert);
+        if (!ok) toast({ title: 'Erro', description: 'Falha ao gerar PDF.', variant: 'destructive' });
+      }
+    } else {
+      const ok = await downloadCertificateAsPDF(cert);
+      if (!ok) toast({ title: 'Erro', description: 'Falha ao gerar PDF.', variant: 'destructive' });
+    }
   };
 
   const handleView = async (cert: Certificate) => {
@@ -87,7 +115,7 @@ const Certificados: React.FC = () => {
     <ERALayout>
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: '#2D2B6F', borderTopColor: 'transparent' }} />
+          <div className="w-10 h-10 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: '#4B3F72', borderTopColor: 'transparent' }} />
           <p className="text-sm text-gray-500">Carregando certificados...</p>
         </div>
       </div>
@@ -96,53 +124,81 @@ const Certificados: React.FC = () => {
 
   return (
     <ERALayout>
-      <div className="min-h-screen" style={{ background: '#F8F7FF' }}>
+      <div className="min-h-screen" style={{ background: '#F6F6FA' }}>
 
         {/* Hero */}
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           className="w-full rounded-xl lg:rounded-2xl mb-6 overflow-hidden shadow-md"
-          style={{ background: 'linear-gradient(135deg, #1E1B4B 0%, #2D2B6F 60%, #3D3A8F 100%)' }}
+          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #4B3F72 60%, #417B5A 100%)' }}
         >
           <div className="px-6 lg:px-10 py-8 lg:py-10">
             <div className="flex items-start justify-between gap-6">
-              <div>
-                <div className="flex items-center gap-2 mb-3">
+              <motion.div
+                variants={staggerContainer} initial="hidden" animate="visible"
+              >
+                <motion.div variants={fadeInUp} className="flex items-center gap-2 mb-3">
                   <span
                     className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)', color: '#FCD34D' }}
+                    style={{ background: 'rgba(233,210,192,0.12)', border: '1px solid rgba(233,210,192,0.25)', color: '#E9D2C0' }}
                   >
                     <Award className="w-3 h-3" />
                     Certificações
                   </span>
-                </div>
-                <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Certificados</h1>
-                <p className="text-white/70 text-sm md:text-base max-w-xl">
+                </motion.div>
+                <motion.h1 variants={fadeInUp} className="text-3xl md:text-4xl font-bold text-white mb-2">Certificados</motion.h1>
+                <motion.p variants={fadeInUp} className="text-white/70 text-sm md:text-base max-w-xl">
                   Visualize e gerencie todos os certificados emitidos pela plataforma.
-                </p>
-              </div>
+                </motion.p>
+              </motion.div>
+
+              {/* Gerenciar Templates — visível só para admin */}
+              {canManageTemplates && (
+                <motion.div variants={fadeInUp} initial="hidden" animate="visible" className="flex-shrink-0 mt-1">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/admin/certificados/templates')}
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.03]"
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid rgba(255,255,255,0.18)',
+                      color: '#E9D2C0',
+                      backdropFilter: 'blur(8px)',
+                    }}
+                  >
+                    <LayoutTemplate className="w-4 h-4" />
+                    <span className="hidden sm:inline">Gerenciar templates</span>
+                    <span className="sm:hidden">Templates</span>
+                  </button>
+                </motion.div>
+              )}
             </div>
           </div>
 
           {/* Stats bar */}
-          <div className="px-6 md:px-10 py-4 grid grid-cols-4 gap-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <motion.div
+            variants={staggerFast} initial="hidden" animate="visible"
+            className="px-6 md:px-10 py-4 grid grid-cols-4 gap-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
+          >
             {[
               { value: stats.total,   label: 'Total emitidos' },
               { value: stats.ativos,  label: 'Ativos' },
               { value: `${stats.mediaNota}%`, label: 'Média geral' },
               { value: certificates.length > 0 ? new Date(certificates[0].data_emissao).toLocaleDateString('pt-BR') : '—', label: 'Última emissão' },
             ].map(({ value, label }) => (
-              <div key={label} className="text-center">
+              <motion.div key={label} variants={cardItem} className="text-center">
                 <div className="text-xl md:text-2xl font-bold text-white">{value}</div>
                 <div className="text-xs text-white/50 mt-0.5">{label}</div>
-              </div>
+              </motion.div>
             ))}
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
         <div className="px-1 pb-8 space-y-5">
 
           {/* Filtros */}
-          <div className="bg-white rounded-xl p-4" style={{ border: '1px solid #EDE9FE' }}>
+          <div className="bg-white rounded-xl p-4" style={{ border: '1px solid #e4e5f0' }}>
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -151,11 +207,11 @@ const Certificados: React.FC = () => {
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   className="pl-9 border-2 rounded-lg text-sm"
-                  style={{ borderColor: '#EDE9FE' }}
+                  style={{ borderColor: '#e4e5f0' }}
                 />
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-44 border-2 rounded-lg text-sm" style={{ borderColor: '#EDE9FE' }}>
+                <SelectTrigger className="w-full sm:w-44 border-2 rounded-lg text-sm" style={{ borderColor: '#e4e5f0' }}>
                   <Filter className="h-4 w-4 mr-2 text-gray-400" />
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -167,7 +223,7 @@ const Certificados: React.FC = () => {
                 </SelectContent>
               </Select>
               <Select value={categoriaFilter} onValueChange={setCategoriaFilter}>
-                <SelectTrigger className="w-full sm:w-48 border-2 rounded-lg text-sm" style={{ borderColor: '#EDE9FE' }}>
+                <SelectTrigger className="w-full sm:w-48 border-2 rounded-lg text-sm" style={{ borderColor: '#e4e5f0' }}>
                   <SelectValue placeholder="Categoria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -183,9 +239,9 @@ const Certificados: React.FC = () => {
 
           {/* Lista de certificados */}
           {filteredCertificates.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-xl" style={{ border: '1px solid #EDE9FE' }}>
+            <div className="text-center py-16 bg-white rounded-xl" style={{ border: '1px solid #e4e5f0' }}>
               <FileText className="h-10 w-10 mx-auto mb-3" style={{ color: '#C4B5FD' }} />
-              <p className="font-medium text-sm" style={{ color: '#1E1B4B' }}>Nenhum certificado encontrado</p>
+              <p className="font-medium text-sm" style={{ color: '#1F2041' }}>Nenhum certificado encontrado</p>
               <p className="text-gray-400 text-xs mt-1">
                 {searchTerm || statusFilter !== 'todos' || categoriaFilter !== 'todos'
                   ? 'Tente ajustar os filtros.'
@@ -202,7 +258,7 @@ const Certificados: React.FC = () => {
                   <div
                     key={cert.id}
                     className="bg-white rounded-xl overflow-hidden hover:shadow-md transition-all duration-200"
-                    style={{ border: '1px solid #EDE9FE', borderTop: `4px solid ${accent}` }}
+                    style={{ border: '1px solid #e4e5f0', borderTop: `4px solid ${accent}` }}
                   >
                     <div className="p-5">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -215,7 +271,7 @@ const Certificados: React.FC = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 flex-wrap mb-1">
-                              <h3 className="font-semibold text-sm" style={{ color: '#1E1B4B' }}>{courseName}</h3>
+                              <h3 className="font-semibold text-sm" style={{ color: '#1F2041' }}>{courseName}</h3>
                               <span
                                 className="text-xs px-2 py-0.5 rounded-full font-medium"
                                 style={{ background: statusStyle.bg, color: statusStyle.text }}
@@ -231,6 +287,8 @@ const Certificados: React.FC = () => {
                                 { label: 'Número', value: cert.numero_certificado },
                                 { label: 'Nota', value: `${cert.nota_final || cert.nota || 0}%` },
                                 { label: 'Emissão', value: new Date(cert.data_emissao).toLocaleDateString('pt-BR') },
+                                cert.validation_code ? { label: 'Código', value: cert.validation_code } : null,
+                                cert.carga_horaria ? { label: 'Carga horária', value: `${cert.carga_horaria}h` } : null,
                                 cert.usuarios ? { label: 'Usuário', value: cert.usuarios.nome } : null,
                               ].filter(Boolean).map(item => (
                                 <div key={item!.label}>
@@ -247,7 +305,7 @@ const Certificados: React.FC = () => {
                           <Button
                             variant="outline" size="sm" onClick={() => handleView(cert)}
                             className="flex items-center gap-1.5 text-xs"
-                            style={{ borderColor: '#EDE9FE', color: '#2D2B6F' }}
+                            style={{ borderColor: '#e4e5f0', color: '#4B3F72' }}
                           >
                             <Eye className="h-3.5 w-3.5" />
                             Visualizar

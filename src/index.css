@@ -1,4 +1,57 @@
 @import './lib/ui/tokens.css';
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
+
+/* === PANA-LEARN BRAND TOKENS (Brandbook v1.0) === */
+:root {
+  /* Cores principais */
+  --pana-indigo:        #1F2041;
+  --pana-grape:         #4B3F72;
+  --pana-teal:          #417B5A;
+  --pana-bone:          #D0CEBA;
+  --pana-petal:         #E9D2C0;
+
+  /* Derivados / surface */
+  --pana-grape-muted:   #e8e4f3;
+  --pana-teal-muted:    #d4e8dc;
+  --pana-indigo-muted:  #e4e5f0;
+  --pana-bone-light:    #f3f1ec;
+
+  /* Hover states */
+  --pana-indigo-hover:  #2d2f5e;
+  --pana-grape-hover:   #5c4e8a;
+  --pana-teal-hover:    #4e9168;
+
+  /* Layout */
+  --sidebar-width:      220px;
+  --header-height:      56px;
+
+  /* Border radius */
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  12px;
+  --radius-xl:  16px;
+
+  /* Typography */
+  --font-size-h1:      22px;
+  --font-size-h2:      18px;
+  --font-size-h3:      16px;
+  --font-size-body:    14px;
+  --font-size-caption: 12px;
+  --font-size-label:   11px;
+
+  /* Fonts */
+  --font-display: 'Quicksand', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Color aliases for components */
+  --color-text-primary:    #1F2041;
+  --color-text-secondary:  #6b7280;
+  --color-border-primary:  #D0CEBA;
+  --color-border-secondary: #D0CEBA;
+  --color-border-tertiary:  #e4e5f0;
+  --color-background-primary: #ffffff;
+  --pana-bg: #F6F6FA;
+}
 
 @tailwind base;
 @tailwind components;
@@ -157,6 +210,75 @@
   #root {
     height: 100%;
   }
+}
+
+/* === TIPOGRAFIA GLOBAL (Brandbook v1.0) === */
+@layer base {
+  h1, .pana-h1 {
+    font-size: var(--font-size-h1);
+    font-weight: 500;
+    color: var(--pana-indigo);
+    line-height: 1.3;
+  }
+  h2, .pana-h2 {
+    font-size: var(--font-size-h2);
+    font-weight: 500;
+    color: var(--pana-indigo);
+    line-height: 1.3;
+  }
+  h3, .pana-h3 {
+    font-size: var(--font-size-h3);
+    font-weight: 500;
+    color: var(--pana-grape);
+    line-height: 1.4;
+  }
+  .pana-body   { font-size: var(--font-size-body); font-weight: 400; line-height: 1.7; }
+  .pana-caption{ font-size: var(--font-size-caption); font-weight: 400; color: #6b7280; }
+  .pana-label  {
+    font-size: var(--font-size-label);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+}
+
+/* === COMPONENTES PANA-LEARN (Brandbook v1.0) === */
+@layer components {
+  /* Badges */
+  .pana-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 500;
+    padding: 3px 9px; border-radius: 20px;
+  }
+  .badge-ativo       { background: #d4e8dc; color: #2a6045; }
+  .badge-inativo     { background: #e8e4f3; color: #4B3F72; }
+  .badge-trial       { background: #E9D2C0; color: #7a5840; }
+  .badge-principal   { background: #1F2041; color: #E9D2C0; }
+  .badge-starter     { background: #e4e5f0; color: #1F2041; }
+  .badge-pro         { background: #4B3F72; color: #E9D2C0; }
+  .badge-enterprise  { background: #417B5A; color: #ffffff; }
+
+  /* Inputs */
+  .pana-input {
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-secondary);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    width: 100%;
+    transition: border-color 200ms, box-shadow 200ms;
+  }
+  .pana-input:focus {
+    border-color: #4B3F72;
+    box-shadow: 0 0 0 3px rgba(75,63,114,0.15);
+    outline: none;
+  }
+
+  /* Tabs */
+  .pana-tabs        { display: flex; border-bottom: 1px solid #e4e5f0; }
+  .pana-tab         { padding: 8px 16px; font-size: 13px; color: #6b7280; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; transition: color 150ms; }
+  .pana-tab:hover   { color: #1F2041; }
+  .pana-tab.active  { color: #4B3F72; border-bottom-color: #4B3F72; font-weight: 500; }
 }
 
 /* Custom ERA classes with the new color palette */

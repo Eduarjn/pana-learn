@@ -14,9 +14,14 @@ import {
   Zap, HardDrive, BarChart3, ShieldAlert
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { fadeInUp, fadeIn, staggerContainer, cardItem, cardHover, staggerFast } from '@/lib/animations';
 
 const formatTimeAgo = (d: string) => {
-  const diff = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
+  if (!d) return '—';
+  const ts = new Date(d).getTime();
+  if (isNaN(ts)) return '—';
+  const diff = Math.floor((Date.now() - ts) / 60000);
   if (diff < 1) return 'agora mesmo';
   if (diff < 60) return `${diff} min atrás`;
   const h = Math.floor(diff / 60);
@@ -33,14 +38,14 @@ const getActivityIcon = (type: string) => {
 };
 
 const getActivityText = (a: { type: string; user_name: string; course_name?: string; category_name?: string }) => {
-  if (a.type === 'course_completed')   return `${a.user_name} completou o curso ${a.course_name}`;
-  if (a.type === 'course_started')     return `${a.user_name} iniciou o curso ${a.course_name}`;
-  if (a.type === 'certificate_earned') return `${a.user_name} conquistou certificado de ${a.category_name}`;
+  if (a.type === 'course_completed')   return `${a.user_name} completou o curso ${a.course_name ?? 'desconhecido'}`;
+  if (a.type === 'course_started')     return `${a.user_name} iniciou o curso ${a.course_name ?? 'desconhecido'}`;
+  if (a.type === 'certificate_earned') return `${a.user_name} conquistou certificado${a.category_name ? ` de ${a.category_name}` : ''}`;
   return 'Atividade realizada';
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  PABX: '#3B82F6', CALLCENTER: '#7C3AED', OMNICHANNEL: '#3AB26A', VoIP: '#F97316',
+  PABX: '#3B82F6', CALLCENTER: '#4B3F72', OMNICHANNEL: '#417B5A', VoIP: '#F97316',
 };
 
 const Dashboard = () => {
@@ -59,81 +64,94 @@ const Dashboard = () => {
   return (
     <ERALayout>
       <div className="min-h-screen bg-background">
-        
+
         {/* Hero */}
-        <div className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #1E1B4B 0%, #2D2B6F 60%, #3D3A8F 100%)' }}>
+        <motion.div
+          initial="hidden" animate="visible" variants={fadeIn}
+          className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #2d2f5e 60%, #4B3F72 100%)' }}
+        >
           <div className="px-6 lg:px-10 py-8 lg:py-12">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#3AB26A' }}></div>
+
+              <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="flex-1">
+                <motion.div variants={fadeInUp} className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#D0CEBA' }}></div>
                   <span className="text-xs lg:text-sm font-medium text-white/80">Plataforma de Ensino</span>
-                </div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">
+                </motion.div>
+                <motion.h1 variants={fadeInUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">
                   Olá, {userName}!
-                </h1>
-                <p className="text-sm sm:text-base lg:text-lg text-white/80 max-w-2xl mb-4">
+                </motion.h1>
+                <motion.p variants={fadeInUp} className="text-sm sm:text-base lg:text-lg text-white/80 max-w-2xl mb-4">
                   Você tem {courses.length} cursos disponíveis. Continue aprendendo!
-                </p>
-                <div className="flex flex-wrap items-center gap-4">
+                </motion.p>
+                <motion.div variants={staggerFast} className="flex flex-wrap items-center gap-4">
                   {[
                     { icon: BookOpen, label: 'Cursos disponíveis' },
                     { icon: Clock,    label: 'Progresso contínuo' },
                     { icon: Award,    label: 'Certificações' },
                   ].map(({ icon: Icon, label }) => (
-                    <div key={label} className="flex items-center gap-2 text-xs lg:text-sm text-white/80">
-                      <Icon className="h-4 w-4" style={{ color: '#3AB26A' }} />
+                    <motion.div key={label} variants={fadeInUp} className="flex items-center gap-2 text-xs lg:text-sm text-white/80">
+                      <Icon className="h-4 w-4" style={{ color: '#D0CEBA' }} />
                       <span>{label}</span>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
-              </div>
+                </motion.div>
+              </motion.div>
 
-              <div className="flex flex-col gap-3">
-                {stats && (
-                  <div className="flex gap-3 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.45, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                className="flex flex-col gap-3"
+              >
+                {isAdmin && stats && (
+                  <motion.div variants={staggerFast} initial="hidden" animate="visible" className="flex gap-3 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
                     {[
                       { value: stats.totalUsers ?? 0,                   label: 'Usuários' },
                       { value: stats.totalCourses ?? courses.length,    label: 'Cursos' },
                       { value: stats.totalCertificates ?? 0,             label: 'Certificados' },
                       { value: `${stats.completionRate ?? 0}%`,          label: 'Taxa' },
                     ].map(({ value, label }) => (
-                      <div key={label}
+                      <motion.div key={label} variants={cardItem}
                         className="flex flex-col items-center justify-center rounded-xl px-4 py-3 text-center min-w-[76px]"
                         style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)' }}>
                         <span className="text-xl font-bold text-white leading-tight">{value}</span>
                         <span className="text-[11px] text-white/70 uppercase tracking-wider font-semibold mt-1">{label}</span>
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 )}
                 <Button
                   onClick={() => navigate('/treinamentos')}
-                  className="text-white font-semibold rounded-xl flex items-center gap-2 justify-center transition-all hover:scale-105 h-11"
-                  style={{ background: '#3AB26A' }}
+                  variant="default"
+                  className="font-semibold rounded-xl flex items-center gap-2 justify-center h-11"
                 >
                   <MonitorPlay className="h-4 w-4" />
                   Acessar Meus Cursos
                 </Button>
-              </div>
+              </motion.div>
 
             </div>
           </div>
-        </div>
+        </motion.div>
 
         <div className="px-4 lg:px-6 pb-10">
           <div className="max-w-7xl mx-auto space-y-6">
 
-            {/* Dashboard Stats & Activity */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
+            {/* Atividade recente + Progresso */}
+            <motion.div
+              variants={staggerFast} initial="hidden" whileInView="visible"
+              viewport={{ once: true, margin: '-60px' }}
+              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            >
               {/* Atividade recente */}
-              <div className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col h-full">
+              <motion.div variants={cardItem} whileHover={cardHover}
+                className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col h-full"
+              >
                 <div className="px-5 py-4 flex items-center gap-3 border-b border-border bg-muted/30">
-                  <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/40">
-                    <Clock className="h-4 w-4 text-indigo-700 dark:text-indigo-400" />
+                  <div className="p-2 rounded-lg" style={{ background: '#e8e4f3' }}>
+                    <Clock className="h-4 w-4" style={{ color: '#4B3F72' }} />
                   </div>
                   <div>
                     <span className="font-semibold text-foreground">Atividade Recente</span>
@@ -142,9 +160,11 @@ const Dashboard = () => {
                 </div>
                 <div className="p-5 flex-1">
                   {recentActivities && recentActivities.length > 0 ? (
-                    <div className="space-y-3">
+                    <motion.div variants={staggerFast} initial="hidden" animate="visible" className="space-y-3">
                       {recentActivities.map(activity => (
-                        <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border/50">
+                        <motion.div key={activity.id} variants={fadeInUp}
+                          className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border/50"
+                        >
                           <div className="mt-0.5 flex-shrink-0 bg-background p-1.5 rounded-md shadow-sm border border-border">
                             {getActivityIcon(activity.type)}
                           </div>
@@ -152,9 +172,9 @@ const Dashboard = () => {
                             <p className="text-sm text-foreground font-medium leading-snug">{getActivityText(activity)}</p>
                             <p className="text-xs text-muted-foreground mt-1">{formatTimeAgo(activity.created_at)}</p>
                           </div>
-                        </div>
+                        </motion.div>
                       ))}
-                    </div>
+                    </motion.div>
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full py-8 text-center">
                       <Clock className="h-10 w-10 mb-3 text-muted-foreground/30" />
@@ -162,13 +182,15 @@ const Dashboard = () => {
                     </div>
                   )}
                 </div>
-              </div>
+              </motion.div>
 
               {/* Progresso por categoria */}
-              <div className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col h-full">
+              <motion.div variants={cardItem} whileHover={cardHover}
+                className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col h-full"
+              >
                 <div className="px-5 py-4 flex items-center gap-3 border-b border-border bg-muted/30">
-                  <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/40">
-                    <TrendingUp className="h-4 w-4 text-green-700 dark:text-green-400" />
+                  <div className="p-2 rounded-lg" style={{ background: '#d4e8dc' }}>
+                    <TrendingUp className="h-4 w-4" style={{ color: '#417B5A' }} />
                   </div>
                   <div>
                     <span className="font-semibold text-foreground">Progresso por Categoria</span>
@@ -179,7 +201,7 @@ const Dashboard = () => {
                   {categoryProgress && categoryProgress.length > 0 ? (
                     <div className="space-y-5">
                       {categoryProgress.map(cat => {
-                        const accent = CATEGORY_COLORS[cat.categoria] ?? '#2D2B6F';
+                        const accent = CATEGORY_COLORS[cat.categoria] ?? '#4B3F72';
                         return (
                           <div key={cat.categoria} className="group">
                             <div className="flex justify-between items-center mb-2">
@@ -187,9 +209,13 @@ const Dashboard = () => {
                               <span className="text-sm font-bold" style={{ color: accent }}>{cat.progress}%</span>
                             </div>
                             <div className="h-2.5 rounded-full overflow-hidden bg-muted border border-border/50">
-                              <div
-                                className="h-full rounded-full transition-all duration-1000 ease-out"
-                                style={{ width: `${cat.progress}%`, background: accent }}
+                              <motion.div
+                                initial={{ width: 0 }}
+                                whileInView={{ width: `${cat.progress}%` }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                                className="h-full rounded-full"
+                                style={{ background: accent }}
                               />
                             </div>
                           </div>
@@ -203,51 +229,48 @@ const Dashboard = () => {
                     </div>
                   )}
                 </div>
-              </div>
-
-            </div>
+              </motion.div>
+            </motion.div>
 
             {/* Tabs de estatísticas detalhadas */}
-            <div className="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+              className="bg-card rounded-xl shadow-sm overflow-hidden border border-border"
+            >
               <Tabs defaultValue="user" className="w-full">
                 <div className="px-5 py-3 border-b border-border bg-muted/20">
-                  <TabsList className="h-10 p-1 rounded-lg bg-muted border border-border/50">
-                    <TabsTrigger
-                      value="user"
-                      className="text-sm px-5 rounded-md font-medium"
-                    >
-                      Meu Painel
-                    </TabsTrigger>
-                    {isAdmin && (
-                      <TabsTrigger
-                        value="admin"
-                        className="text-sm px-5 rounded-md font-medium"
-                      >
-                        Administração
-                      </TabsTrigger>
-                    )}
+                  <TabsList>
+                    <TabsTrigger value="user">Meu Painel</TabsTrigger>
+                    {isAdmin && <TabsTrigger value="admin">Administração</TabsTrigger>}
                   </TabsList>
                 </div>
 
                 <TabsContent value="user" className="p-5 outline-none m-0">
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <motion.div
+                    variants={staggerFast} initial="hidden" animate="visible"
+                    className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+                  >
                     {[
-                      { icon: <BookMarked className="h-6 w-6" />, label: 'Disponíveis', value: courses.length, sub: 'Cursos ativos',       color: '#3B82F6' },
-                      { icon: <Award className="h-6 w-6" />,      label: 'Concluídos',   value: 0,              sub: 'Certificados',         color: '#3AB26A' },
-                      { icon: <TrendingUp className="h-6 w-6" />, label: 'Seu Progresso', value: '0%',           sub: 'Média geral',          color: '#7C3AED' },
-                      { icon: <Clock className="h-6 w-6" />,      label: 'Em Andamento',  value: 0,              sub: 'Cursos em progresso',  color: '#F97316' },
+                      { icon: <BookMarked className="h-6 w-6" />, label: 'Disponíveis',   value: courses.length,                                                                           sub: 'Cursos ativos',      color: '#1F2041' },
+                      { icon: <Award className="h-6 w-6" />,      label: 'Concluídos',    value: categoryProgress?.reduce((s, c) => s + c.modules_completed, 0) ?? 0,                    sub: 'Módulos concluídos', color: '#417B5A' },
+                      { icon: <TrendingUp className="h-6 w-6" />, label: 'Seu Progresso', value: categoryProgress?.length ? `${Math.round(categoryProgress.reduce((s, c) => s + c.progress, 0) / categoryProgress.length)}%` : '—', sub: 'Média geral', color: '#4B3F72' },
+                      { icon: <Clock className="h-6 w-6" />,      label: 'Em Andamento',  value: categoryProgress?.filter(c => c.progress > 0 && c.progress < 100).length ?? 0,          sub: 'Categorias',         color: '#7a5840' },
                     ].map(({ icon, label, value, sub, color }) => (
-                      <div key={label} className="bg-background rounded-xl p-5 shadow-sm border border-border flex items-center gap-4 hover:border-primary/50 transition-colors group">
-                        <div className="rounded-lg p-2.5 flex-shrink-0 transition-colors" style={{ background: color + '15', color: color }}>
+                      <motion.div key={label} variants={cardItem} whileHover={cardHover}
+                        className="bg-background rounded-xl p-5 shadow-sm border border-border flex items-center gap-4 cursor-default"
+                      >
+                        <div className="rounded-lg p-2.5 flex-shrink-0" style={{ background: color + '18', color: color }}>
                           {icon}
                         </div>
                         <div>
-                          <p className="text-2xl font-bold text-foreground leading-tight group-hover:text-primary transition-colors">{value}</p>
+                          <p className="text-2xl font-bold text-foreground leading-tight">{value}</p>
                           <p className="text-[13px] text-muted-foreground font-medium mt-0.5">{label}</p>
                         </div>
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 </TabsContent>
 
                 {isAdmin && (
@@ -256,11 +279,16 @@ const Dashboard = () => {
                   </TabsContent>
                 )}
               </Tabs>
-            </div>
+            </motion.div>
 
-            {/* ── Admin: Uso do Plano ───────────────────────────────────────── */}
+            {/* Uso do Plano */}
             {isAdmin && planLimits && (
-              <div className="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: '-40px' }}
+                transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                className="bg-card rounded-xl shadow-sm overflow-hidden border border-border"
+              >
                 <div className="px-5 py-4 flex items-center justify-between border-b border-border bg-muted/30">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg" style={{ background: planLimits.planColor + '20' }}>
@@ -283,7 +311,6 @@ const Dashboard = () => {
                 </div>
 
                 <div className="p-5 grid grid-cols-1 sm:grid-cols-3 gap-5">
-                  {/* Users usage */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-muted-foreground" />
@@ -291,14 +318,17 @@ const Dashboard = () => {
                     </div>
                     <div className="flex items-baseline gap-1">
                       <span className="text-2xl font-bold text-foreground">{planLimits.currentUsers}</span>
-                      <span className="text-sm text-muted-foreground">/ {planLimits.maxUsers >= 9999 ? '\u221e' : planLimits.maxUsers}</span>
+                      <span className="text-sm text-muted-foreground">/ {planLimits.maxUsers >= 9999 ? '∞' : planLimits.maxUsers}</span>
                     </div>
                     {planLimits.maxUsers < 9999 && (
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700"
+                        <motion.div
+                          initial={{ width: 0 }}
+                          whileInView={{ width: `${planLimits.usagePercent}%` }}
+                          viewport={{ once: true }}
+                          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                          className="h-full rounded-full"
                           style={{
-                            width: `${planLimits.usagePercent}%`,
                             background: planLimits.isAtLimit ? '#EF4444' : planLimits.isNearLimit ? '#F59E0B' : planLimits.planColor,
                           }}
                         />
@@ -309,27 +339,21 @@ const Dashboard = () => {
                     </p>
                   </div>
 
-                  {/* Watch hours */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Zap className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium text-foreground">Horas assistidas</span>
                     </div>
-                    <div className="text-2xl font-bold text-foreground">
-                      {monthlyUsage?.totalWatchHours ?? '—'}
-                    </div>
+                    <div className="text-2xl font-bold text-foreground">{monthlyUsage?.totalWatchHours ?? '—'}</div>
                     <p className="text-xs text-muted-foreground">No mês atual</p>
                   </div>
 
-                  {/* Bandwidth */}
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <HardDrive className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium text-foreground">Bandwidth estimado</span>
                     </div>
-                    <div className="text-2xl font-bold text-foreground">
-                      {monthlyUsage?.totalGb ?? '—'}
-                    </div>
+                    <div className="text-2xl font-bold text-foreground">{monthlyUsage?.totalGb ?? '—'}</div>
                     <p className="text-xs text-muted-foreground">Consumo de vídeo</p>
                   </div>
                 </div>
@@ -345,22 +369,22 @@ const Dashboard = () => {
                     </div>
                   </div>
                 )}
-              </div>
+              </motion.div>
             )}
-            {/* ────────────────────────────────────────────────────────────── */}
 
             {/* Cursos recomendados */}
-            <div className="pt-2">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+              className="pt-2"
+            >
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                  <div className="w-1.5 h-6 rounded-full bg-primary"></div>
+                  <div className="w-1.5 h-6 rounded-full" style={{ background: '#4B3F72' }}></div>
                   Cursos Recomendados
                 </h2>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/treinamentos')}
-                  className="text-sm flex items-center gap-2 h-9"
-                >
+                <Button variant="outline" onClick={() => navigate('/treinamentos')} className="text-sm flex items-center gap-2 h-9">
                   Ver Catálogo
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -368,7 +392,7 @@ const Dashboard = () => {
 
               {coursesLoading ? (
                 <div className="flex justify-center py-16">
-                  <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#2D2B6F', borderTopColor: 'transparent' }} />
+                  <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#4B3F72', borderTopColor: 'transparent' }} />
                 </div>
               ) : courses.length === 0 ? (
                 <div className="text-center py-16 bg-card rounded-xl border border-border">
@@ -377,32 +401,32 @@ const Dashboard = () => {
                   <p className="text-muted-foreground text-sm mt-1">Sua lista de cursos recomendados aparecerá aqui.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <motion.div
+                  variants={staggerFast} initial="hidden" whileInView="visible"
+                  viewport={{ once: true }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                >
                   {courses.slice(0, 4).map(course => (
-                    <CourseCard
-                      key={course.id}
-                      course={course}
-                      onStartCourse={(id) => navigate(`/curso/${id}`)}
-                    />
+                    <motion.div key={course.id} variants={cardItem} whileHover={cardHover}>
+                      <CourseCard
+                        course={course}
+                        onStartCourse={(id) => navigate(`/curso/${id}`)}
+                      />
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
 
-            {/* Admin Management Button Bottom */}
             {isAdmin && (
               <div className="flex justify-center pt-6 pb-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => navigate('/treinamentos')}
-                  className="flex items-center gap-2 shadow-sm"
-                >
+                <Button variant="secondary" onClick={() => navigate('/treinamentos')} className="flex items-center gap-2 shadow-sm">
                   <Settings className="h-4 w-4" />
                   Gerenciar Treinamentos
                 </Button>
               </div>
             )}
-            
+
           </div>
         </div>
       </div>

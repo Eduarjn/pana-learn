@@ -35,30 +35,21 @@ export const useCourses = () => {
   return useQuery({
     queryKey: ['courses', empresa?.id, userProfile?.tipo_usuario],
     queryFn: async () => {
-      console.log('🔍 Buscando cursos...');
-      try {
-        // Consulta filtrando por empresa_id, exceto admin_master
-        let query = supabase
-          .from('cursos')
-          .select(`*, categorias (nome, cor)`) 
-          .eq('status', 'ativo')
-          .order('ordem', { ascending: true });
-          
-        if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
-          query = query.eq('empresa_id', empresa.id);
-        }
-        
-        const { data, error } = await query;
-        if (error) {
-          console.error('❌ Erro ao buscar cursos:', error);
-          throw error;
-        }
-        return (data || []) as Course[];
-      } catch (error) {
-        console.error('❌ Erro inesperado ao buscar cursos:', error);
-        throw error;
+      let query = supabase
+        .from('cursos')
+        .select(`*, categorias (nome, cor)`)
+        .eq('status', 'ativo')
+        .order('ordem', { ascending: true });
+
+      if (empresa?.id && userProfile?.tipo_usuario !== 'admin_master') {
+        query = query.eq('empresa_id', empresa.id);
       }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return (data || []) as Course[];
     },
+    staleTime: 5 * 60 * 1000, // cursos mudam raramente — cache válido por 5 min
     retry: 3,
     retryDelay: 1000,
   });
@@ -68,22 +59,14 @@ export const useCourseModules = (courseId: string) => {
   return useQuery({
     queryKey: ['course-modules', courseId],
     queryFn: async () => {
-      console.log('🔍 Buscando módulos para o curso:', courseId);
-      
       try {
-        // Primeiro, verificar se o curso tem os módulos padrão
         const { data: currentModules, error: modulesError } = await supabase
           .from('modulos')
           .select('*')
           .eq('curso_id', courseId)
           .order('ordem', { ascending: true });
 
-        if (modulesError) {
-          console.error('❌ Erro ao buscar módulos:', modulesError);
-          throw modulesError;
-        }
-
-        console.log('📋 Módulos atuais encontrados:', currentModules?.length || 0);
+        if (modulesError) throw modulesError;
 
         // Verificar se tem os módulos padrão
         const hasUsabilidade = currentModules?.some(m => m.nome_modulo === 'Usabilidade');
@@ -94,7 +77,6 @@ export const useCourseModules = (courseId: string) => {
 
         // Se não tem os módulos padrão ou tem módulos antigos, padronizar
         if (!hasUsabilidade || !hasConfiguracao || hasOldModules) {
-          console.log('🔧 Padronizando módulos para o curso:', courseId);
           
           try {
             // Buscar informações do curso
@@ -109,11 +91,9 @@ export const useCourseModules = (courseId: string) => {
               throw courseError;
             }
 
-            console.log('📋 Informações do curso:', courseData);
 
             // Tentar remover módulos antigos de forma mais segura
             if (hasOldModules) {
-              console.log('🔧 Removendo módulos antigos...');
               
               // Remover apenas módulos que não são padrão
               const { error: deleteError } = await supabase
@@ -126,7 +106,6 @@ export const useCourseModules = (courseId: string) => {
                 console.error('❌ Erro ao remover módulos antigos:', deleteError);
                 // Continuar mesmo com erro, não falhar completamente
               } else {
-                console.log('✅ Módulos antigos removidos');
               }
             }
 
@@ -144,7 +123,6 @@ export const useCourseModules = (courseId: string) => {
 
               // Se ainda não tem os módulos padrão, criar
               if (!hasUsabilidadeAfter || !hasConfiguracaoAfter) {
-                console.log('🔧 Criando módulos padrão...');
                 
                 const modulesToInsert = [];
                 
@@ -179,7 +157,6 @@ export const useCourseModules = (courseId: string) => {
                     throw insertError;
                   }
 
-                  console.log('✅ Módulos padrão criados:', newModules);
                 }
               }
             }
@@ -196,7 +173,6 @@ export const useCourseModules = (courseId: string) => {
               throw finalError;
             }
 
-            console.log('✅ Módulos padronizados finais:', finalModules);
             return (finalModules || []) as Module[];
             
           } catch (error) {
@@ -205,7 +181,6 @@ export const useCourseModules = (courseId: string) => {
             return (currentModules || []) as Module[];
           }
         } else {
-          console.log('✅ Módulos já estão padronizados');
           return (currentModules || []) as Module[];
         }
       } catch (error) {
@@ -219,33 +194,19 @@ export const useCourseModules = (courseId: string) => {
 };
 
 export const useUserProgress = () => {
+  const { userProfile } = useAuth();
+
   return useQuery({
-    queryKey: ['user-progress'],
+    queryKey: ['user-progress', userProfile?.id],
+    enabled: !!userProfile?.id,
     queryFn: async () => {
-      console.log('🔍 Buscando progresso do usuário...');
-      
-      try {
-        const { data, error } = await supabase
-          .from('progresso_usuario')
-          .select(`
-            *,
-            cursos (
-              nome,
-              categoria
-            )
-          `);
+      const { data, error } = await supabase
+        .from('progresso_usuario')
+        .select(`*, cursos (nome, categoria)`)
+        .eq('usuario_id', userProfile!.id); // escopo obrigatório ao usuário logado
 
-        if (error) {
-          console.error('❌ Erro ao buscar progresso:', error);
-          throw error;
-        }
-
-        console.log('✅ Progresso encontrado:', data?.length || 0);
-        return data || [];
-      } catch (error) {
-        console.error('❌ Erro inesperado ao buscar progresso:', error);
-        throw error;
-      }
+      if (error) throw error;
+      return data || [];
     },
     retry: 2,
   });
@@ -256,7 +217,6 @@ export const useTestConnection = () => {
   return useQuery({
     queryKey: ['test-connection'],
     queryFn: async () => {
-      console.log('🔧 Testando conectividade com as tabelas...');
       
       const results = {
         cursos: 0,
@@ -284,14 +244,12 @@ export const useTestConnection = () => {
               console.error(`❌ Erro na tabela ${tableName}:`, error);
             } else {
               results[tableName] = data?.length || 0;
-              console.log(`✅ Tabela ${tableName}: ${data?.length || 0} registros`);
             }
           } catch (err) {
             console.error(`❌ Erro inesperado na tabela ${tableName}:`, err);
           }
         }
 
-        console.log('📊 Resultado do teste de conectividade:', results);
         return results;
       } catch (error) {
         console.error('❌ Erro geral no teste de conectividade:', error);

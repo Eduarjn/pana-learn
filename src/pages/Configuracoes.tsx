@@ -11,6 +11,8 @@ import {
 import { AudioPlayer } from '@/components/AudioPlayer';
 import { useQuizAudios } from '@/hooks/useQuizAudios';
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { fadeInUp, fadeInLeft, fadeIn, staggerContainer, cardItem } from '@/lib/animations';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,28 +48,29 @@ const Preferencias = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <motion.div className="space-y-5" variants={staggerContainer} initial="hidden" animate="visible">
       <SectionCard icon={Palette} title="Aparência" desc="Tema e tamanho de fonte">
         <div className="space-y-5">
           <div>
-            <Label className="text-xs font-medium text-slate-600 mb-2 block">Tema</Label>
+            <Label className="text-xs font-medium text-white/60 mb-2 block">Tema</Label>
             <div className="flex gap-2">
               {[['light','Claro'],['dark','Escuro']].map(([val,label]) => (
-                <button key={val} onClick={() => setTheme(val)}
+                <button key={val} onClick={() => setTheme(val as 'light' | 'dark' | 'system')}
                   className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium border transition-colors ${
                     theme === val
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background text-muted-foreground border-border hover:border-primary/50'
-                  }`}>
+                      ? 'border-[#4B3F72] text-[#E9D2C0]'
+                      : 'border-white/15 text-white/50 hover:border-white/30 hover:text-white/70'
+                  }`}
+                  style={{ background: theme === val ? 'rgba(75,63,114,0.25)' : 'transparent' }}>
                   {label}
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <Label className="text-xs font-medium text-slate-600 mb-2 block">Tamanho da fonte</Label>
+            <Label className="text-xs font-medium text-white/60 mb-2 block">Tamanho da fonte</Label>
             <select value={fontSize} onChange={e => setFontSize(e.target.value)}
-              className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:border-slate-400">
+              className="w-full h-9 px-3 rounded-lg border border-slate-700 bg-slate-900 text-white text-sm focus:border-[#4B3F72] focus:outline-none">
               <option value="small">Pequeno</option>
               <option value="medium">Médio</option>
               <option value="large">Grande</option>
@@ -78,7 +81,7 @@ const Preferencias = () => {
 
       <SectionCard icon={Globe} title="Idioma" desc="Idioma da interface">
         <select value={language} onChange={e => setLanguage(e.target.value)}
-          className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm focus:border-slate-400">
+          className="w-full h-9 px-3 rounded-lg border border-slate-700 bg-slate-900 text-white text-sm focus:border-[#4B3F72] focus:outline-none">
           <option value="pt-BR">Português (BR)</option>
           <option value="en-US">English (US)</option>
           <option value="es">Español</option>
@@ -86,7 +89,7 @@ const Preferencias = () => {
       </SectionCard>
 
       <SaveButton onClick={handleSave} saved={saved} />
-    </div>
+    </motion.div>
   );
 };
 
@@ -133,35 +136,37 @@ const Conta = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <motion.div className="space-y-5" variants={staggerContainer} initial="hidden" animate="visible">
       <SectionCard icon={UserCheck} title="Informações pessoais" desc="Foto de perfil e dados básicos">
         <div className="flex items-center gap-4 mb-5">
           <div className="relative">
             {avatarUrl
-              ? <img src={avatarUrl} alt="Avatar" className="w-16 h-16 rounded-full object-cover border-2 border-slate-200" />
-              : <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center text-2xl font-medium text-slate-400">
+              ? <img src={avatarUrl} alt="Avatar" className="w-16 h-16 rounded-full object-cover border-2 border-white/20" />
+              : <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-medium text-white/60"
+                  style={{ background: 'rgba(75,63,114,0.35)' }}>
                   {userProfile?.nome?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
             }
           </div>
           <div>
             <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}
-              className="border-slate-200 text-slate-600 text-sm flex items-center gap-2">
+              className="border-white/20 text-white/70 hover:border-white/40 hover:text-white text-sm flex items-center gap-2"
+              style={{ background: 'transparent' }}>
               {uploading ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Enviando...</>
                 : <><Upload className="h-3.5 w-3.5" />Alterar foto</>}
             </Button>
             <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-            <p className="text-xs text-slate-400 mt-1">JPG, PNG ou GIF · máx. 5MB</p>
+            <p className="text-xs text-white/40 mt-1">JPG, PNG ou GIF · máx. 5MB</p>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="text-xs font-medium text-slate-600 mb-1.5 block">Nome</Label>
-            <Input defaultValue={userProfile?.nome || ''} className="border-slate-200 text-sm rounded-lg" />
+            <Label className="text-xs font-medium text-white/60 mb-1.5 block">Nome</Label>
+            <Input defaultValue={userProfile?.nome || ''} className="border-slate-700 bg-slate-900/60 text-white text-sm rounded-lg" />
           </div>
           <div>
-            <Label className="text-xs font-medium text-slate-600 mb-1.5 block">Email</Label>
-            <Input defaultValue={userProfile?.email || ''} disabled className="border-slate-200 text-sm rounded-lg bg-slate-50" />
+            <Label className="text-xs font-medium text-white/60 mb-1.5 block">Email</Label>
+            <Input defaultValue={userProfile?.email || ''} disabled className="border-slate-700 bg-slate-800 text-white/40 text-sm rounded-lg" />
           </div>
         </div>
       </SectionCard>
@@ -174,9 +179,9 @@ const Conta = () => {
             ['confirmPwd','Confirmar nova senha','password',confirmPwd,setConfirmPwd],
           ].map(([id,label,type,val,fn]) => (
             <div key={id as string}>
-              <Label className="text-xs font-medium text-slate-600 mb-1.5 block">{label as string}</Label>
+              <Label className="text-xs font-medium text-white/60 mb-1.5 block">{label as string}</Label>
               <Input type={type as string} value={val as string} onChange={e => (fn as Function)(e.target.value)}
-                className="border-slate-200 text-sm rounded-lg" />
+                className="border-slate-700 bg-slate-900/60 text-white text-sm rounded-lg" />
             </div>
           ))}
           <Button onClick={handleChangePwd} disabled={changingPwd || !currentPwd || !newPwd || newPwd !== confirmPwd}
@@ -185,7 +190,7 @@ const Conta = () => {
           </Button>
         </div>
       </SectionCard>
-    </div>
+    </motion.div>
   );
 };
 
@@ -286,7 +291,7 @@ const WhiteLabel = () => {
   }, [form.secondary_color]);
 
   return (
-    <div className="space-y-5">
+    <motion.div className="space-y-5" variants={staggerContainer} initial="hidden" animate="visible">
 
       {/* Preview ao vivo */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -447,7 +452,7 @@ const WhiteLabel = () => {
         </Button>
         <SaveButton onClick={handleSave} saved={saved} loading={uploading} label="Salvar branding" />
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -469,21 +474,22 @@ const Integracoes = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <motion.div className="space-y-5" variants={staggerContainer} initial="hidden" animate="visible">
       <SectionCard icon={Database} title="API REST" desc="Chave e webhook para integrações externas">
         <div className="space-y-4">
           <div>
-            <Label className="text-xs font-medium text-slate-600 mb-1.5 block">Chave da API</Label>
+            <Label className="text-xs font-medium text-white/60 mb-1.5 block">Chave da API</Label>
             <div className="flex gap-2">
-              <Input value={apiKey} readOnly className="border-slate-200 text-sm rounded-lg font-mono flex-1" />
-              <Button variant="outline" size="sm" className="border-slate-200 text-slate-600 text-xs px-3">Gerar nova</Button>
+              <Input value={apiKey} readOnly className="border-slate-700 bg-slate-900/60 text-white/50 text-sm rounded-lg font-mono flex-1" />
+              <Button variant="outline" size="sm" className="border-white/20 text-white/60 hover:border-white/40 hover:text-white text-xs px-3"
+                style={{ background: 'transparent' }}>Gerar nova</Button>
             </div>
-            <p className="text-xs text-slate-400 mt-1">Use esta chave no header <code className="bg-slate-100 px-1 rounded">Authorization: Bearer sk-...</code></p>
+            <p className="text-xs text-white/40 mt-1">Use esta chave no header <code className="bg-white/10 px-1 rounded text-white/60">Authorization: Bearer sk-...</code></p>
           </div>
           <div>
-            <Label className="text-xs font-medium text-slate-600 mb-1.5 block">Webhook URL</Label>
+            <Label className="text-xs font-medium text-white/60 mb-1.5 block">Webhook URL</Label>
             <Input value={webhook} onChange={e => setWebhook(e.target.value)}
-              placeholder="https://sua-api.com/webhook" className="border-slate-200 text-sm rounded-lg" />
+              placeholder="https://sua-api.com/webhook" className="border-slate-700 bg-slate-900/60 text-white text-sm rounded-lg" />
           </div>
         </div>
       </SectionCard>
@@ -491,25 +497,25 @@ const Integracoes = () => {
       <SectionCard icon={Mail} title="Servidor de e-mail (SMTP)" desc="Configurações para envio de notificações e certificados">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="text-xs font-medium text-slate-600 mb-1.5 block">Endereço SMTP</Label>
+            <Label className="text-xs font-medium text-white/60 mb-1.5 block">Endereço SMTP</Label>
             <Input value={smtpEmail} onChange={e => setSmtpEmail(e.target.value)}
-              placeholder="smtp@exemplo.com" className="border-slate-200 text-sm rounded-lg" />
+              placeholder="smtp@exemplo.com" className="border-slate-700 bg-slate-900/60 text-white text-sm rounded-lg" />
           </div>
           <div>
-            <Label className="text-xs font-medium text-slate-600 mb-1.5 block">Porta</Label>
+            <Label className="text-xs font-medium text-white/60 mb-1.5 block">Porta</Label>
             <Input value={smtpPort} onChange={e => setSmtpPort(e.target.value)}
-              placeholder="587" className="border-slate-200 text-sm rounded-lg" />
+              placeholder="587" className="border-slate-700 bg-slate-900/60 text-white text-sm rounded-lg" />
           </div>
           <div className="md:col-span-2">
-            <Label className="text-xs font-medium text-slate-600 mb-1.5 block">Senha SMTP</Label>
+            <Label className="text-xs font-medium text-white/60 mb-1.5 block">Senha SMTP</Label>
             <Input type="password" value={smtpPwd} onChange={e => setSmtpPwd(e.target.value)}
-              placeholder="••••••••" className="border-slate-200 text-sm rounded-lg" />
+              placeholder="••••••••" className="border-slate-700 bg-slate-900/60 text-white text-sm rounded-lg" />
           </div>
         </div>
       </SectionCard>
 
       <SaveButton onClick={handleSave} saved={saved} />
-    </div>
+    </motion.div>
   );
 };
 
@@ -528,23 +534,24 @@ const Seguranca = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <motion.div className="space-y-5" variants={staggerContainer} initial="hidden" animate="visible">
       <SectionCard icon={Shield} title="Autenticação" desc="Configurações de login e sessão">
         <div className="space-y-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-700">Autenticação de dois fatores (2FA)</p>
-              <p className="text-xs text-slate-400 mt-0.5">Exige um segundo método de verificação no login</p>
+              <p className="text-sm font-medium text-white/90">Autenticação de dois fatores (2FA)</p>
+              <p className="text-xs text-white/45 mt-0.5">Exige um segundo método de verificação no login</p>
             </div>
             <button onClick={() => setTwoFA(!twoFA)}
-              className={`relative w-11 h-6 rounded-full transition-colors ${twoFA ? 'bg-emerald-500' : 'bg-slate-200'}`}>
+              className="relative w-11 h-6 rounded-full transition-colors"
+              style={{ background: twoFA ? '#417B5A' : 'rgba(255,255,255,0.2)' }}>
               <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${twoFA ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
           </div>
           <div>
-            <Label className="text-xs font-medium text-slate-600 mb-2 block">Tempo de expiração da sessão</Label>
+            <Label className="text-xs font-medium text-white/60 mb-2 block">Tempo de expiração da sessão</Label>
             <select value={sessionTime} onChange={e => setSessionTime(e.target.value)}
-              className="w-full h-9 px-3 rounded-lg border border-slate-200 bg-white text-sm">
+              className="w-full h-9 px-3 rounded-lg border border-slate-700 bg-slate-900 text-white text-sm focus:border-[#4B3F72] focus:outline-none">
               <option value="1">1 hora</option>
               <option value="8">8 horas</option>
               <option value="24">24 horas</option>
@@ -560,32 +567,36 @@ const Seguranca = () => {
             ['Sessões ativas', '3 dispositivos conectados'],
             ['Logs de acesso', 'Últimas 30 entradas'],
           ].map(([label, desc]) => (
-            <div key={label} className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0">
+            <div key={label} className="flex items-center justify-between py-3 last:border-0"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <div>
-                <p className="text-sm font-medium text-slate-700">{label}</p>
-                <p className="text-xs text-slate-400">{desc}</p>
+                <p className="text-sm font-medium text-white/90">{label}</p>
+                <p className="text-xs text-white/45">{desc}</p>
               </div>
-              <Button variant="outline" size="sm" className="border-slate-200 text-slate-600 text-xs">Ver</Button>
+              <Button variant="outline" size="sm"
+                className="border-white/20 text-white/60 hover:border-white/40 hover:text-white text-xs"
+                style={{ background: 'transparent' }}>Ver</Button>
             </div>
           ))}
         </div>
       </SectionCard>
 
       <SaveButton onClick={handleSave} saved={saved} />
-    </div>
+    </motion.div>
   );
 };
 
 // ─── Shared components ────────────────────────────────────────────────────────
 
 const SectionCard = ({ icon: Icon, title, desc, children }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   title: string; desc: string; children: React.ReactNode;
 }) => (
-  <div style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)', borderRadius: 12, overflow: 'hidden' }}>
+  <motion.div variants={cardItem}
+    style={{ background: '#1F2041', border: '1px solid rgba(75,63,114,0.15)', borderRadius: 12, overflow: 'hidden' }}>
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-      <div style={{ width: 32, height: 32, background: 'rgba(252,163,17,0.1)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Icon className="h-4 w-4" style={{ color: '#FCA311' }} />
+      <div style={{ width: 32, height: 32, background: 'rgba(75,63,114,0.35)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Icon className="h-4 w-4" style={{ color: '#E9D2C0' }} />
       </div>
       <div>
         <h3 style={{ fontSize: 14, fontWeight: 600, color: '#FFFFFF' }}>{title}</h3>
@@ -593,7 +604,7 @@ const SectionCard = ({ icon: Icon, title, desc, children }: {
       </div>
     </div>
     <div style={{ padding: 20 }}>{children}</div>
-  </div>
+  </motion.div>
 );
 
 const SaveButton = ({ onClick, saved, loading = false, label = 'Salvar alterações' }: {
@@ -602,7 +613,7 @@ const SaveButton = ({ onClick, saved, loading = false, label = 'Salvar alteraç�
   <div className="flex justify-end">
     <Button onClick={onClick} disabled={loading || saved}
       className="text-sm px-5 flex items-center gap-2 min-w-[160px] justify-center"
-      style={{ backgroundColor: saved ? '#22c55e' : '#FCA311', color: '#000000', fontWeight: 700 }}>
+      style={{ backgroundColor: saved ? '#22c55e' : '#4B3F72', color: '#E9D2C0', fontWeight: 600 }}>
       {loading
         ? <><Loader2 className="h-4 w-4 animate-spin" />Salvando...</>
         : saved
@@ -690,13 +701,13 @@ const BibliotecaAudios = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <motion.div className="space-y-5" variants={staggerContainer} initial="hidden" animate="visible">
       <SectionCard icon={Music} title="Biblioteca de Áudios" desc="Importe áudios para usar nas perguntas de quiz">
         {/* Add button */}
         {!showForm && (
           <Button
             onClick={() => setShowForm(true)}
-            style={{ background: '#FCA311', color: '#000', fontWeight: 700 }}
+            style={{ background: '#4B3F72', color: '#E9D2C0', fontWeight: 600 }}
             className="flex items-center gap-2 text-sm mb-4"
           >
             <Plus className="h-4 w-4" />Importar Áudio
@@ -705,9 +716,9 @@ const BibliotecaAudios = () => {
 
         {/* Import form */}
         {showForm && (
-          <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(252,163,17,0.15)', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+          <div style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(75,63,114,0.15)', borderRadius: 12, padding: 20, marginBottom: 20 }}>
             <div className="flex items-center justify-between mb-4">
-              <h4 style={{ fontSize: 14, fontWeight: 600, color: '#FCA311' }}>Importar Áudio</h4>
+              <h4 style={{ fontSize: 14, fontWeight: 600, color: '#E9D2C0' }}>Importar Áudio</h4>
               <button onClick={resetForm} className="text-slate-400 hover:text-white"><X className="h-4 w-4" /></button>
             </div>
 
@@ -717,9 +728,9 @@ const BibliotecaAudios = () => {
                 <button key={mode} onClick={() => setFormMode(mode)}
                   className="flex-1 py-2 px-3 rounded-lg text-xs font-medium border transition-colors flex items-center justify-center gap-2"
                   style={{
-                    background: formMode === mode ? 'rgba(252,163,17,0.15)' : 'transparent',
-                    borderColor: formMode === mode ? 'rgba(252,163,17,0.4)' : 'rgba(255,255,255,0.1)',
-                    color: formMode === mode ? '#FCA311' : 'rgba(229,229,229,0.6)',
+                    background: formMode === mode ? 'rgba(75,63,114,0.15)' : 'transparent',
+                    borderColor: formMode === mode ? 'rgba(75,63,114,0.4)' : 'rgba(255,255,255,0.1)',
+                    color: formMode === mode ? '#E9D2C0' : 'rgba(229,229,229,0.6)',
                   }}>
                   <Icon className="h-3.5 w-3.5" />{label}
                 </button>
@@ -733,11 +744,11 @@ const BibliotecaAudios = () => {
                   <input ref={fileInputRef} type="file" accept="audio/*" onChange={handleFileChange} className="hidden" />
                   <button onClick={() => fileInputRef.current?.click()}
                     className="w-full py-6 px-4 rounded-lg border-2 border-dashed transition-colors text-center"
-                    style={{ borderColor: selectedFile ? 'rgba(252,163,17,0.4)' : 'rgba(255,255,255,0.1)', background: selectedFile ? 'rgba(252,163,17,0.05)' : 'transparent' }}>
+                    style={{ borderColor: selectedFile ? 'rgba(75,63,114,0.4)' : 'rgba(255,255,255,0.1)', background: selectedFile ? 'rgba(75,63,114,0.15)' : 'transparent' }}>
                     {selectedFile ? (
                       <div className="flex items-center justify-center gap-2">
-                        <FileAudio className="h-5 w-5" style={{ color: '#FCA311' }} />
-                        <span style={{ color: '#FCA311', fontSize: 13, fontWeight: 500 }}>{selectedFile.name}</span>
+                        <FileAudio className="h-5 w-5" style={{ color: '#E9D2C0' }} />
+                        <span style={{ color: '#E9D2C0', fontSize: 13, fontWeight: 500 }}>{selectedFile.name}</span>
                         <span style={{ color: 'rgba(229,229,229,0.4)', fontSize: 11 }}>({formatSize(selectedFile.size)})</span>
                       </div>
                     ) : (
@@ -782,7 +793,7 @@ const BibliotecaAudios = () => {
               <div className="flex gap-2 pt-2">
                 <Button onClick={handleSubmit} disabled={uploading}
                   className="flex-1 flex items-center justify-center gap-2 text-sm"
-                  style={{ background: '#FCA311', color: '#000', fontWeight: 700 }}>
+                  style={{ background: '#4B3F72', color: '#E9D2C0', fontWeight: 600 }}>
                   {uploading ? <><Loader2 className="h-4 w-4 animate-spin" />Importando...</> : <><Upload className="h-4 w-4" />Importar</>}
                 </Button>
                 <Button onClick={resetForm} variant="outline" className="border-slate-700 text-slate-400 text-sm">Cancelar</Button>
@@ -794,7 +805,7 @@ const BibliotecaAudios = () => {
         {/* Audio list */}
         {loading ? (
           <div className="text-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" style={{ color: '#FCA311' }} />
+            <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" style={{ color: '#E9D2C0' }} />
             <p style={{ color: 'rgba(229,229,229,0.5)', fontSize: 13 }}>Carregando áudios...</p>
           </div>
         ) : audios.length === 0 ? (
@@ -806,15 +817,15 @@ const BibliotecaAudios = () => {
         ) : (
           <div className="space-y-3">
             {audios.map(audio => (
-              <div key={audio.id} style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(252,163,17,0.1)', borderRadius: 10, padding: '12px 16px' }}>
+              <div key={audio.id} style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(75,63,114,0.1)', borderRadius: 10, padding: '12px 16px' }}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <FileAudio className="h-4 w-4 flex-shrink-0" style={{ color: '#FCA311' }} />
+                      <FileAudio className="h-4 w-4 flex-shrink-0" style={{ color: '#E9D2C0' }} />
                       <p style={{ fontSize: 13, fontWeight: 600, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{audio.nome}</p>
                     </div>
                     <div className="flex items-center gap-3 mt-1">
-                      {audio.categoria && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: 'rgba(252,163,17,0.1)', color: '#FCA311', fontWeight: 600 }}>{audio.categoria}</span>}
+                      {audio.categoria && <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 99, background: 'rgba(75,63,114,0.35)', color: '#E9D2C0', fontWeight: 600 }}>{audio.categoria}</span>}
                       <span style={{ fontSize: 11, color: 'rgba(229,229,229,0.4)' }}>{formatSize(audio.tamanho_bytes)}</span>
                       <span style={{ fontSize: 11, color: 'rgba(229,229,229,0.4)' }}>{new Date(audio.data_criacao).toLocaleDateString('pt-BR')}</span>
                     </div>
@@ -830,7 +841,7 @@ const BibliotecaAudios = () => {
           </div>
         )}
       </SectionCard>
-    </div>
+    </motion.div>
   );
 };
 
@@ -855,24 +866,26 @@ const Configuracoes = () => {
 
   return (
     <ERALayout>
-      <div style={{ minHeight: '100vh', background: '#08111f' }}>
+      <div style={{ minHeight: '100vh', background: '#F6F6FA' }}>
         {/* Header */}
-        <div style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)', borderRadius: 16, margin: '4px 4px 24px 4px', overflow: 'hidden' }}>
+        <motion.div variants={fadeInUp} initial="hidden" animate="visible"
+          style={{ background: '#1F2041', border: '1px solid rgba(75,63,114,0.15)', borderRadius: 16, margin: '4px 4px 24px 4px', overflow: 'hidden' }}>
           <div style={{ padding: '32px 40px' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(252,163,17,0.1)', border: '1px solid rgba(252,163,17,0.25)', color: '#FCA311', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 99, marginBottom: 12 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(233,210,192,0.12)', border: '1px solid rgba(233,210,192,0.25)', color: '#E9D2C0', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 99, marginBottom: 12 }}>
               <Settings className="w-3 h-3" />
               Configurações
             </span>
             <h1 style={{ fontSize: 28, fontWeight: 700, color: '#FFFFFF', margin: '8px 0 4px' }}>Configurações</h1>
             <p style={{ color: 'rgba(229,229,229,0.5)', fontSize: 14 }}>Personalize a plataforma e gerencie sua conta.</p>
           </div>
-        </div>
+        </motion.div>
 
         <div style={{ padding: '0 4px 32px' }}>
           <div style={{ display: 'flex', gap: 20, flexDirection: 'row' }}>
             {/* Sidebar de abas */}
-            <nav style={{ width: 210, flexShrink: 0 }}>
-              <div style={{ background: '#14213D', border: '1px solid rgba(252,163,17,0.12)', borderRadius: 12, overflow: 'hidden' }}>
+            <motion.nav variants={fadeInLeft} initial="hidden" animate="visible"
+              style={{ width: 210, flexShrink: 0 }}>
+              <div style={{ background: '#1F2041', border: '1px solid rgba(75,63,114,0.15)', borderRadius: 12, overflow: 'hidden' }}>
                 {visible.map(s => {
                   const active = activeTab === s.key;
                   return (
@@ -883,26 +896,34 @@ const Configuracoes = () => {
                         display: 'flex', alignItems: 'center', gap: 12, width: '100%',
                         padding: '12px 16px', fontSize: 14, border: 'none', cursor: 'pointer',
                         borderBottom: '1px solid rgba(255,255,255,0.04)',
-                        borderLeft: active ? '3px solid #FCA311' : '3px solid transparent',
-                        background: active ? 'rgba(252,163,17,0.1)' : 'transparent',
-                        color: active ? '#FCA311' : 'rgba(229,229,229,0.7)',
+                        borderLeft: active ? '3px solid #4B3F72' : '3px solid transparent',
+                        background: active ? 'rgba(75,63,114,0.1)' : 'transparent',
+                        color: active ? '#E9D2C0' : 'rgba(255,255,255,0.6)',
                         fontWeight: active ? 600 : 400,
                         textAlign: 'left', transition: 'all 0.2s',
                       }}
-                      onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'rgba(252,163,17,0.05)'; }}
-                      onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent'; }}
+                      onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; e.currentTarget.style.color = 'rgba(255,255,255,0.85)'; } }}
+                      onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; } }}
                     >
-                      <s.icon className="h-4 w-4" style={{ flexShrink: 0 }} />
+                      <s.icon className="h-4 w-4 shrink-0" />
                       {s.label}
                     </button>
                   );
                 })}
               </div>
-            </nav>
+            </motion.nav>
 
             {/* Conteúdo da aba ativa */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <ActiveComponent />
+              <AnimatePresence mode="wait">
+                <motion.div key={activeTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
+                  <ActiveComponent />
+                </motion.div>
+              </AnimatePresence>
             </div>
           </div>
         </div>

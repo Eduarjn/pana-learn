@@ -1,4 +1,6 @@
 import React from 'react';
+import { motion } from 'framer-motion';
+import { fadeInUp, staggerFast, cardItem, cardHover } from '@/lib/animations';
 import { useUserProgress } from '@/hooks/useCourses';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -66,25 +68,32 @@ const MeuPainel = () => {
   if (isAdmin) {
     return (
       <div className="p-6 space-y-6">
-        <div className="flex justify-between items-center">
+        <motion.div
+          initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+          className="flex justify-between items-center"
+        >
           <div>
-            <h1 className="text-3xl font-bold text-era-dark-blue">Painel Administrativo</h1>
-            <p className="text-era-gray">Bem-vindo de volta, {userProfile?.nome}</p>
+            <h1 className="text-3xl font-bold text-pana-indigo">Painel Administrativo</h1>
+            <p className="text-gray-500">Bem-vindo de volta, {userProfile?.nome}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="flex items-center gap-2" onClick={() => navigate('/configuracoes')}>
               <Settings className="h-4 w-4" />
               Configurações
             </Button>
-            <Button className="bg-era-lime text-era-dark-blue flex items-center gap-2" onClick={() => navigate('/relatorios')}>
+            <Button variant="default" className="flex items-center gap-2" onClick={() => navigate('/relatorios')}>
               <BarChart3 className="h-4 w-4" />
               Relatórios
             </Button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Estatísticas Principais */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <motion.div
+          variants={staggerFast} initial="hidden" animate="visible"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        >
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
@@ -136,9 +145,13 @@ const MeuPainel = () => {
               </p>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <motion.div
+          variants={staggerFast} initial="hidden" whileInView="visible"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 lg:grid-cols-3 gap-6"
+        >
           {/* Atividade Recente */}
           <Card className="lg:col-span-2">
             <CardHeader>
@@ -197,7 +210,7 @@ const MeuPainel = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
 
         {/* Ações Rápidas e Status do Sistema */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -275,29 +288,39 @@ const MeuPainel = () => {
     );
   }
 
-  // Interface para clientes (mantém o original)
+  // Interface para clientes
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Meu Painel</h1>
-      <p className="mb-6">Aqui você verá seus cursos, módulos e progresso.</p>
-      {isLoading && <p>Carregando progresso...</p>}
-      {error && <p className="text-red-500">Erro ao carregar progresso.</p>}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <motion.div
+        initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <h1 className="text-2xl font-bold mb-1 text-pana-indigo">Meu Painel</h1>
+        <p className="mb-6 text-gray-500 text-sm">Aqui você verá seus cursos, módulos e progresso.</p>
+      </motion.div>
+      {isLoading && <p className="text-gray-500 text-sm">Carregando progresso...</p>}
+      {error && <p className="text-red-500 text-sm">Erro ao carregar progresso.</p>}
+      <motion.div
+        variants={staggerFast} initial="hidden" animate="visible"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+      >
         {(progress as UserProgressWithCourse[]).map((item) => (
-          <div key={item.id} className="bg-white rounded shadow p-4 flex flex-col justify-between">
+          <motion.div key={item.id} variants={cardItem} whileHover={cardHover}
+            className="bg-white rounded-xl border border-[#e4e5f0] shadow-sm p-4 flex flex-col justify-between"
+          >
             <div>
-              <div className="font-bold text-era-dark-blue mb-1">{item.cursos?.nome || 'Curso'}</div>
-              <div className="text-sm text-era-gray mb-2">Progresso: {item.percentual_concluido ?? 0}%</div>
+              <div className="font-bold text-pana-indigo mb-1">{item.cursos?.nome || 'Curso'}</div>
+              <div className="text-sm text-gray-500 mb-2">Progresso: {item.percentual_concluido ?? 0}%</div>
               <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                <div className="bg-era-lime h-2 rounded-full" style={{ width: `${item.percentual_concluido ?? 0}%` }}></div>
+                <div className="bg-pana-teal h-2 rounded-full" style={{ width: `${item.percentual_concluido ?? 0}%` }}></div>
               </div>
             </div>
-            <Button className="bg-era-lime text-era-dark-blue px-4 py-1 rounded font-bold mt-2" onClick={() => window.location.href = `/curso/${item.curso_id}` }>
+            <Button variant="default" className="mt-2 w-full" onClick={() => window.location.href = `/curso/${item.curso_id}` }>
               {item.percentual_concluido && item.percentual_concluido < 100 ? 'Continuar Curso' : 'Rever Curso'}
             </Button>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 };

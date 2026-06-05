@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion';
+import { fadeInUp, staggerFast, cardItem, cardHover } from '@/lib/animations';
 import { ERALayout } from '@/components/ERALayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,71 +112,76 @@ const Relatorios = () => {
 
   return (
     <ERALayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-green-50">
-        {/* Hero Section com gradiente */}
-        <div className="page-hero w-full rounded-xl lg:rounded-2xl flex flex-col md:flex-row justify-between items-center p-4 lg:p-8 mb-6 lg:mb-8 shadow-md" style={{background: 'linear-gradient(90deg, #000000 0%, #4A4A4A 40%, #34C759 100%)'}}>
-          <div className="px-4 lg:px-6 py-6 lg:py-8 md:py-12 w-full">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 lg:gap-6">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-era-green rounded-full animate-pulse"></div>
-                    <span className="text-xs lg:text-sm font-medium text-white/90">Plataforma de Ensino</span>
-                  </div>
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-2 lg:mb-3 text-white">
-                    Relatórios
-                  </h1>
-                  <p className="text-sm sm:text-base lg:text-lg md:text-xl text-white/90 max-w-2xl">
-                    Análise detalhada do progresso dos usuários e certificados emitidos
-                  </p>
-                  <div className="flex flex-wrap items-center gap-2 lg:gap-4 mt-3 lg:mt-4">
-                    <div className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm text-white/90">
-                      <BarChart3 className="h-3 w-3 lg:h-4 lg:w-4 text-era-green" />
-                      <span>Análise completa</span>
-                    </div>
-                    <div className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm text-white/90">
-                      <Download className="h-3 w-3 lg:h-4 lg:w-4 text-era-green" />
-                      <span>Exportação de dados</span>
-                    </div>
-                    <div className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm text-white/90">
-                      <Filter className="h-3 w-3 lg:h-4 lg:w-4 text-era-green" />
-                      <span>Filtros avançados</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    className="bg-gradient-to-r from-era-black via-era-gray-medium to-era-green hover:from-era-black/90 hover:via-era-gray-medium/90 hover:to-era-green/90 text-white font-medium px-4 lg:px-6 py-2 lg:py-3 rounded-lg lg:rounded-xl text-sm lg:text-base transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
-                  >
-                    <BarChart3 className="h-4 w-4 lg:h-5 lg:w-5 mr-1 lg:mr-2" />
-                    Dashboard
-                  </Button>
-                  <Button 
-                    onClick={() => setShowExportModal(true)}
-                    className="bg-gradient-to-r from-era-black via-era-gray-medium to-era-green hover:from-era-black/90 hover:via-era-gray-medium/90 hover:to-era-green/90 text-white font-medium px-6 py-2 rounded-lg flex items-center gap-2 transition-all duration-300 hover:scale-105 shadow-lg hover:shadow-xl"
-                  >
-                    <Download className="h-4 w-4" />
-                    Exportar Dados
-                  </Button>
-                </div>
-              </div>
+      <div className="min-h-screen bg-gradient-to-br bg-pana-bg">
+        {/* Hero */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #2d2f5e 60%, #4B3F72 100%)' }}
+        >
+          <div className="px-6 lg:px-10 py-8 lg:py-12">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+              <motion.div variants={staggerFast} initial="hidden" animate="visible" className="flex-1">
+                <motion.div variants={fadeInUp} className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 rounded-full bg-pana-bone animate-pulse"></div>
+                  <span className="text-xs lg:text-sm font-medium text-white/90">Plataforma de Ensino</span>
+                </motion.div>
+                <motion.h1 variants={fadeInUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2 lg:mb-3 text-white">
+                  Relatórios
+                </motion.h1>
+                <motion.p variants={fadeInUp} className="text-sm sm:text-base lg:text-lg text-white/80 max-w-2xl">
+                  Análise detalhada do progresso dos usuários e certificados emitidos
+                </motion.p>
+                <motion.div variants={staggerFast} className="flex flex-wrap items-center gap-4 mt-4">
+                  {[
+                    { icon: BarChart3, label: 'Análise completa' },
+                    { icon: Download,  label: 'Exportação de dados' },
+                    { icon: Filter,    label: 'Filtros avançados' },
+                  ].map(({ icon: Icon, label }) => (
+                    <motion.div key={label} variants={fadeInUp} className="flex items-center gap-2 text-xs lg:text-sm text-white/80">
+                      <Icon className="h-4 w-4" style={{ color: '#D0CEBA' }} />
+                      <span>{label}</span>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </motion.div>
+              <motion.div
+                initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.15, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="flex gap-2"
+              >
+                <Button variant="ghost">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Dashboard
+                </Button>
+                <Button variant="default" onClick={() => setShowExportModal(true)}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar Dados
+                </Button>
+              </motion.div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         <div className="px-4 lg:px-6 py-6 lg:py-8">
           <div className="max-w-7xl mx-auto space-y-6 lg:space-y-8">
 
             {/* Filtros de Pesquisa */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-              <CardHeader className="bg-gradient-to-r from-era-black via-era-gray-medium to-era-green text-white">
-                <CardTitle className="flex items-center gap-3 text-white font-bold text-xl">
-                  <div className="p-2 bg-white/20 rounded-lg">
-                    <Filter className="h-6 w-6 text-white" />
+            <motion.div
+              initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+            >
+            <Card className="border border-[#e4e5f0] shadow-sm">
+              <CardHeader style={{ background: '#1F2041', borderRadius: '12px 12px 0 0' }}>
+                <CardTitle className="flex items-center gap-3 text-white font-semibold text-base">
+                  <div className="p-2 rounded-lg" style={{ background: 'rgba(75,63,114,0.35)' }}>
+                    <Filter className="h-4 w-4" style={{ color: '#E9D2C0' }} />
                   </div>
                   <span>Filtros de Pesquisa</span>
                 </CardTitle>
-                <CardDescription className="text-white/90 mt-2 font-medium">
+                <CardDescription className="text-white/60 mt-1 text-sm">
                   Use os filtros abaixo para refinar sua pesquisa
                 </CardDescription>
               </CardHeader>
@@ -309,13 +316,19 @@ const Relatorios = () => {
             </div>
           </CardContent>
         </Card>
+        </motion.div>
 
             {/* Resultados da Pesquisa */}
-            <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-xl overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-era-black via-era-gray-medium to-era-green text-white">
-                <CardTitle className="flex items-center gap-3 text-white font-bold text-xl">
-                  <div className="p-2 bg-white/20 rounded-lg">
-                    <Search className="h-6 w-6 text-white" />
+            <motion.div
+              initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+            >
+            <Card className="border border-[#e4e5f0] shadow-sm overflow-hidden">
+              <CardHeader style={{ background: '#1F2041', borderRadius: '12px 12px 0 0' }}>
+                <CardTitle className="flex items-center gap-3 text-white font-semibold text-base">
+                  <div className="p-2 rounded-lg" style={{ background: 'rgba(75,63,114,0.35)' }}>
+                    <Search className="h-4 w-4" style={{ color: '#E9D2C0' }} />
                   </div>
                   <span>Resultados da Pesquisa</span>
                 </CardTitle>
@@ -412,6 +425,7 @@ const Relatorios = () => {
             )}
           </CardContent>
         </Card>
+        </motion.div>
           </div>
         </div>
       </div>

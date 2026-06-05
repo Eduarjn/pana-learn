@@ -1,24 +1,16 @@
-import { 
-  Home, 
-  Video, 
-  Award, 
-  BarChart3, 
-  Users, 
-  Settings, 
-  LogOut, 
-  GraduationCap, 
-  BookOpen, 
-  FileText, 
-  PieChart, 
-  UserCheck, 
+import {
+  Home,
+  Award,
+  UserCheck,
   Cog,
-  ChevronDown,
-  Globe,
+  LogOut,
+  BookOpen,
+  FileText,
   Building2,
-  Bot,
-  Zap,
+  ChevronDown,
   Pin,
-  PinOff
+  PinOff,
+  LayoutTemplate,
 } from "lucide-react";
 import { resolveLogoPath, imageFallbacks } from "@/utils/imageUtils";
 
@@ -27,52 +19,76 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useBranding } from "@/context/BrandingContext";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ERALogo } from './ERALogo';
 import { useHoverIntent } from "@/hooks/useHoverIntent";
 import { useResponsive } from "@/hooks/useResponsive";
-import { 
-  getSidebarState, 
-  setSidebarState, 
-  getSidebarWidth, 
-  isPointerNear, 
-  isTouchDevice as isTouchDeviceUtil
+import {
+  getSidebarState,
+  setSidebarState,
+  getSidebarWidth,
+  isPointerNear,
+  isTouchDevice as isTouchDeviceUtil,
 } from "@/lib/sidebar-utils";
 
-const menuItems = [
-  { title: "Dashboard", icon: Home, path: "/dashboard", roles: ["admin", "cliente", "admin_master"] },
-  { title: "Treinamentos", icon: BookOpen, path: "/treinamentos", roles: ["admin", "cliente", "admin_master"] },
-  { title: "Quizzes", icon: FileText, path: "/quizzes", roles: ["admin", "admin_master"] },
-  { title: "Certificados", icon: Award, path: "/certificados", roles: ["admin", "cliente", "admin_master"] },
-  { title: "Usuários", icon: UserCheck, path: "/usuarios", roles: ["admin", "admin_master"] },
-  { title: "Empresas", icon: Building2, path: "/empresas", roles: ["admin_master"] },
-  { title: "Configurações", icon: Cog, path: "/configuracoes", roles: ["admin", "cliente", "admin_master"] },
+// Agrupamento de itens em seções conforme design system PanaLearn
+const menuSections = [
+  {
+    label: "PRINCIPAL",
+    items: [
+      { title: "Dashboard", icon: Home, path: "/dashboard", roles: ["admin", "cliente", "admin_master"] },
+    ],
+  },
+  {
+    label: "CONTEÚDO",
+    items: [
+      { title: "Treinamentos", icon: BookOpen, path: "/treinamentos", roles: ["admin", "cliente", "admin_master"] },
+      { title: "Quizzes", icon: FileText, path: "/quizzes", roles: ["admin", "admin_master"] },
+      { title: "Certificados", icon: Award, path: "/certificados", roles: ["admin", "cliente", "admin_master"] },
+      { title: "Templates de cert.", icon: LayoutTemplate, path: "/admin/certificados/templates", roles: ["admin", "admin_master"] },
+    ],
+  },
+  {
+    label: "GESTÃO",
+    items: [
+      { title: "Usuários", icon: UserCheck, path: "/usuarios", roles: ["admin", "admin_master"] },
+      { title: "Empresas", icon: Building2, path: "/empresas", roles: ["admin_master"] },
+    ],
+  },
+  {
+    label: "SISTEMA",
+    items: [
+      { title: "Configurações", icon: Cog, path: "/configuracoes", roles: ["admin", "cliente", "admin_master"] },
+    ],
+  },
 ];
 
-function SidebarItem({ 
-  icon: Icon, 
-  label, 
-  submenu, 
-  userType, 
-  isExpanded, 
-  onItemClick 
-}: { 
-  icon: React.ComponentType<{ className?: string }>, 
-  label: string, 
-  submenu: { label: string, path: string, roles?: string[] }[],
-  userType?: string,
-  isExpanded: boolean,
-  onItemClick: (path: string) => void
+// Submenu de configurações (mantido para compatibilidade)
+function SidebarItem({
+  icon: Icon,
+  label,
+  submenu,
+  userType,
+  isExpanded,
+  onItemClick,
+}: {
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  label: string;
+  submenu: { label: string; path: string; roles?: string[] }[];
+  userType?: string;
+  isExpanded: boolean;
+  onItemClick: (path: string) => void;
 }) {
   const location = useLocation();
-  
-  const visibleSubmenu = submenu.filter(item => 
-    !item.roles || item.roles.includes(userType || '')
+
+  const visibleSubmenu = submenu.filter(
+    (item) => !item.roles || item.roles.includes(userType || "")
   );
 
-  const isAnySubmenuActive = visibleSubmenu.some(item => 
-    location.pathname === item.path || 
-    location.pathname.startsWith(item.path + '/') ||
-    (item.path === '/configuracoes/preferencias' && location.pathname === '/configuracoes')
+  const isAnySubmenuActive = visibleSubmenu.some(
+    (item) =>
+      location.pathname === item.path ||
+      location.pathname.startsWith(item.path + "/") ||
+      (item.path === "/configuracoes/preferencias" &&
+        location.pathname === "/configuracoes")
   );
 
   const [open, setOpen] = useState(isAnySubmenuActive);
@@ -80,50 +96,76 @@ function SidebarItem({
   return (
     <div>
       <button
-        className={`w-full flex items-center justify-between text-left text-xs lg:text-sm p-2 lg:p-3 rounded-lg transition-all duration-200 ${
-          isAnySubmenuActive 
-            ? 'text-era-green bg-white/10' 
-            : 'text-white hover:bg-white/10'
-        }`}
+        className="w-full flex items-center justify-between text-left text-sm rounded-md transition-all"
+        style={{
+          padding: "9px 12px",
+          margin: "2px 0",
+          background: isAnySubmenuActive ? "#4B3F72" : "none",
+          color: isAnySubmenuActive ? "#E9D2C0" : "rgba(255,255,255,0.6)",
+          transitionDuration: "200ms",
+        }}
+        onMouseEnter={(e) => {
+          if (!isAnySubmenuActive)
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+              "rgba(255,255,255,0.07)";
+        }}
+        onMouseLeave={(e) => {
+          if (!isAnySubmenuActive)
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+              "transparent";
+        }}
         onClick={() => {
-          if (isExpanded) {
-            setOpen((v) => !v);
-          } else {
-            onItemClick('/configuracoes');
-          }
+          if (isExpanded) setOpen((v) => !v);
+          else onItemClick("/configuracoes");
         }}
         type="button"
-        style={{ background: 'none' }}
       >
-        <span className="flex items-center gap-2 lg:gap-3">
-          <Icon className={`h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0 ${
-            isAnySubmenuActive ? 'text-era-green' : 'text-white'
-          }`} />
-          <span className={`${
-            isAnySubmenuActive ? 'text-era-green' : 'text-white'
-          } truncate transition-all duration-200 ${
-            isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-1'
-          }`}>{label}</span>
+        <span className="flex items-center gap-2.5">
+          <Icon
+            className="h-4 w-4 flex-shrink-0"
+            style={{ color: isAnySubmenuActive ? "#E9D2C0" : "rgba(255,255,255,0.6)" }}
+          />
+          <span
+            className={`truncate transition-all duration-200 ${
+              isExpanded ? "opacity-100 translate-x-0" : "opacity-0 translate-x-1"
+            }`}
+          >
+            {label}
+          </span>
         </span>
-        <ChevronDown className={`transition-transform duration-200 ${open ? 'rotate-180' : ''} h-3 w-3 lg:h-4 lg:w-4 ${
-          isAnySubmenuActive ? 'text-era-green' : 'text-white'
-        } transition-all duration-200 ${
-          isExpanded ? 'opacity-100' : 'opacity-0'
-        }`} />
+        <ChevronDown
+          className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""} ${
+            isExpanded ? "opacity-100" : "opacity-0"
+          }`}
+        />
       </button>
       {open && isExpanded && (
-        <div className="pl-6 lg:pl-8 mt-1 space-y-1">
+        <div className="pl-8 mt-0.5 space-y-0.5">
           {visibleSubmenu.map((item) => {
-            const isSpecialActive = item.path === '/configuracoes/preferencias' && location.pathname === '/configuracoes';
+            const isSpecialActive =
+              item.path === "/configuracoes/preferencias" &&
+              location.pathname === "/configuracoes";
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
-                className={({ isActive }) => `w-full block text-left text-xs lg:text-sm p-1.5 lg:p-2 rounded-md transition-all duration-200 ${
-                  (isActive || isSpecialActive)
-                    ? 'text-era-green font-medium bg-white/10' 
-                    : 'text-white/80 hover:text-era-green hover:bg-white/10'
-                }`}
+                className={({ isActive }) =>
+                  `block text-left text-xs py-2 px-2 rounded-md transition-all duration-200 ${
+                    isActive || isSpecialActive
+                      ? "font-medium"
+                      : "hover:bg-white/[0.07]"
+                  }`
+                }
+                style={({ isActive }) => ({
+                  color:
+                    isActive || isSpecialActive
+                      ? "#E9D2C0"
+                      : "rgba(255,255,255,0.55)",
+                  backgroundColor:
+                    isActive || isSpecialActive
+                      ? "rgba(75,63,114,0.6)"
+                      : undefined,
+                })}
               >
                 {item.label}
               </NavLink>
@@ -143,222 +185,344 @@ export function ERASidebar() {
   const { isDesktop, isLargeDesktop } = useResponsive();
   const sidebarRef = useRef<HTMLDivElement>(null);
 
-  // Estados da sidebar
-  const [sidebarState, setSidebarStateLocal] = useState<'collapsed' | 'expanded' | 'pinned'>(getSidebarState);
-  const [isHovering, setIsHovering] = useState(false);
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [sidebarState, setSidebarStateLocal] = useState<
+    "collapsed" | "expanded" | "pinned"
+  >(getSidebarState);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
 
-  // Função para atualizar estado e salvar no localStorage
-  const updateSidebarState = useCallback((newState: 'collapsed' | 'expanded' | 'pinned') => {
-    setSidebarStateLocal(newState);
-    setSidebarState(newState);
-  }, []);
+  const updateSidebarState = useCallback(
+    (newState: "collapsed" | "expanded" | "pinned") => {
+      setSidebarStateLocal(newState);
+      setSidebarState(newState);
+    },
+    []
+  );
 
-  // Hook para detectar intenção de hover (apenas desktop)
-  const { isHovered, handleMouseEnter, handleMouseLeave } = useHoverIntent({
+  const { handleMouseEnter, handleMouseLeave } = useHoverIntent({
     openDelay: 200,
     closeDelay: 500,
     onEnter: () => {
-      if (!isTouchDevice && sidebarState === 'collapsed' && (isDesktop || isLargeDesktop)) {
-        updateSidebarState('expanded');
+      if (
+        !isTouchDevice &&
+        sidebarState === "collapsed" &&
+        (isDesktop || isLargeDesktop)
+      ) {
+        updateSidebarState("expanded");
       }
     },
     onLeave: () => {
-      if (!isTouchDevice && sidebarState === 'expanded' && (isDesktop || isLargeDesktop)) {
-        updateSidebarState('collapsed');
+      if (
+        !isTouchDevice &&
+        sidebarState === "expanded" &&
+        (isDesktop || isLargeDesktop)
+      ) {
+        updateSidebarState("collapsed");
       }
-    }
+    },
   });
 
-  // Detectar dispositivo touch
   useEffect(() => {
     setIsTouchDevice(isTouchDeviceUtil());
   }, []);
 
-  // Gerenciar estado da sidebar
   useEffect(() => {
     updateSidebarState(getSidebarState());
   }, [updateSidebarState]);
 
-  const handleSignOut = async () => {
-    await signOut();
-  };
-
-  const togglePin = useCallback(() => {
-    const newState = sidebarState === 'pinned' ? 'collapsed' : 'pinned';
-    updateSidebarState(newState);
-  }, [sidebarState, updateSidebarState]);
-
-  const handleItemClick = useCallback((path: string) => {
-    // Em dispositivos touch ou mobile, não expandir/colapsar automaticamente
-    // Apenas navegar
-    navigate(path);
-  }, [navigate]);
-
-  const handleMouseMove = useCallback((event: MouseEvent) => {
-    if (sidebarRef.current && sidebarState === 'collapsed') {
-      const isNear = isPointerNear(sidebarRef.current, event, 32);
-      setIsHovering(isNear);
-    }
-  }, [sidebarState]);
+  const handleMouseMove = useCallback(
+    (event: MouseEvent) => {
+      if (sidebarRef.current && sidebarState === "collapsed") {
+        isPointerNear(sidebarRef.current, event, 32);
+      }
+    },
+    [sidebarState]
+  );
 
   useEffect(() => {
-    // Apenas adicionar listener de mouse em desktop
     if (!isTouchDevice && (isDesktop || isLargeDesktop)) {
-      document.addEventListener('mousemove', handleMouseMove);
-      return () => document.removeEventListener('mousemove', handleMouseMove);
+      document.addEventListener("mousemove", handleMouseMove);
+      return () => document.removeEventListener("mousemove", handleMouseMove);
     }
   }, [isTouchDevice, isDesktop, isLargeDesktop, handleMouseMove]);
 
-  const visibleMenuItems = menuItems.filter(item => 
-    userProfile?.tipo_usuario ? item.roles.includes(userProfile.tipo_usuario) : item.roles.includes('cliente')
+  const handleItemClick = useCallback(
+    (path: string) => navigate(path),
+    [navigate]
   );
 
+  const togglePin = useCallback(() => {
+    const newState = sidebarState === "pinned" ? "collapsed" : "pinned";
+    updateSidebarState(newState);
+  }, [sidebarState, updateSidebarState]);
+
+  const isExpanded = sidebarState === "expanded" || sidebarState === "pinned";
   const sidebarWidth = getSidebarWidth(sidebarState);
-  const isExpanded = sidebarState === 'expanded' || sidebarState === 'pinned';
+  const userRole = userProfile?.tipo_usuario ?? "cliente";
+
+  // Cor base da sidebar: respeita branding do tenant, fallback = Space Indigo
+  const sidebarBg = branding.secondary_color || "#1F2041";
 
   return (
-    <div 
+    <div
       ref={sidebarRef}
-      className="flex flex-col h-full text-white min-h-screen transition-[width] duration-200 ease-in-out"
-      style={{ width: `${sidebarWidth}px`, backgroundColor: branding.secondary_color || '#111827' }}
+      className="flex flex-col h-full min-h-screen transition-[width] duration-200 ease-in-out"
+      style={{
+        width: `${sidebarWidth}px`,
+        backgroundColor: sidebarBg,
+        fontFamily: "var(--font-sans, 'Inter', sans-serif)",
+      }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       aria-expanded={isExpanded}
     >
-      {/* Logo da empresa (usa branding) */}
-      <div className="relative">
-        <img
-          src={branding.logo_url || '/panalearn-logo.png'}
-          alt={`${branding.company_name || 'Panalearn'} Logo`}
-          id="sidebar-logo"
-          className={`object-contain rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg ${
-            isExpanded ? 'h-20 lg:h-24' : 'h-16'
-          }`}
-          style={{ 
-            width: isExpanded ? '100%' : '48px',
-            margin: isExpanded ? '0' : '0 auto'
-          }}
-          onClick={() => navigate('/dashboard')}
-          onError={(e) => {
-            // Tentar fallbacks em ordem
-            const currentSrc = e.currentTarget.src;
-            const fallbackIndex = imageFallbacks.logo.findIndex(fallback => 
-              currentSrc.includes(fallback)
-            );
-            
-            if (fallbackIndex < imageFallbacks.logo.length - 1) {
-              const nextFallback = imageFallbacks.logo[fallbackIndex + 1];
-              e.currentTarget.src = resolveLogoPath(nextFallback);
-            } else {
-              e.currentTarget.style.display = 'none';
-            }
-          }}
-          title={`Clique para visitar o site ${branding.company_name || 'ERA'}`}
-        />
-        
+      {/* ── Logo ── */}
+      <div
+        className="relative flex-shrink-0"
+        style={{ borderBottom: "0.5px solid rgba(255,255,255,0.1)" }}
+      >
+        {isExpanded ? (
+          /* ── Sidebar expandida: logo horizontal versão "on-indigo" ── */
+          <div
+            className="flex items-center justify-center px-4 py-4 cursor-pointer hover:opacity-90 transition-opacity"
+            onClick={() => navigate("/dashboard")}
+          >
+            <img
+              src="/brand/panalearn-horizontal-on-indigo.png"
+              alt={branding.company_name || "PanaLearn"}
+              id="sidebar-logo"
+              className="h-10 object-contain"
+              style={{ maxWidth: "80%" }}
+              onError={(e) => {
+                /* fallback: marca branca isolada */
+                e.currentTarget.src = "/brand/panalearn-mark-white.png";
+                e.currentTarget.className = "h-8 w-8 object-contain";
+              }}
+            />
+          </div>
+        ) : (
+          /* ── Sidebar recolhida: marca branca isolada ── */
+          <div
+            className="flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity py-3"
+            onClick={() => navigate("/dashboard")}
+          >
+            <img
+              src="/brand/panalearn-mark-white.png"
+              alt={branding.company_name || "PanaLearn"}
+              id="sidebar-logo"
+              className="h-8 w-8 object-contain"
+              onError={(e) => { e.currentTarget.style.display = "none"; }}
+            />
+          </div>
+        )}
+
         {/* Botão de fixar */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`absolute top-2 right-2 p-1 h-6 w-6 text-gray-400 hover:text-white transition-all duration-200 ${
-            isExpanded ? 'opacity-100' : 'opacity-0'
-          }`}
+        <button
+          className="absolute top-2 right-2 p-1 rounded transition-opacity duration-200"
+          style={{
+            opacity: isExpanded ? 1 : 0,
+            color: "rgba(255,255,255,0.4)",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+          }}
+          onMouseEnter={(e) =>
+            ((e.currentTarget as HTMLButtonElement).style.color = "#E9D2C0")
+          }
+          onMouseLeave={(e) =>
+            ((e.currentTarget as HTMLButtonElement).style.color =
+              "rgba(255,255,255,0.4)")
+          }
           onClick={togglePin}
-          title={sidebarState === 'pinned' ? 'Desafixar' : 'Fixar'}
+          title={sidebarState === "pinned" ? "Desafixar" : "Fixar"}
         >
-          {sidebarState === 'pinned' ? (
-            <PinOff className="h-3 w-3" />
+          {sidebarState === "pinned" ? (
+            <PinOff className="h-3.5 w-3.5" />
           ) : (
-            <Pin className="h-3 w-3" />
+            <Pin className="h-3.5 w-3.5" />
           )}
-        </Button>
+        </button>
 
         {isExpanded && (
-          <div className="flex items-center justify-center py-2">
-            <p className="text-xs text-gray-400">{branding.company_slogan || 'Smart Training'}</p>
-          </div>
+          <p
+            className="text-center py-2 text-xs"
+            style={{ color: "rgba(255,255,255,0.35)" }}
+          >
+            {branding.company_slogan || "Smart Training"}
+          </p>
         )}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-2 lg:p-4 space-y-0.5 lg:space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
-        <ul className="flex flex-col gap-0.5 lg:gap-1">
-          {visibleMenuItems.map((item) => {
-            // Se o item tem submenu, usar SidebarItem
-            if (item.submenu) {
-              return (
-                <SidebarItem
-                  key={item.path}
-                  icon={item.icon}
-                  label={item.title}
-                  userType={userProfile?.tipo_usuario}
-                  submenu={item.submenu}
-                  isExpanded={isExpanded}
-                  onItemClick={handleItemClick}
-                />
-              );
-            }
-            
-            // Se não tem submenu, renderizar normalmente
-            const isActive = location.pathname === item.path;
-            
-            return (
-              <li key={item.path} className="relative">
-                <Button
-                  variant="ghost"
-                  className={`w-full justify-start text-left text-xs lg:text-sm p-1.5 lg:p-2.5 rounded-lg transition-all duration-200 ${
-                    isActive
-                      ? "bg-era-green text-white font-semibold"
-                      : "text-white hover:bg-white/10"
-                  }`}
-                  onClick={() => handleItemClick(item.path)}
+      {/* ── Navegação ── */}
+      <nav
+        className="flex-1 overflow-y-auto py-3"
+        style={{ scrollbarWidth: "thin", scrollbarColor: "#45466B #1F2041" }}
+      >
+        {menuSections.map((section) => {
+          const visibleItems = section.items.filter((item) =>
+            item.roles.includes(userRole)
+          );
+          if (visibleItems.length === 0) return null;
+
+          return (
+            <div key={section.label} className="mb-1" style={{ padding: "0 8px" }}>
+              {/* Label da seção — só visível quando expandido */}
+              {isExpanded && (
+                <p
+                  className="px-3 pb-1 pt-3"
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: 500,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "rgba(255,255,255,0.35)",
+                  }}
                 >
-                  <item.icon className={`mr-2 lg:mr-3 h-4 w-4 lg:h-5 lg:w-5 flex-shrink-0 ${isActive ? 'text-white' : 'text-white'}`} />
-                  <span className={`${isActive ? 'text-white' : 'text-white'} truncate transition-all duration-200 ${
-                    isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-1'
-                  }`}>
-                    {item.title}
-                  </span>
-                </Button>
-              </li>
-            );
-          })}
-        </ul>
+                  {section.label}
+                </p>
+              )}
+
+              <ul className="space-y-0.5">
+                {visibleItems.map((item) => {
+                  const isActive = location.pathname === item.path;
+
+                  return (
+                    <li key={item.path}>
+                      <button
+                        className="w-full flex items-center gap-2.5 rounded-md transition-all duration-200 text-sm"
+                        style={{
+                          padding: "9px 12px",
+                          background: isActive ? "#4B3F72" : "transparent",
+                          color: isActive ? "#E9D2C0" : "rgba(255,255,255,0.6)",
+                          border: "none",
+                          cursor: "pointer",
+                          width: "100%",
+                          textAlign: "left",
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive)
+                            (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                              "rgba(255,255,255,0.07)";
+                          if (!isActive)
+                            (e.currentTarget as HTMLButtonElement).style.color =
+                              "rgba(255,255,255,0.85)";
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive)
+                            (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+                              "transparent";
+                          if (!isActive)
+                            (e.currentTarget as HTMLButtonElement).style.color =
+                              "rgba(255,255,255,0.6)";
+                        }}
+                        onClick={() => handleItemClick(item.path)}
+                      >
+                        <item.icon
+                          className="h-4 w-4 flex-shrink-0"
+                          style={{
+                            color: isActive
+                              ? "#E9D2C0"
+                              : "rgba(255,255,255,0.6)",
+                          }}
+                        />
+                        <span
+                          className={`truncate transition-all duration-200 ${
+                            isExpanded
+                              ? "opacity-100 translate-x-0"
+                              : "opacity-0 translate-x-1 w-0 overflow-hidden"
+                          }`}
+                        >
+                          {item.title}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          );
+        })}
       </nav>
 
-      {/* User section */}
-      <div className="p-3 lg:p-4">
-        <div className={`flex items-center space-x-2 lg:space-x-3 mb-2 lg:mb-3 ${
-          isExpanded ? 'opacity-100' : 'opacity-0'
-        } transition-opacity duration-200`}>
-          <div className="w-6 h-6 lg:w-8 lg:h-8 bg-gray-600 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-xs lg:text-sm font-medium text-white">
-              {userProfile?.nome ? userProfile.nome.charAt(0).toUpperCase() : 'U'}
+      {/* ── Rodapé do usuário ── */}
+      <div
+        className="flex-shrink-0 p-3"
+        style={{ borderTop: "0.5px solid rgba(255,255,255,0.1)" }}
+      >
+        <div
+          className={`flex items-center gap-2.5 mb-2 transition-opacity duration-200 ${
+            isExpanded ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+        >
+          <div
+            className="flex-shrink-0 flex items-center justify-center rounded-full"
+            style={{
+              width: "32px",
+              height: "32px",
+              background: "#4B3F72",
+            }}
+          >
+            <span
+              className="text-xs font-medium"
+              style={{ color: "#E9D2C0" }}
+            >
+              {userProfile?.nome
+                ? userProfile.nome.charAt(0).toUpperCase()
+                : "U"}
             </span>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs lg:text-sm font-medium text-white truncate">
-              {userProfile?.nome || 'Usuário'}
-            </p>
-            <p className="text-xs text-gray-400 truncate">
-              {userProfile?.tipo_usuario === 'admin' ? 'Administrador' : 'Cliente'}
-            </p>
-          </div>
+          {isExpanded && (
+            <div className="min-w-0 flex-1">
+              <p
+                className="text-sm font-medium truncate"
+                style={{ color: "#D0CEBA" }}
+              >
+                {userProfile?.nome || "Usuário"}
+              </p>
+              <p className="text-xs truncate" style={{ color: "rgba(255,255,255,0.35)" }}>
+                {userProfile?.tipo_usuario === "admin_master"
+                  ? "Admin Master"
+                  : userProfile?.tipo_usuario === "admin"
+                  ? "Administrador"
+                  : "Colaborador"}
+              </p>
+            </div>
+          )}
         </div>
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start text-white hover:bg-white/10 text-xs lg:text-sm p-2 lg:p-3"
-          onClick={handleSignOut}
+
+        <button
+          className="w-full flex items-center gap-2.5 rounded-md text-sm transition-all duration-200"
+          style={{
+            padding: "9px 12px",
+            color: "rgba(255,255,255,0.6)",
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+              "rgba(255,255,255,0.07)";
+            (e.currentTarget as HTMLButtonElement).style.color =
+              "rgba(255,255,255,0.85)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.backgroundColor =
+              "transparent";
+            (e.currentTarget as HTMLButtonElement).style.color =
+              "rgba(255,255,255,0.6)";
+          }}
+          onClick={() => signOut()}
         >
-          <LogOut className="mr-2 lg:mr-3 h-3 w-3 lg:h-4 lg:w-4" />
-          <span className={`truncate transition-all duration-200 ${
-            isExpanded ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-1'
-          }`}>
+          <LogOut className="h-4 w-4 flex-shrink-0" />
+          <span
+            className={`truncate transition-all duration-200 ${
+              isExpanded
+                ? "opacity-100 translate-x-0"
+                : "opacity-0 translate-x-1 w-0 overflow-hidden"
+            }`}
+          >
             Sair
           </span>
-        </Button>
+        </button>
       </div>
     </div>
   );
