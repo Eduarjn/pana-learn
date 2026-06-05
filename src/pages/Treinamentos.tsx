@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Search, Filter, Plus, Video, Eye, BookOpen, Clock, Users, Settings, ListOrdered, ArrowLeft, Play, Trash, ChevronRight, GraduationCap, Award, Edit, Loader2, MoreVertical, Tag } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cardHover } from '@/lib/animations';
 import { useAuth } from '@/hooks/useAuth';
