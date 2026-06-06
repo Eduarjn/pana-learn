@@ -40,7 +40,7 @@ export default function Onboarding() {
       supabase.from('empresas')
         .select('id, plan, plan_status')
         .limit(1)
-        .single()
+        .maybeSingle()
         .then(({ data: empData }) => {
           if (empData?.plan_status === 'active') {
             navigate('/dashboard');
@@ -48,6 +48,7 @@ export default function Onboarding() {
             setCurrentStep(2);
             setOnboardingData(prev => ({ ...prev, userId: user.id, organizationId: empData.id }));
           }
+          // Se não tem empresa, fica no step 1 (criar conta)
         });
     }
   }, [user, navigate]);
