@@ -14,6 +14,7 @@ import Treinamentos from "./pages/Treinamentos";
 
 import Usuarios from "./pages/Usuarios";
 import Configuracoes from "./pages/Configuracoes";
+import Suporte from "./pages/Suporte";
 import Empresas from "./pages/Empresas";
 import EmpresaDashboard from "./pages/EmpresaDashboard";
 import NotFound from "./pages/NotFound";
@@ -135,7 +136,15 @@ const App = () => {
                     </ProtectedRoute>
                   } 
                 />
-                <Route 
+                <Route
+                  path="/suporte"
+                  element={
+                    <ProtectedRoute>
+                      <Suporte />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/meu-painel" 
                   element={
                     <ProtectedRoute>

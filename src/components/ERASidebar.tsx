@@ -11,6 +11,7 @@ import {
   Pin,
   PinOff,
   LayoutTemplate,
+  Headset,
 } from "lucide-react";
 import { resolveLogoPath, imageFallbacks } from "@/utils/imageUtils";
 
@@ -57,6 +58,7 @@ const menuSections = [
     label: "SISTEMA",
     items: [
       { title: "Configurações", icon: Cog, path: "/configuracoes", roles: ["admin", "cliente", "admin_master"] },
+      { title: "Suporte SLA", icon: Headset, path: "/suporte", roles: ["admin", "admin_master"] },
     ],
   },
 ];
