@@ -64,8 +64,8 @@ export default function StepConta({ data, updateData, onNext }: Props) {
         .insert({
           nome: formData.organizacaoNome,
           subdominio,
-          plan: 'trial',
-          plan_status: 'pending',
+          plan: 'starter',
+          plan_status: 'trial',
         })
         .select()
         .single();
