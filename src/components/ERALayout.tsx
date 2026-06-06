@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { MessageCircle, ChevronRight, Mail, Phone, MapPin } from "lucide-react";
+import { MessageCircle, ChevronRight, Mail, MapPin } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useAuth } from '@/hooks/useAuth';
 import { useBranding } from '@/context/BrandingContext';
@@ -112,21 +112,14 @@ export function ERALayout({ children, breadcrumbs = [], cursoNome = '', userNome
               <Mail className="h-5 w-5 text-accent" />
               <div>
                 <p className="font-semibold text-text">Email</p>
-                <p className="text-sm text-muted">contato@panalearn.com</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-3">
-              <Phone className="h-5 w-5 text-accent" />
-              <div>
-                <p className="font-semibold text-text">Telefone</p>
-                <p className="text-sm text-muted">(11) 9999-9999</p>
+                <p className="text-sm text-muted">mipanalearn@gmail.com</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
               <MapPin className="h-5 w-5 text-accent" />
               <div>
                 <p className="font-semibold text-text">Endereço</p>
-                <p className="text-sm text-muted">São Paulo, SP</p>
+                <p className="text-sm text-muted">Campinas, SP</p>
               </div>
             </div>
           </div>
