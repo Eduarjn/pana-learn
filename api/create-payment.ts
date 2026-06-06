@@ -8,9 +8,9 @@ const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/ap
 const ASAAS_API_KEY = process.env.ASAAS_API_KEY || '';
 
 const PLANOS: Record<string, { nome: string; valor: number }> = {
-  starter:    { nome: 'Panalearn Starter',    valor: 297.00 },
-  pro:        { nome: 'Panalearn Pro',         valor: 497.00 },
-  enterprise: { nome: 'Panalearn Enterprise',  valor: 897.00 },
+  starter:    { nome: 'Panalearn Starter',    valor: 397.00 },
+  pro:        { nome: 'Panalearn Pro',         valor: 697.00 },
+  enterprise: { nome: 'Panalearn Enterprise',  valor: 1097.00 },
 };
 
 async function asaasFetch(endpoint: string, body: Record<string, unknown>) {

@@ -349,9 +349,9 @@ export default function Landing() {
       if (lm) lm.classList.toggle('active', !window.__lpIsAnnual);
       if (la) la.classList.toggle('active', window.__lpIsAnnual);
       const prices: Record<string, { monthly: number; annual: number }> = {
-        starter: { monthly: 297, annual: 237 },
-        pro: { monthly: 497, annual: 397 },
-        enterprise: { monthly: 897, annual: 717 }
+        starter: { monthly: 397, annual: 317 },
+        pro: { monthly: 697, annual: 557 },
+        enterprise: { monthly: 1097, annual: 877 }
       };
       for (const [plan, vals] of Object.entries(prices)) {
         const price = document.getElementById('lp-p-' + plan);
@@ -456,7 +456,7 @@ export default function Landing() {
                 <a href="#lp-features" className="lp-btn lp-btn-ow lp-btn-lg">Ver demonstração</a>
               </div>
               <div className="lp-trust">
-                <span className="lp-trust-txt">Mais de 500 organizações já confiam na PanaLearn</span>
+                <span className="lp-trust-txt">Mais de 10 organizações já confiam na PanaLearn</span>
                 <div className="lp-trust-logos">
                   {['ACME Corp','EduMax','TechGroup','FranquiasBR','HealthCare'].map(n => (
                     <span className="lp-trust-pill" key={n}>{n}</span>
@@ -541,10 +541,10 @@ export default function Landing() {
           </div>
           <div className="lp-num-grid">
             {[
-              { target:10000, suffix:'+', label:'alunos ativos', svg:<svg viewBox="0 0 26 26" fill="none"><circle cx="13" cy="10" r="4" stroke="currentColor" strokeWidth="1.8"/><path d="M5 21a8 8 0 0116 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg> },
-              { target:500, suffix:'+', label:'organizações clientes', svg:<svg viewBox="0 0 26 26" fill="none"><rect x="4" y="7" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.8"/><path d="M9 7V5a4 4 0 018 0v2" stroke="currentColor" strokeWidth="1.8"/></svg> },
+              { target:600, suffix:'+', label:'alunos ativos', svg:<svg viewBox="0 0 26 26" fill="none"><circle cx="13" cy="10" r="4" stroke="currentColor" strokeWidth="1.8"/><path d="M5 21a8 8 0 0116 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/></svg> },
+              { target:10, suffix:'+', label:'organizações clientes', svg:<svg viewBox="0 0 26 26" fill="none"><rect x="4" y="7" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.8"/><path d="M9 7V5a4 4 0 018 0v2" stroke="currentColor" strokeWidth="1.8"/></svg> },
               { target:98, suffix:'%', label:'de satisfação', svg:<svg viewBox="0 0 26 26" fill="none"><path d="M13 3L15.5 9.5L22 10.5L17 15.5L18.5 22L13 18.5L7.5 22L9 15.5L4 10.5L10.5 9.5L13 3Z" stroke="currentColor" strokeWidth="1.8"/></svg> },
-              { target:200, suffix:'+', label:'cursos disponíveis', svg:<svg viewBox="0 0 26 26" fill="none"><rect x="4" y="3" width="18" height="20" rx="2" stroke="currentColor" strokeWidth="1.8"/><path d="M9 9h8M9 13h8M9 17h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg> },
+              { target:50, suffix:'+', label:'cursos disponíveis', svg:<svg viewBox="0 0 26 26" fill="none"><rect x="4" y="3" width="18" height="20" rx="2" stroke="currentColor" strokeWidth="1.8"/><path d="M9 9h8M9 13h8M9 17h5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg> },
             ].map((n, i) => (
               <div key={n.label} className="lp-num-item lp-fade" style={{transitionDelay:`${i*0.1}s`}}>
                 <div className="lp-num-ico">{n.svg}</div>
@@ -579,12 +579,12 @@ export default function Landing() {
                 {t:'Relatórios de progresso em tempo real', d:'Acompanhe engajamento, conclusão e desempenho por aluno, turma ou curso.'},
                 {t:'Gestão de usuários com roles granulares', d:'Defina permissões por perfil: admin, instrutor, gestor e aluno com controle total.'},
                 {t:'Certificados automáticos configuráveis', d:'Emita certificados personalizados ao final de cursos com critérios de aprovação.'},
-                {t:'Branding e domínio próprio (multi-tenant)', d:'Cada organização tem sua própria URL, logo, cores e experiência de marca.'},
+                {t:'Personalização por organização', d:'Cada organização tem sua própria experiência e ambiente isolado na plataforma.'},
               ]},
               { id:'alunos', feats:[
                 {t:'Player de vídeo com progresso salvo', d:'Assista onde parou. Progresso salvo automaticamente, até no mobile.'},
                 {t:'Quizzes e avaliações por módulo', d:'Fixe o aprendizado com quizzes interativos e veja seu desempenho ao instante.'},
-                {t:'Certificados digitais com QR Code', d:'Certificados verificáveis online com QR Code único por emissão.'},
+                {t:'Certificados digitais verificáveis', d:'Certificados verificáveis online com código único por emissão.'},
                 {t:'Acesso responsivo em qualquer dispositivo', d:'Celular, tablet ou desktop — a experiência é fluida em todos os tamanhos.'},
                 {t:'Histórico completo de aprendizagem', d:'Veja todos os cursos concluídos, badges conquistadas e certificados emitidos.'},
               ]},
@@ -642,9 +642,9 @@ export default function Landing() {
           </div>
           <div className="lp-blog-grid">
             {[
-              { color:'#4B3F72', tag:'purple', tagTxt:'Nova funcionalidade', title:'PanaLearn lança editor de cursos com assistência de IA', sum:'O novo editor inteligente sugere estrutura de módulos, quizzes e objetivos de aprendizagem automaticamente.', date:'Abr 2025' },
-              { color:'#417B5A', tag:'green', tagTxt:'Case de Sucesso', title:'Como o Grupo Educação Total certificou 1.200 alunos em 3 meses com a PanaLearn', sum:'Veja como a maior rede de escolas técnicas do Sul do país transformou seu T&D com a nossa plataforma.', date:'Mar 2025' },
-              { color:'#3B82F6', tag:'blue', tagTxt:'Dica de Gestão', title:'7 indicadores para medir o ROI do treinamento corporativo', sum:'Descubra as métricas que gestores de RH e T&D usam para comprovar o valor do aprendizado.', date:'Fev 2025' },
+              { color:'#4B3F72', tag:'purple', tagTxt:'Nova funcionalidade', title:'Quiz com áudio', sum:'O Panalearn agora suporta quizzes com áudio, ajudando escolas e organizações a melhorar o aprendizado de forma mais acessível e dinâmica.', date:'Jun 2026' },
+              { color:'#417B5A', tag:'green', tagTxt:'Case de Sucesso', title:'ERALearn centraliza treinamentos com a PanaLearn', sum:'A ERALearn utilizou o Panalearn para estruturar e melhorar a trilha de conhecimento dos seus clientes, centralizando o treinamento em uma única plataforma.', date:'Mai 2026' },
+              { color:'#3B82F6', tag:'blue', tagTxt:'Dica de Gestão', title:'7 indicadores para medir o ROI do treinamento corporativo', sum:'Descubra as métricas que gestores de RH e T&D usam para comprovar o valor do aprendizado.', date:'Fev 2026' },
             ].map((b,i) => (
               <div key={b.title} className="lp-blog-card lp-fade" style={{transitionDelay:`${i*0.1}s`}}>
                 <div className="lp-blog-stripe" style={{background:b.color}}/>
@@ -681,26 +681,26 @@ export default function Landing() {
           <div className="lp-plans lp-fade">
             <div className="lp-plan">
               <div className="lp-plan-name">Starter</div>
-              <div><span className="lp-plan-old" id="lp-o-starter">R$&nbsp;297</span><span className="lp-plan-price" id="lp-p-starter">R$&nbsp;297</span><span className="lp-plan-per">/mês</span></div>
+              <div><span className="lp-plan-old" id="lp-o-starter">R$&nbsp;397</span><span className="lp-plan-price" id="lp-p-starter">R$&nbsp;397</span><span className="lp-plan-per">/mês</span></div>
               <div className="lp-plan-desc">Ideal para pequenas equipes e empresas começando no e-learning.</div>
               <ul className="lp-plan-feats">
-                {['Até 40 usuários ativos','Cursos limitados','Quizzes inclusos','Certificados automáticos','Painel básico de progresso','Sem white-label'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
+                {['Até 40 usuários ativos','Cursos limitados','Quizzes inclusos','Certificados automáticos','Painel básico de progresso'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
               </ul>
               <a href="/onboarding" className="lp-plan-cta lp-btn lp-btn-op">Começar agora</a>
             </div>
             <div className="lp-plan featured">
               <div className="lp-plan-badge">Mais popular</div>
               <div className="lp-plan-name">Pro</div>
-              <div><span className="lp-plan-old" id="lp-o-pro">R$&nbsp;497</span><span className="lp-plan-price" id="lp-p-pro">R$&nbsp;497</span><span className="lp-plan-per">/mês</span></div>
+              <div><span className="lp-plan-old" id="lp-o-pro">R$&nbsp;697</span><span className="lp-plan-price" id="lp-p-pro">R$&nbsp;697</span><span className="lp-plan-per">/mês</span></div>
               <div className="lp-plan-desc">Para empresas em crescimento que precisam de personalização e IA.</div>
               <ul className="lp-plan-feats">
-                {['Até 180 usuários ativos','Cursos ilimitados','Quizzes + certificados','White-label habilitado','Relatórios e analytics','Gestão de usuários'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
+                {['Até 180 usuários ativos','Cursos ilimitados','Quizzes + certificados','Gestão de usuários','Suporte com SLA garantido'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
               </ul>
               <a href="/onboarding" className="lp-plan-cta lp-btn lp-btn-dark">Começar agora</a>
             </div>
             <div className="lp-plan">
               <div className="lp-plan-name">Enterprise</div>
-              <div><span className="lp-plan-old" id="lp-o-enterprise">R$&nbsp;897</span><span className="lp-plan-price" id="lp-p-enterprise">R$&nbsp;897</span><span className="lp-plan-per">/mês</span></div>
+              <div><span className="lp-plan-old" id="lp-o-enterprise">R$&nbsp;1.097</span><span className="lp-plan-price" id="lp-p-enterprise">R$&nbsp;1.097</span><span className="lp-plan-per">/mês</span></div>
               <div className="lp-plan-desc">Para grandes organizações com necessidades avançadas e escala.</div>
               <ul className="lp-plan-feats">
                 {['Até 500 usuários ativos','Cursos ilimitados','Quizzes + certificados','White-label completo','Integrações via API','Suporte prioritário','IA de suporte incluída 🤖'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
@@ -720,8 +720,8 @@ export default function Landing() {
           </div>
           <div className="lp-testi">
             {[
-              { initials:'FA', bg:'linear-gradient(135deg,#7C3AED,#4F46E5)', name:'Fernanda A.', role:'Diretora de Operações · Grupo FranquiasBR', txt:'"Implantamos a PanaLearn em toda nossa rede de franquias em menos de uma semana. Cada unidade com branding próprio e relatórios centralizados."' },
-              { initials:'RS', bg:'linear-gradient(135deg,#059669,#10B981)', name:'Ricardo S.', role:'Head de T&D · ConnectCorp', txt:'"A flexibilidade é impressionante. Usamos para onboarding de colaboradores e para nossa escola técnica interna ao mesmo tempo."' },
+              { initials:'MV', bg:'linear-gradient(135deg,#7C3AED,#4F46E5)', name:'Mariangel Velásquez', role:'Orange, Texas', txt:'"O Panalearn transformou a forma como organizamos nossos treinamentos. A plataforma é intuitiva e os quizzes com áudio são um diferencial incrível."' },
+              { initials:'AS', bg:'linear-gradient(135deg,#059669,#10B981)', name:'Andressa Sugar', role:'Natal, RN', txt:'"Desde que adotamos o Panalearn, nossos colaboradores completam os cursos muito mais rápido. O sistema de certificados digitais deu credibilidade ao nosso programa."' },
               { initials:'PL', bg:'linear-gradient(135deg,#DC2626,#F59E0B)', name:'Patrícia L.', role:'Coord. Pedagógica · EduFlex Idiomas', txt:'"A taxa de conclusão dos nossos cursos de idiomas subiu 60% depois que migramos para a PanaLearn. Os alunos adoram a experiência mobile."' },
             ].map((t,i) => (
               <div key={t.name} className="lp-testi-card lp-fade" style={{transitionDelay:`${i*0.1}s`}}>
