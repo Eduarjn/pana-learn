@@ -35,6 +35,12 @@ export const useCourses = () => {
   return useQuery({
     queryKey: ['courses', empresa?.id, userProfile?.tipo_usuario],
     queryFn: async () => {
+      // Se não é admin_master e não tem empresa associada, retornar vazio
+      // (evita mostrar cursos de outras empresas)
+      if (userProfile?.tipo_usuario !== 'admin_master' && !empresa?.id) {
+        return [] as Course[];
+      }
+
       let query = supabase
         .from('cursos')
         .select(`*, categorias (nome, cor)`)

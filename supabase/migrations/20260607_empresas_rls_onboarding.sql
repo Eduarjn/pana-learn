@@ -27,3 +27,15 @@ CREATE POLICY IF NOT EXISTS "Authenticated users can update empresas"
   TO authenticated
   USING (true)
   WITH CHECK (true);
+
+-- ── USUARIOS ────────────────────────────────────────────────────────────────
+ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "usuarios_insert"
+  ON usuarios FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY IF NOT EXISTS "usuarios_select"
+  ON usuarios FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY IF NOT EXISTS "usuarios_update"
+  ON usuarios FOR UPDATE TO authenticated USING (true) WITH CHECK (true);

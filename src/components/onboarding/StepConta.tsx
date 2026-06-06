@@ -72,15 +72,42 @@ export default function StepConta({ data, updateData, onNext }: Props) {
 
       if (orgError) throw orgError;
 
+      const empresaId = (orgData as any).id;
+
+      // 3. Criar registo na tabela usuarios e associar à empresa
+      const { error: userError } = await supabase
+        .from('usuarios')
+        .insert({
+          id: authData.user.id,
+          user_id: authData.user.id,
+          nome: formData.nome,
+          email: formData.email,
+          senha_hashed: '***',  // Gerido pelo Supabase Auth
+          tipo_usuario: 'admin',
+          status: 'ativo',
+          empresa_id: empresaId,
+          data_criacao: new Date().toISOString(),
+          data_atualizacao: new Date().toISOString(),
+        });
+
+      if (userError) {
+        console.error('Erro ao criar usuario:', userError);
+        // Tentar update se já existe (trigger pode ter criado)
+        await supabase
+          .from('usuarios')
+          .update({ empresa_id: empresaId, tipo_usuario: 'admin' })
+          .or(`user_id.eq.${authData.user.id},id.eq.${authData.user.id}`);
+      }
+
       updateData({
         nome: formData.nome,
         email: formData.email,
         organizacaoNome: formData.organizacaoNome,
         userId: authData.user.id,
-        organizationId: (orgData as any).id,
+        organizationId: empresaId,
       });
 
-      toast({ title: '✅ Conta criada!', description: 'Vamos personalizar sua plataforma.' });
+      toast({ title: 'Conta criada!', description: 'Vamos personalizar sua plataforma.' });
       onNext();
 
     } catch (error: any) {
