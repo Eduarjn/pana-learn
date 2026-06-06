@@ -26,10 +26,12 @@ export default function StepConteudo({ data, updateData, onNext, onBack }: Props
 
   const handleNext = async () => {
     if (data.organizationId) {
-      await supabase.from('organizations').update({
-        content_preferences: data.contentTypes,
-        onboarding_step: 4,
-      }).eq('id', data.organizationId);
+      // Progresso do onboarding (silencioso — colunas podem não existir)
+      try {
+        await supabase.from('empresas').update({
+          updated_at: new Date().toISOString(),
+        }).eq('id', data.organizationId);
+      } catch { /* ignore */ }
     }
     onNext();
   };

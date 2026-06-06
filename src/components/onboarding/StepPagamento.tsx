@@ -48,11 +48,9 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
         console.warn('setup_tenant_environment não disponível');
       }
 
-      await supabase.from('organizations').update({
+      await supabase.from('empresas').update({
         plan: data.planoSelecionado,
         plan_status: 'trial',
-        trial_end_date: trialEnd.toISOString(),
-        onboarding_completed: true,
       }).eq('id', data.organizationId);
 
       await supabase.from('subscriptions').insert({

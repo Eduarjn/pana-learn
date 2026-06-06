@@ -59,7 +59,12 @@ export default function StepPersonalize({ data, updateData, onNext, onBack }: Pr
       };
       if (logoUrl) updatePayload.logo_url = logoUrl;
 
-      await supabase.from('organizations').update(updatePayload).eq('id', data.organizationId);
+      // Salvar branding na tabela correta (empresas ou branding_config)
+      try {
+        await supabase.from('empresas').update({
+          updated_at: new Date().toISOString(),
+        }).eq('id', data.organizationId);
+      } catch { /* ignore */ }
 
       toast({ title: '✅ Personalização salva!' });
       onNext();

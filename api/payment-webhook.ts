@@ -65,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (sub?.organization_id) {
         // Ativar empresa
         await supabase
-          .from('organizations')
+          .from('empresas')
           .update({
             plan: sub.plan,
             plan_status: 'active',
@@ -93,7 +93,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (sub?.organization_id) {
         await supabase
-          .from('organizations')
+          .from('empresas')
           .update({ plan_status: 'overdue' })
           .eq('id', sub.organization_id);
 
@@ -117,7 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (sub?.organization_id) {
         await supabase
-          .from('organizations')
+          .from('empresas')
           .update({ plan_status: 'cancelled' })
           .eq('id', sub.organization_id);
       }

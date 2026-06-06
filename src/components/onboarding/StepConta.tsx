@@ -60,14 +60,12 @@ export default function StepConta({ data, updateData, onNext }: Props) {
         .replace(/[^a-z0-9-]/g, '');
 
       const { data: orgData, error: orgError } = await supabase
-        .from('organizations')
+        .from('empresas')
         .insert({
-          name: formData.organizacaoNome,
-          owner_id: authData.user.id,
-          domain: `${subdominio}.panalearn.com`,
+          nome: formData.organizacaoNome,
+          subdominio,
           plan: 'trial',
           plan_status: 'pending',
-          onboarding_step: 2,
         })
         .select()
         .single();

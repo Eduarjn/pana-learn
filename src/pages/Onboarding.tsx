@@ -37,17 +37,16 @@ export default function Onboarding() {
   // Se já logado e com org ativa, redirecionar
   useEffect(() => {
     if (user) {
-      supabase.from('organizations')
-        .select('id, plan_status, onboarding_completed, onboarding_step')
-        .eq('owner_id', user.id)
+      supabase.from('empresas')
+        .select('id, plan, plan_status')
+        .limit(1)
         .single()
-        .then(({ data }) => {
-          if (data?.plan_status === 'active' && data?.onboarding_completed) {
+        .then(({ data: empData }) => {
+          if (empData?.plan_status === 'active') {
             navigate('/dashboard');
-          } else if (data) {
-            // Continuar de onde parou
-            setCurrentStep((data as any).onboarding_step || 2);
-            setOnboardingData(prev => ({ ...prev, userId: user.id, organizationId: data.id }));
+          } else if (empData) {
+            setCurrentStep(2);
+            setOnboardingData(prev => ({ ...prev, userId: user.id, organizationId: empData.id }));
           }
         });
     }

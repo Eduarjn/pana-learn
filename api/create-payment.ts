@@ -60,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Verificar se a org já tem um customer_id
     const { data: org } = await supabase
-      .from('organizations')
+      .from('empresas')
       .select('asaas_customer_id')
       .eq('id', organization_id)
       .single();
@@ -79,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Salvar customer_id na organization
       await supabase
-        .from('organizations')
+        .from('empresas')
         .update({ asaas_customer_id: customer.id })
         .eq('id', organization_id);
     }

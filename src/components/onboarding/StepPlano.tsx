@@ -51,9 +51,8 @@ export default function StepPlano({ data, updateData, onNext, onBack }: Props) {
   const handleSelect = async (planoId: string) => {
     updateData({ planoSelecionado: planoId });
     if (data.organizationId) {
-      await supabase.from('organizations').update({
+      await supabase.from('empresas').update({
         plan: planoId,
-        onboarding_step: 5,
       }).eq('id', data.organizationId);
     }
   };
