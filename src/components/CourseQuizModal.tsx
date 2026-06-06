@@ -172,10 +172,10 @@ export function CourseQuizModal({
             </div>
             <div className="bg-green-50 p-3 rounded-lg mb-4">
               <p className="text-sm">
-                <strong>Nota:</strong> {certificate.nota}%
+                <strong>Nota:</strong> {certificate.nota_final ?? 0}%
               </p>
               <p className="text-sm text-muted-foreground">
-                Concluído em: {new Date(certificate.data_conclusao).toLocaleDateString()}
+                Concluído em: {new Date(certificate.data_emissao).toLocaleDateString()}
               </p>
             </div>
             <Button onClick={onClose}>

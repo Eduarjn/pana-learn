@@ -28,11 +28,12 @@ interface CertificateData {
   id: string;
   usuario_id: string;
   curso_id: string;
-  curso_nome: string;
-  nota: number;
-  data_conclusao: string;
-  certificado_url?: string;
-  qr_code_url?: string;
+  nota_final: number | null;
+  numero_certificado: string | null;
+  data_emissao: string;
+  data_criacao: string;
+  link_pdf_certificado: string | null;
+  empresa_id: string | null;
 }
 
 export function useQuiz(userId: string | undefined, courseId: string | undefined) {
@@ -172,30 +173,60 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
     }
   }, [userId, courseId, loadQuizByFinalQuizId]);
 
-  // Gerar certificado manualmente (chamado pelo componente pai)
+  // Gerar certificado — insere directamente na tabela certificados
   const generateCertificate = useCallback(async (nota: number) => {
-    if (!userId || !courseId || !quizConfig) return;
+    if (!userId || !courseId) return;
     try {
-      const { data: certId, error: certError } = await supabase
-        .rpc('gerar_certificado_curso', {
-          p_usuario_id: userId,
-          p_curso_id: courseId,
-          p_quiz_id: quizConfig.id,
-          p_nota: nota
-        });
+      // Evitar duplicata: verificar se já existe
+      const { data: existing } = await supabase
+        .from('certificados')
+        .select('id')
+        .eq('usuario_id', userId)
+        .eq('curso_id', courseId)
+        .maybeSingle();
 
-      if (!certError && certId) {
+      if (existing) {
+        // Já existe — recarregar e retornar
         const { data: certData } = await supabase
           .from('certificados')
           .select('*')
-          .eq('id', certId)
-          .maybeSingle();
-        if (certData) setCertificate(certData);
+          .eq('id', existing.id)
+          .single();
+        if (certData) setCertificate(certData as any);
+        return;
+      }
+
+      // Gerar número único: CERT-YYYYMMDD-XXXXX
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const rand = Math.random().toString(36).substring(2, 7).toUpperCase();
+      const numeroCertificado = `CERT-${dateStr}-${rand}`;
+
+      const { data: newCert, error: insertError } = await supabase
+        .from('certificados')
+        .insert({
+          usuario_id: userId,
+          curso_id: courseId,
+          nota_final: nota,
+          numero_certificado: numeroCertificado,
+          data_emissao: now.toISOString(),
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Erro ao inserir certificado:', insertError);
+        return;
+      }
+
+      if (newCert) {
+        setCertificate(newCert as any);
+        console.log('✅ Certificado gerado:', newCert);
       }
     } catch (err) {
       console.error('Erro ao gerar certificado:', err);
     }
-  }, [userId, courseId, quizConfig]);
+  }, [userId, courseId]);
 
   // Submeter respostas do quiz
   const submitQuiz = useCallback(async (respostas: Record<string, number>) => {
