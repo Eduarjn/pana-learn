@@ -187,11 +187,12 @@ const CursoDetalhe = () => {
   const { quizState, loading: quizLoading, checkCourseCompletion } = useOptionalQuiz(id || '');
   
   // Hook para gerenciar quiz e certificado
-  const { 
-    quizConfig, 
-    isCourseCompleted, 
-    certificate, 
-    generateCertificate 
+  const {
+    quizConfig,
+    isCourseCompleted,
+    certificate,
+    userProgress: quizUserProgress,
+    generateCertificate
   } = useQuiz(userId, id);
 
   // Calcular progresso do curso
@@ -538,12 +539,20 @@ const CursoDetalhe = () => {
     });
   }
 
-  // Verificar se deve mostrar o quiz quando o curso for concluído
+  // Mostrar modal do quiz apenas 1 vez: curso concluído + sem certificado + quiz não aprovado ainda
   React.useEffect(() => {
-    if (isCourseCompleted && !certificate && quizConfig) {
+    if (
+      isCourseCompleted &&
+      !certificate &&
+      quizConfig &&
+      !quizCompleted &&
+      !quizShown &&
+      !quizUserProgress?.aprovado
+    ) {
       setShowQuizModal(true);
+      setQuizShown(true);
     }
-  }, [isCourseCompleted, certificate, quizConfig]);
+  }, [isCourseCompleted, certificate, quizConfig, quizCompleted, quizShown, quizUserProgress]);
 
   const handleViewCertificate = () => {
     if (certificate) {
@@ -873,9 +882,9 @@ const CursoDetalhe = () => {
                                 <span className="text-xs" style={{ color: 'rgba(229,229,229,0.35)' }}>
                                   {video.duracao ? `${Math.round(video.duracao / 60)} min` : 'Duração não definida'}
                                 </span>
-                                {videoProgress && (
-                                  <span className="text-xs font-medium" style={{ color: '#D0CEBA' }}>
-                                    {Math.round(videoProgress.percentual_assistido || 0)}% completo
+                                {isCompleted && (
+                                  <span className="text-xs font-semibold" style={{ color: '#417B5A' }}>
+                                    Concluído
                                   </span>
                                 )}
                               </div>

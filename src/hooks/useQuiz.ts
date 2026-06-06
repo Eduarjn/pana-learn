@@ -249,14 +249,12 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
     }
   }, [userId, quizConfig, courseId, generateCertificate]);
 
-  // Verificar disponibilidade ao montar e a cada 30s
+  // Verificar disponibilidade apenas ao montar (sem intervalo — evita abrir modal repetidamente)
   useEffect(() => {
     if (userId && courseId) {
       checkQuizAvailability();
-      const interval = setInterval(checkQuizAvailability, 30000);
-      return () => clearInterval(interval);
     }
-  }, [userId, courseId, checkQuizAvailability]);
+  }, [userId, courseId]);
 
   return {
     quizConfig,
