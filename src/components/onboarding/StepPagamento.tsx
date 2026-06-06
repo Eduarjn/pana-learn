@@ -1,6 +1,8 @@
 // src/components/onboarding/StepPagamento.tsx
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,9 +20,10 @@ interface Props {
   onBack: () => void;
 }
 
-export default function StepPagamento({ data, onBack }: Props) {
+export default function StepPagamento({ data, updateData, onBack }: Props) {
   const [loading, setLoading] = useState(false);
   const [trialLoading, setTrialLoading] = useState(false);
+  const [cpfCnpj, setCpfCnpj] = useState(data.cpfCnpj || '');
   const { toast } = useToast();
   const navigate = useNavigate();
   const plano = PLANO_INFO[data.planoSelecionado] || { nome: '', preco: '' };
@@ -31,7 +34,6 @@ export default function StepPagamento({ data, onBack }: Props) {
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + 14);
 
-      // Tentar chamar setup_tenant_environment se existir
       try {
         await supabase.rpc('setup_tenant_environment', {
           p_organization_id: data.organizationId,
@@ -62,7 +64,7 @@ export default function StepPagamento({ data, onBack }: Props) {
       });
 
       toast({
-        title: '🎉 Seu ambiente está pronto!',
+        title: 'Seu ambiente está pronto!',
         description: `Bem-vindo ao Plano ${plano.nome}. 14 dias grátis começando agora.`,
       });
       navigate('/dashboard');
@@ -74,6 +76,10 @@ export default function StepPagamento({ data, onBack }: Props) {
   };
 
   const handlePagar = async () => {
+    if (!cpfCnpj || cpfCnpj.replace(/\D/g, '').length < 11) {
+      toast({ title: 'CPF/CNPJ obrigatório', description: 'Informe um CPF ou CNPJ válido para a cobrança.', variant: 'destructive' });
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch('/api/create-payment', {
@@ -85,11 +91,14 @@ export default function StepPagamento({ data, onBack }: Props) {
           organization_id: data.organizationId,
           user_email: data.email,
           user_name: data.nome,
+          cpf_cnpj: cpfCnpj,
         }),
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro ao iniciar pagamento');
-      window.location.href = result.sandbox_init_point || result.init_point;
+
+      // Redirecionar para o checkout do Asaas
+      window.location.href = result.paymentUrl;
     } catch (error: any) {
       toast({ title: 'Erro no pagamento', description: error.message, variant: 'destructive' });
       setLoading(false);
@@ -112,6 +121,7 @@ export default function StepPagamento({ data, onBack }: Props) {
         </div>
       </div>
 
+      {/* Trial gratuito */}
       <div className="border-2 border-dashed border-green-300 rounded-xl p-5 mb-4 bg-green-50/50">
         <div className="flex items-start gap-3">
           <Gift className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
@@ -119,7 +129,7 @@ export default function StepPagamento({ data, onBack }: Props) {
             <p className="font-bold text-gray-900">Testar 14 dias grátis</p>
             <p className="text-xs text-gray-500 mt-0.5 mb-3">Sem cartão de crédito. Cancele quando quiser.</p>
             <Button onClick={handleStartTrial} disabled={trialLoading} className="w-full bg-green-500 hover:bg-green-600 text-white">
-              {trialLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Iniciando...</> : '🎁 Iniciar teste gratuito de 14 dias'}
+              {trialLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Iniciando...</> : 'Iniciar teste gratuito de 14 dias'}
             </Button>
           </div>
         </div>
@@ -131,17 +141,33 @@ export default function StepPagamento({ data, onBack }: Props) {
         <div className="flex-1 h-px bg-gray-200" />
       </div>
 
+      {/* CPF/CNPJ */}
+      <div className="mb-4">
+        <Label htmlFor="cpfCnpj" className="text-sm font-medium text-gray-700">CPF ou CNPJ *</Label>
+        <Input
+          id="cpfCnpj"
+          value={cpfCnpj}
+          onChange={e => { setCpfCnpj(e.target.value); updateData({ cpfCnpj: e.target.value }); }}
+          placeholder="000.000.000-00 ou 00.000.000/0001-00"
+          className="mt-1"
+        />
+        <p className="text-xs text-gray-400 mt-1">Necessário para emissão de cobrança via Asaas</p>
+      </div>
+
       <Button onClick={handlePagar} disabled={loading} variant="outline" className="w-full border-2 border-gray-300 text-gray-700 h-12 font-semibold">
-        {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Redirecionando...</> : <><CreditCard className="w-4 h-4 mr-2" />Pagar com Mercado Pago</>}
+        {loading
+          ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Redirecionando para pagamento...</>
+          : <><CreditCard className="w-4 h-4 mr-2" />Pagar agora</>
+        }
       </Button>
 
       <div className="flex items-center justify-center gap-4 mt-4">
         <div className="flex items-center gap-1.5 text-xs text-gray-400"><ShieldCheck className="w-3.5 h-3.5" />Pagamento seguro</div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-400"><ShieldCheck className="w-3.5 h-3.5" />Dados criptografados</div>
+        <div className="flex items-center gap-1.5 text-xs text-gray-400"><ShieldCheck className="w-3.5 h-3.5" />Boleto, PIX ou cartão</div>
       </div>
 
       <div className="flex justify-between mt-6">
-        <Button variant="outline" onClick={onBack}>← Voltar</Button>
+        <Button variant="outline" onClick={onBack}>Voltar</Button>
       </div>
     </div>
   );

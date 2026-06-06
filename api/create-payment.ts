@@ -1,16 +1,36 @@
 // /api/create-payment.ts
-// Vercel Serverless Function — cria preferência de pagamento no Mercado Pago
+// Vercel Serverless Function — cria cliente + assinatura no Asaas
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
+
+const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/api/v3';
+const ASAAS_API_KEY = process.env.ASAAS_API_KEY || '';
 
 const PLANOS: Record<string, { nome: string; valor: number }> = {
-  starter:    { nome: 'Panalearn Starter',    valor: 29700 },  // R$ 297,00 em centavos
-  pro:        { nome: 'Panalearn Pro',         valor: 49700 },  // R$ 497,00
-  enterprise: { nome: 'Panalearn Enterprise',  valor: 69700 },  // R$ 697,00
+  starter:    { nome: 'Panalearn Starter',    valor: 297.00 },
+  pro:        { nome: 'Panalearn Pro',         valor: 497.00 },
+  enterprise: { nome: 'Panalearn Enterprise',  valor: 897.00 },
 };
 
+async function asaasFetch(endpoint: string, body: Record<string, unknown>) {
+  const res = await fetch(`${ASAAS_API_URL}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      access_token: ASAAS_API_KEY,
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    const msg = data?.errors?.[0]?.description || `Asaas ${res.status}`;
+    throw new Error(msg);
+  }
+  return data;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -18,82 +38,84 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { plan, user_id, organization_id, user_email, user_name } = req.body;
+  const { plan, user_id, organization_id, user_email, user_name, cpf_cnpj } = req.body;
 
   if (!plan || !PLANOS[plan]) {
     return res.status(400).json({ error: 'Plano inválido' });
   }
+  if (!cpf_cnpj) {
+    return res.status(400).json({ error: 'CPF ou CNPJ obrigatório para o Asaas' });
+  }
 
   const plano = PLANOS[plan];
-  const externalReference = `${organization_id}_${Date.now()}`;
 
-  const appUrl = process.env.VITE_APP_URL || 'https://panalearn.com';
+  const supabase = createClient(
+    process.env.VITE_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
 
   try {
-    const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-      },
-      body: JSON.stringify({
-        items: [{
-          id: plan,
-          title: plano.nome,
-          description: `Assinatura mensal ${plano.nome}`,
-          quantity: 1,
-          unit_price: plano.valor / 100,   // MP recebe em reais, não centavos
-          currency_id: 'BRL',
-        }],
-        payer: {
-          email: user_email,
-          name: user_name,
-        },
-        external_reference: externalReference,
-        back_urls: {
-          success: `${appUrl}/onboarding/sucesso`,
-          failure: `${appUrl}/onboarding/pagamento`,
-          pending: `${appUrl}/onboarding/pendente`,
-        },
-        auto_return: 'approved',
-        notification_url: `${appUrl}/api/payment-webhook`,
-        metadata: { user_id, organization_id, plan },
-      }),
-    });
+    // ── 1. Obter ou criar cliente no Asaas ─────────────────────────────────
+    let asaasCustomerId: string | null = null;
 
-    if (!mpResponse.ok) {
-      const err = await mpResponse.json();
-      console.error('Erro MP:', err);
-      return res.status(500).json({ error: 'Erro ao criar preferência no Mercado Pago' });
+    // Verificar se a org já tem um customer_id
+    const { data: org } = await supabase
+      .from('organizations')
+      .select('asaas_customer_id')
+      .eq('id', organization_id)
+      .single();
+
+    if (org?.asaas_customer_id) {
+      asaasCustomerId = org.asaas_customer_id;
+    } else {
+      // Criar novo cliente no Asaas
+      const customer = await asaasFetch('/customers', {
+        name: user_name || 'Cliente Panalearn',
+        email: user_email,
+        cpfCnpj: cpf_cnpj.replace(/\D/g, ''),
+      });
+
+      asaasCustomerId = customer.id;
+
+      // Salvar customer_id na organization
+      await supabase
+        .from('organizations')
+        .update({ asaas_customer_id: customer.id })
+        .eq('id', organization_id);
     }
 
-    const preference = await mpResponse.json();
+    // ── 2. Criar assinatura mensal ─────────────────────────────────────────
+    const today = new Date().toISOString().split('T')[0];
 
-    // Salvar preference_id no Supabase para rastrear
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      process.env.VITE_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const subscription = await asaasFetch('/subscriptions', {
+      customer: asaasCustomerId,
+      billingType: 'UNDEFINED',  // Aceita boleto, pix e cartão
+      value: plano.valor,
+      cycle: 'MONTHLY',
+      nextDueDate: today,
+      description: `Assinatura ${plano.nome}`,
+      externalReference: `${organization_id}__${plan}`,
+    });
 
+    // ── 3. Registar assinatura no Supabase ─────────────────────────────────
     await supabase.from('subscriptions').upsert({
       organization_id,
       user_id,
       plan,
       status: 'pending',
-      mp_preference_id: preference.id,
-      mp_external_reference: externalReference,
-      amount_cents: plano.valor,
+      asaas_subscription_id: subscription.id,
+      amount_cents: Math.round(plano.valor * 100),
     }, { onConflict: 'organization_id' });
 
+    // ── 4. Devolver URL de pagamento ───────────────────────────────────────
+    // invoiceUrl = link de checkout do Asaas (aluno paga por lá)
     return res.status(200).json({
-      preference_id: preference.id,
-      init_point: preference.init_point,
-      sandbox_init_point: preference.sandbox_init_point,
+      paymentUrl: subscription.invoiceUrl || `https://sandbox.asaas.com/i/${subscription.id}`,
+      subscriptionId: subscription.id,
     });
 
-  } catch (error) {
-    console.error('Erro interno:', error);
-    return res.status(500).json({ error: 'Erro interno do servidor' });
+  } catch (error: any) {
+    console.error('Erro Asaas:', error.message);
+    return res.status(500).json({ error: error.message || 'Erro ao criar assinatura' });
   }
 }
