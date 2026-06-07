@@ -184,10 +184,29 @@ const Usuarios = () => {
     if (!editingUser || newPassword.length < 6) { toast({ title: 'Senha deve ter ao menos 6 caracteres', variant: 'destructive' }); return; }
     if (newPassword !== confirmPassword) { toast({ title: 'Senhas não coincidem', variant: 'destructive' }); return; }
     setChangingPassword(true);
-    const { error } = await supabase.auth.admin.updateUserById(editingUser.id, { password: newPassword });
-    setChangingPassword(false);
-    if (error) { toast({ title: 'Erro ao alterar senha', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: 'Senha alterada!' }); setNewPassword(''); setConfirmPassword('');
+    try {
+      // Usar Edge Function com service_role (admin.updateUserById não funciona com anon key)
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-update-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ user_id: editingUser.user_id || editingUser.id, password: newPassword }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Erro ao alterar senha');
+      toast({ title: 'Senha alterada!' }); setNewPassword(''); setConfirmPassword('');
+    } catch (err: any) {
+      toast({ title: 'Erro ao alterar senha', description: err.message, variant: 'destructive' });
+    } finally {
+      setChangingPassword(false);
+    }
   };
 
   const handleViewCertificates = async (userId: string) => {
