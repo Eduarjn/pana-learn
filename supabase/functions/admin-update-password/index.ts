@@ -66,8 +66,21 @@ serve(async (req) => {
       });
     }
 
-    // 3. Usar SERVICE_ROLE para fazer a alteração
+    // 3. Verificar se o alvo é admin_master (admin comum não pode editar admin_master)
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    const { data: targetUser } = await adminClient
+      .from("usuarios")
+      .select("tipo_usuario")
+      .or(`user_id.eq.${user_id},id.eq.${user_id}`)
+      .single();
+
+    if (targetUser?.tipo_usuario === "admin_master" && callerProfile.tipo_usuario !== "admin_master") {
+      return new Response(JSON.stringify({ error: "Sem permissão. Apenas admin master pode alterar outro admin master." }), {
+        status: 403,
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
 
     // Alterar senha se fornecida
     if (password) {

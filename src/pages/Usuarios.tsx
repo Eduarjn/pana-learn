@@ -171,6 +171,16 @@ const Usuarios = () => {
 
   const handleSaveEdit = async () => {
     if (!editingUser) return;
+    // Admin não pode editar admin_master
+    if (editingUser.tipo_usuario === 'admin_master' && userProfile?.tipo_usuario !== 'admin_master') {
+      toast({ title: 'Sem permissão', description: 'Apenas admin master pode editar outros admin master.', variant: 'destructive' });
+      return;
+    }
+    // Admin não pode se promover a admin_master
+    if (editingUser.tipo_usuario === 'admin_master' && userProfile?.tipo_usuario === 'admin') {
+      toast({ title: 'Sem permissão', description: 'Você não pode definir o tipo como Admin Master.', variant: 'destructive' });
+      return;
+    }
     const { error } = await supabase.from('usuarios').update({
       nome: editingUser.nome, email: editingUser.email,
       tipo_usuario: editingUser.tipo_usuario as any, status: editingUser.status as any,
@@ -181,7 +191,13 @@ const Usuarios = () => {
   };
 
   const handleChangeUserPassword = async () => {
-    if (!editingUser || newPassword.length < 6) { toast({ title: 'Senha deve ter ao menos 6 caracteres', variant: 'destructive' }); return; }
+    if (!editingUser) return;
+    // Admin não pode alterar senha de admin_master
+    if (editingUser.tipo_usuario === 'admin_master' && userProfile?.tipo_usuario !== 'admin_master') {
+      toast({ title: 'Sem permissão', description: 'Apenas admin master pode alterar senha de outro admin master.', variant: 'destructive' });
+      return;
+    }
+    if (newPassword.length < 6) { toast({ title: 'Senha deve ter ao menos 6 caracteres', variant: 'destructive' }); return; }
     if (newPassword !== confirmPassword) { toast({ title: 'Senhas não coincidem', variant: 'destructive' }); return; }
     setChangingPassword(true);
     try {
