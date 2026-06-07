@@ -56,7 +56,7 @@ const Usuarios = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [changingPassword, setChangingPassword] = useState(false);
-  const [newUser, setNewUser] = useState({ nome: '', email: '', tipo: 'Cliente', status: 'Ativo' });
+  const [newUser, setNewUser] = useState({ nome: '', email: '', senha: '', tipo: 'Cliente', status: 'Ativo' });
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [userStats, setUserStats] = useState<UserStats>({ total: 0, ativos: 0, administradores: 0, novosEstaSemana: 0 });
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -150,21 +150,23 @@ const Usuarios = () => {
 
   const handleNewUserSubmit = async () => {
     if (!newUser.nome || !newUser.email) { toast({ title: 'Nome e email obrigatórios', variant: 'destructive' }); return; }
+    if (newUser.senha && newUser.senha.length < 6) { toast({ title: 'Senha deve ter ao menos 6 caracteres', variant: 'destructive' }); return; }
     if (!empresa?.id) { toast({ title: 'Empresa não selecionada', variant: 'destructive' }); return; }
-    
+
     const result = await createUser(empresa.id, {
       nome: newUser.nome,
       email: newUser.email,
-      tipo_usuario: newUser.tipo === 'Cliente' ? 'cliente' : 'admin'
+      tipo_usuario: newUser.tipo === 'Cliente' ? 'cliente' : 'admin',
+      senha: newUser.senha || undefined,  // Se vazio, o hook gera uma senha aleatória
     });
-    
-    if (!result.success) { 
-      toast({ title: 'Erro ao criar usuário', description: result.message, variant: 'destructive' }); 
-      return; 
+
+    if (!result.success) {
+      toast({ title: 'Erro ao criar usuário', description: result.message, variant: 'destructive' });
+      return;
     }
-    
-    toast({ title: 'Usuário criado!', description: result.password ? `Senha: ${result.password}` : '' }); 
-    setNewUser({ nome: '', email: '', tipo: 'Cliente', status: 'Ativo' }); 
+
+    toast({ title: 'Usuário criado!', description: `Senha ${newUser.senha ? 'definida' : 'gerada'}: ${result.password}` });
+    setNewUser({ nome: '', email: '', senha: '', tipo: 'Cliente', status: 'Ativo' }); 
     setShowNewUserForm(false); 
     fetchUsers();
   };
@@ -381,12 +383,13 @@ const Usuarios = () => {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 {[
-                  { id: 'nome', label: 'Nome *', type: 'text', val: newUser.nome, fn: (v: string) => setNewUser(p => ({ ...p, nome: v })) },
-                  { id: 'email', label: 'Email *', type: 'email', val: newUser.email, fn: (v: string) => setNewUser(p => ({ ...p, email: v })) },
+                  { id: 'nome', label: 'Nome *', type: 'text', val: newUser.nome, fn: (v: string) => setNewUser(p => ({ ...p, nome: v })), ph: 'Nome completo' },
+                  { id: 'email', label: 'Email *', type: 'email', val: newUser.email, fn: (v: string) => setNewUser(p => ({ ...p, email: v })), ph: 'email@empresa.com' },
+                  { id: 'senha', label: 'Senha (opcional)', type: 'password', val: newUser.senha, fn: (v: string) => setNewUser(p => ({ ...p, senha: v })), ph: 'Deixe vazio para gerar automaticamente' },
                 ].map(f => (
                   <div key={f.id}>
                     <Label className="text-xs font-medium text-gray-600 mb-1.5 block">{f.label}</Label>
-                    <Input type={f.type} value={f.val} onChange={e => f.fn(e.target.value)} className="border-2 text-sm rounded-lg" style={{ borderColor: '#e4e5f0' }} />
+                    <Input type={f.type} value={f.val} onChange={e => f.fn(e.target.value)} placeholder={(f as any).ph} className="border-2 text-sm rounded-lg" style={{ borderColor: '#e4e5f0' }} />
                   </div>
                 ))}
                 <div>
