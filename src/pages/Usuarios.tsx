@@ -201,7 +201,7 @@ const Usuarios = () => {
     if (newPassword !== confirmPassword) { toast({ title: 'Senhas não coincidem', variant: 'destructive' }); return; }
     setChangingPassword(true);
     try {
-      const { data, error } = await supabase.functions.invoke('admin-update-password', {
+      const { data, error } = await supabase.functions.invoke('bright-worker', {
         body: { user_id: editingUser.user_id || editingUser.id, password: newPassword },
       });
       if (error) throw new Error(error.message || 'Erro ao alterar senha');
