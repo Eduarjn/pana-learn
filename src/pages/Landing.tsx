@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 const LANDING_CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Quicksand:wght@600;700&display=swap');
+/* Fonts loaded via <link> in index.html — removed render-blocking @import */
 
 .lp-root *, .lp-root *::before, .lp-root *::after { box-sizing: border-box; }
 .lp-root { font-family: 'Inter', system-ui, sans-serif; color: #374151; -webkit-font-smoothing: antialiased; }
@@ -403,8 +403,8 @@ export default function Landing() {
       <nav className="lp-nav" id="lp-nav">
         <div className="lp-container lp-nav-inner">
           <a href="/" className="lp-logo">
-            <img src="/brand/panalearn-horizontal-on-indigo.png" alt="PanaLearn" className="lp-logo-img lp-logo-img-dark" />
-            <img src="/brand/panalearn-horizontal-on-white.png" alt="PanaLearn" className="lp-logo-img lp-logo-img-light" />
+            <img src="/brand/panalearn-horizontal-on-indigo.png" alt="PanaLearn" className="lp-logo-img lp-logo-img-dark" width="140" height="34" />
+            <img src="/brand/panalearn-horizontal-on-white.png" alt="PanaLearn" className="lp-logo-img lp-logo-img-light" width="140" height="34" />
           </a>
           <div className="lp-nav-links">
             <a href="#lp-features">Plataforma</a>
@@ -790,7 +790,7 @@ export default function Landing() {
           <div className="lp-ft-top">
             <div>
               <div className="lp-logo" style={{marginBottom:12}}>
-                <img src="/brand/panalearn-horizontal-on-indigo.png" alt="PanaLearn" className="lp-logo-img" />
+                <img src="/brand/panalearn-horizontal-on-indigo.png" alt="PanaLearn" className="lp-logo-img" width="140" height="34" />
               </div>
               <p className="lp-ft-slogan">Aprenda. Certifique. Cresça.<br/>A plataforma LMS para qualquer organização.</p>
               <div className="lp-socials">

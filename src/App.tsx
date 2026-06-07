@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,37 +7,50 @@ import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-
 import { AuthProvider } from "@/hooks/useAuth";
 import { EmpresaProvider } from "@/context/EmpresaContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { BrandingProvider } from '@/context/BrandingContext';
+import { SidebarProvider } from '@/context/SidebarContext';
+import { ThemeProvider } from "@/components/theme-provider";
+import { runDiagnostics } from '@/utils/debug-env';
+
+// ── Páginas críticas (carregadas imediatamente) ─────────────────────────────
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
-import Dashboard from "./pages/Dashboard";
-import Treinamentos from "./pages/Treinamentos";
-
-import Usuarios from "./pages/Usuarios";
-import Configuracoes from "./pages/Configuracoes";
-import Suporte from "./pages/Suporte";
-import Empresas from "./pages/Empresas";
-import EmpresaDashboard from "./pages/EmpresaDashboard";
 import NotFound from "./pages/NotFound";
-import MeuPainel from "./pages/MeuPainel";
-import CursoDetalhe from "./pages/CursoDetalhe";
-import Certificado from "./pages/Certificado";
-import Certificados from "./pages/Certificados";
-import Quizzes from "./pages/Quizzes";
-import { BrandingProvider } from '@/context/BrandingContext';
-import { SidebarProvider } from '@/context/SidebarContext';
+
+// ── Páginas lazy (code-split — carregadas sob demanda) ──────────────────────
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Treinamentos = lazy(() => import("./pages/Treinamentos"));
+const Usuarios = lazy(() => import("./pages/Usuarios"));
+const Configuracoes = lazy(() => import("./pages/Configuracoes"));
+const Suporte = lazy(() => import("./pages/Suporte"));
+const Empresas = lazy(() => import("./pages/Empresas"));
+const EmpresaDashboard = lazy(() => import("./pages/EmpresaDashboard"));
+const MeuPainel = lazy(() => import("./pages/MeuPainel"));
+const CursoDetalhe = lazy(() => import("./pages/CursoDetalhe"));
+const Certificado = lazy(() => import("./pages/Certificado"));
+const Certificados = lazy(() => import("./pages/Certificados"));
+const Quizzes = lazy(() => import("./pages/Quizzes"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const Onboarding = lazy(() => import("@/pages/Onboarding"));
+const OnboardingSucesso = lazy(() => import("@/pages/OnboardingSucesso"));
+const PlanoExpirado = lazy(() => import("@/pages/PlanoExpirado"));
+const GerenciarOrdemVideos = lazy(() => import("@/pages/admin/GerenciarOrdemVideos"));
+const CertificateTemplates = lazy(() => import("@/pages/admin/CertificateTemplates"));
+const ValidarCertificado = lazy(() => import("@/pages/ValidarCertificado"));
+
+// ── Componentes de diagnóstico ──────────────────────────────────────────────
 import { TestComponent } from '@/components/TestComponent';
 import { CadastroTest } from '@/components/CadastroTest';
-import ResetPassword from '@/pages/ResetPassword';
-import Onboarding from '@/pages/Onboarding';
-import OnboardingSucesso from '@/pages/OnboardingSucesso';
-import PlanoExpirado from '@/pages/PlanoExpirado';
 import { ImageDiagnostic } from '@/components/ImageDiagnostic';
-import GerenciarOrdemVideos from '@/pages/admin/GerenciarOrdemVideos';
-import CertificateTemplates from '@/pages/admin/CertificateTemplates';
-import ValidarCertificado from '@/pages/ValidarCertificado';
-import { runDiagnostics } from '@/utils/debug-env';
-import { ThemeProvider } from "@/components/theme-provider";
+
+// ── Loading fallback ────────────────────────────────────────────────────────
+const PageLoader = () => (
+  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'60vh' }}>
+    <div style={{ width:32, height:32, border:'3px solid #4B3F72', borderTopColor:'transparent', borderRadius:'50%', animation:'spin .7s linear infinite' }} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+  </div>
+);
 // import AIModulePage from '@/pages/admin/ai';
 
 const queryClient = new QueryClient();
@@ -64,6 +78,7 @@ const App = () => {
             <BrandingProvider>
               <ThemeProvider defaultTheme="light" storageKey="pana-learn-theme">
               <SidebarProvider>
+                <Suspense fallback={<PageLoader />}>
                 <Routes>
                 {import.meta.env.DEV && <>
                   <Route path="/test" element={<TestComponent />} />
@@ -213,6 +228,7 @@ const App = () => {
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+                </Suspense>
               </SidebarProvider>
               </ThemeProvider>
             </BrandingProvider>
