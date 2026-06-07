@@ -201,22 +201,11 @@ const Usuarios = () => {
     if (newPassword !== confirmPassword) { toast({ title: 'Senhas não coincidem', variant: 'destructive' }); return; }
     setChangingPassword(true);
     try {
-      // Usar Edge Function com service_role (admin.updateUserById não funciona com anon key)
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-update-password`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ user_id: editingUser.user_id || editingUser.id, password: newPassword }),
-        }
-      );
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Erro ao alterar senha');
+      const { data, error } = await supabase.functions.invoke('admin-update-password', {
+        body: { user_id: editingUser.user_id || editingUser.id, password: newPassword },
+      });
+      if (error) throw new Error(error.message || 'Erro ao alterar senha');
+      if (data?.error) throw new Error(data.error);
       toast({ title: 'Senha alterada!' }); setNewPassword(''); setConfirmPassword('');
     } catch (err: any) {
       toast({ title: 'Erro ao alterar senha', description: err.message, variant: 'destructive' });
