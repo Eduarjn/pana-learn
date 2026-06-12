@@ -20,6 +20,7 @@ import {
   Award
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { buildCertificateHTML, certRowToCertificateData, generateCertificatePDFFromData } from '@/utils/generateCertificatePDF';
 
 interface CertificateData {
   id: string;
@@ -59,13 +60,14 @@ const Certificado: React.FC = () => {
     try {
       setLoading(true);
       
-      // Buscar certificado com dados do usuário e curso
+      // Buscar certificado com dados do usuário, curso e template
       const { data, error } = await supabase
         .from('certificados')
         .select(`
           *,
           usuario:usuarios(nome, email),
-          curso:cursos(nome, descricao)
+          curso:cursos(nome, descricao),
+          certificate_templates(*)
         `)
         .eq('id', id)
         .single();
@@ -94,20 +96,13 @@ const Certificado: React.FC = () => {
     }
   };
 
-  const handleDownload = () => {
-    if (certificate?.certificado_url) {
-      const link = document.createElement('a');
-      link.href = certificate.certificado_url;
-      link.download = `certificado-${certificate.categoria_nome}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } else {
-      toast({
-        title: "Certificado em processamento",
-        description: "O PDF está sendo gerado. Tente novamente em alguns instantes.",
-        variant: "default"
-      });
+  const handleDownload = async () => {
+    if (!certificate) return;
+    try {
+      toast({ title: 'Gerando PDF...', description: 'Aguarde um instante.' });
+      await generateCertificatePDFFromData(certRowToCertificateData(certificate));
+    } catch {
+      toast({ title: 'Erro', description: 'Falha ao gerar PDF.', variant: 'destructive' });
     }
   };
 
@@ -214,107 +209,15 @@ const Certificado: React.FC = () => {
           </div>
         </div>
 
-        {/* Certificado */}
-        <Card className="bg-white shadow-xl border-0">
+        {/* Certificado — renderizado com o MESMO template usado no download/visualização */}
+        <Card className="bg-white shadow-xl border-0 overflow-hidden">
           <CardContent className="p-0">
-            {/* Template do Certificado */}
-            <div className="relative bg-gradient-to-br from-blue-50 to-indigo-100 p-12">
-              {/* Borda decorativa */}
-              <div className="absolute inset-4 border-2 border-blue-200 rounded-lg"></div>
-              
-              {/* Cabeçalho */}
-              <div className="text-center mb-8 relative z-10">
-                <div className="flex items-center justify-center gap-3 mb-4">
-                  <img 
-                    src={branding.logo_url} 
-                    alt="Panalearn Logo"
-                    className="h-16 w-auto object-contain"
-                  />
-                </div>
-                <h2 className="text-2xl font-semibold text-gray-800 mb-2">
-                  Certificado de Conclusão
-                </h2>
-                <p className="text-gray-600">
-                  Este documento certifica que o participante concluiu com êxito o curso
-                </p>
-              </div>
-
-              {/* Conteúdo principal */}
-              <div className="text-center mb-8 relative z-10">
-                <h3 className="text-4xl font-bold text-blue-700 mb-6">
-                  {certificate.categoria_nome}
-                </h3>
-                
-                <div className="text-xl text-gray-700 mb-8">
-                  <p className="mb-2">
-                    <span className="font-semibold">Concedido a:</span>
-                  </p>
-                  <p className="text-2xl font-bold text-gray-800 mb-4">
-                    {certificate.usuario?.nome}
-                  </p>
-                  
-                  <div className="flex items-center justify-center gap-8 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      <span>{certificate.usuario?.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>
-                        {new Date(certificate.data_conclusao).toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Nota */}
-                <div className="inline-block bg-green-100 text-green-800 px-6 py-3 rounded-full mb-8">
-                  <Badge variant="default" className="bg-green-500 text-white text-lg px-4 py-2">
-                    Nota: {certificate.nota}%
-                  </Badge>
-                </div>
-
-                {/* Descrição */}
-                {certificate.curso?.descricao && (
-                  <p className="text-gray-600 max-w-2xl mx-auto mb-8">
-                    {certificate.curso.descricao}
-                  </p>
-                )}
-
-                {/* Assinatura */}
-                <div className="flex justify-between items-end max-w-2xl mx-auto">
-                  <div className="text-center">
-                    <div className="w-32 h-0.5 bg-gray-400 mb-2"></div>
-                    <p className="text-sm text-gray-600">Assinatura Digital</p>
-                  </div>
-                  
-                  <div className="text-center">
-                    <div className="w-32 h-0.5 bg-gray-400 mb-2"></div>
-                    <p className="text-sm text-gray-600">Data de Emissão</p>
-                    <p className="text-sm font-medium">
-                      {new Date().toLocaleDateString('pt-BR')}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* QR Code */}
-              <div className="absolute bottom-8 right-8">
-                <div className="bg-white p-3 rounded-lg shadow-md">
-                  <div className="w-16 h-16 bg-gray-200 flex items-center justify-center rounded">
-                    <QrCode className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1 text-center">QR Code</p>
-                </div>
-              </div>
-
-              {/* Número do certificado */}
-              <div className="absolute bottom-8 left-8">
-                <p className="text-xs text-gray-500">
-                  Certificado ID: {certificate.id}
-                </p>
-              </div>
-            </div>
+            <iframe
+              title="Certificado"
+              srcDoc={buildCertificateHTML(certRowToCertificateData(certificate))}
+              className="w-full border-0"
+              style={{ height: 640 }}
+            />
           </CardContent>
         </Card>
 

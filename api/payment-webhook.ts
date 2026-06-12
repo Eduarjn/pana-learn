@@ -75,14 +75,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .single();
 
       if (sub?.organization_id) {
-        // Ativar empresa
+        // Ativar empresa (plan + plan_status moram em empresas)
         await supabase
           .from('empresas')
           .update({
             plan: sub.plan,
             plan_status: 'active',
-            onboarding_completed: true,
           })
+          .eq('id', sub.organization_id);
+
+        // onboarding_completed mora em organizations, não em empresas
+        await supabase
+          .from('organizations')
+          .update({ onboarding_completed: true })
           .eq('id', sub.organization_id);
 
         console.log(`[Asaas Webhook] Empresa ${sub.organization_id} ativada com plano ${sub.plan}`);

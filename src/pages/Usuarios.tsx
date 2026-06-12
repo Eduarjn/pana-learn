@@ -69,7 +69,7 @@ const Usuarios = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showCertificatesModal, setShowCertificatesModal] = useState(false);
   const [selectedUserCertificates, setSelectedUserCertificates] = useState<Database['public']['Tables']['certificados']['Row'][]>([]);
-  const [selectedUserProgress, setSelectedUserProgress] = useState<{ userId: string; userName: string; progress: Database['public']['Tables']['progresso_usuario']['Row'][] } | null>(null);
+  const [selectedUserProgress, setSelectedUserProgress] = useState<{ userId: string; userName: string; progress: Database['public']['Tables']['progresso_usuario']['Row'][]; quizProgress: any[] } | null>(null);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
@@ -223,9 +223,18 @@ const Usuarios = () => {
   };
 
   const handleViewProgress = async (userId: string, userName: string) => {
+    // Buscar progresso de cursos
     const { data, error } = await supabase.from('progresso_usuario').select('*, cursos(id,nome,categoria)').eq('usuario_id', userId).order('data_atualizacao', { ascending: false });
     if (error) { toast({ title: 'Erro ao carregar progresso', variant: 'destructive' }); return; }
-    setSelectedUserProgress({ userId, userName, progress: data || [] });
+
+    // Buscar progresso de quizzes
+    const { data: quizData } = await supabase
+      .from('progresso_quiz')
+      .select('*, quizzes(id,titulo,categoria)')
+      .eq('usuario_id', userId)
+      .order('data_conclusao', { ascending: false });
+
+    setSelectedUserProgress({ userId, userName, progress: data || [], quizProgress: quizData || [] });
   };
 
   const SortIcon = ({ field }: { field: typeof sortField }) =>
@@ -599,26 +608,80 @@ const Usuarios = () => {
               Progresso — {selectedUserProgress?.userName}
             </DialogTitle>
           </DialogHeader>
-          {selectedUserProgress?.progress.length === 0 ? (
+
+          {/* Progresso de Cursos */}
+          {selectedUserProgress && selectedUserProgress.progress.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: '#4B3F72' }}>
+                <Activity className="h-3.5 w-3.5" />
+                Cursos ({selectedUserProgress.progress.length})
+              </h4>
+              {selectedUserProgress.progress.map((item, i) => (
+                <div key={`course-${i}`} className="rounded-xl p-4" style={{ background: '#F6F6FA', border: '1px solid #EDE9FE' }}>
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="font-medium text-sm" style={{ color: '#1F2041' }}>{item.cursos?.nome || 'Curso'}</p>
+                    <span className="text-xs font-semibold" style={{ color: '#417B5A' }}>{item.percentual_concluido || 0}%</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: '#e4e5f0' }}>
+                    <div className="h-full rounded-full transition-all duration-500" style={{ width: `${item.percentual_concluido || 0}%`, background: '#417B5A' }} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                    <span>Status: {item.status || 'Não iniciado'}</span>
+                    <span>Tempo: {item.tempo_total_assistido || 0} min</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Progresso de Quizzes */}
+          {selectedUserProgress && selectedUserProgress.quizProgress.length > 0 && (
+            <div className="space-y-2 mt-4">
+              <h4 className="text-xs font-semibold uppercase tracking-wider flex items-center gap-2" style={{ color: '#417B5A' }}>
+                <Award className="h-3.5 w-3.5" />
+                Quizzes ({selectedUserProgress.quizProgress.length})
+              </h4>
+              {selectedUserProgress.quizProgress.map((item: any, i: number) => (
+                <div key={`quiz-${i}`} className="rounded-xl p-4" style={{ background: item.aprovado ? '#F0FDF4' : '#FEF2F2', border: `1px solid ${item.aprovado ? '#BBF7D0' : '#FECACA'}` }}>
+                  <div className="flex justify-between items-center mb-2">
+                    <p className="font-medium text-sm" style={{ color: '#1F2041' }}>
+                      {item.quizzes?.titulo || 'Quiz'}
+                    </p>
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full"
+                      style={{
+                        background: item.aprovado ? '#DCFCE7' : '#FEE2E2',
+                        color: item.aprovado ? '#166534' : '#991B1B'
+                      }}>
+                      {item.nota}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: '#e4e5f0' }}>
+                    <div className="h-full rounded-full transition-all duration-500"
+                      style={{ width: `${item.nota || 0}%`, background: item.aprovado ? '#22c55e' : '#ef4444' }} />
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      {item.aprovado
+                        ? <span style={{ color: '#166534' }}>✓ Aprovado</span>
+                        : <span style={{ color: '#991B1B' }}>✗ Reprovado</span>
+                      }
+                    </span>
+                    <span>Categoria: {item.quizzes?.categoria || '—'}</span>
+                    <span>Data: {item.data_conclusao ? new Date(item.data_conclusao).toLocaleDateString('pt-BR') : '—'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Estado vazio */}
+          {selectedUserProgress && selectedUserProgress.progress.length === 0 && selectedUserProgress.quizProgress.length === 0 && (
             <div className="text-center py-10">
               <Activity className="h-8 w-8 mx-auto mb-2" style={{ color: '#C4B5FD' }} />
               <p className="text-gray-400 text-sm">Nenhum progresso registrado</p>
             </div>
-          ) : selectedUserProgress?.progress.map((item, i) => (
-            <div key={i} className="rounded-xl p-4 mb-2" style={{ background: '#F6F6FA', border: '1px solid #EDE9FE' }}>
-              <div className="flex justify-between items-center mb-2">
-                <p className="font-medium text-sm" style={{ color: '#1F2041' }}>{item.cursos?.nome || 'Curso'}</p>
-                <span className="text-xs font-semibold" style={{ color: '#417B5A' }}>{item.percentual_concluido || 0}%</span>
-              </div>
-              <div className="h-1.5 rounded-full overflow-hidden mb-2" style={{ background: '#e4e5f0' }}>
-                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${item.percentual_concluido || 0}%`, background: '#417B5A' }} />
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
-                <span>Status: {item.status || 'Não iniciado'}</span>
-                <span>Tempo: {item.tempo_total_assistido || 0} min</span>
-              </div>
-            </div>
-          ))}
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedUserProgress(null)} className="text-sm" style={{ borderColor: '#e4e5f0', color: '#4B3F72' }}>Fechar</Button>
           </DialogFooter>

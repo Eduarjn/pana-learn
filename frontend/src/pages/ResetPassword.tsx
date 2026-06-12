@@ -27,7 +27,6 @@ export default function ResetPassword() {
       setLoading(false);
       return;
     }
-    // O Supabase já faz a troca de sessão automaticamente ao acessar com o token
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
       setError(error.message);
@@ -39,18 +38,12 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative">
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url('/lovable-uploads/aafcc16a-d43c-4f66-9fa4-70da46d38ccb.png')` }}
-      >
-        <div className="absolute inset-0 bg-black/60"></div>
-      </div>
+    <div className="era-login-bg min-h-screen flex items-center justify-center p-4 relative">
       <div className="relative z-10 w-full max-w-md">
         <Card className="backdrop-blur-md bg-white/95 border-white/30 shadow-2xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-era-dark-blue">Redefinir senha</CardTitle>
-            <CardDescription className="text-era-gray">Digite sua nova senha abaixo</CardDescription>
+            <CardTitle className="text-2xl font-heading font-bold text-pana-indigo">Redefinir senha</CardTitle>
+            <CardDescription className="text-pana-text-secondary">Digite sua nova senha abaixo</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -67,7 +60,7 @@ export default function ResetPassword() {
                   disabled={loading}
                 />
               </div>
-              <Button type="submit" className="w-full era-lime-button text-era-dark-blue font-semibold" disabled={loading}>
+              <Button type="submit" className="w-full era-lime-button font-semibold" disabled={loading}>
                 {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Atualizando...</>) : ('Atualizar senha')}
               </Button>
               {error && (
@@ -80,11 +73,11 @@ export default function ResetPassword() {
                   <AlertDescription className="text-green-800">{message}</AlertDescription>
                 </Alert>
               )}
-              <Button type="button" variant="ghost" className="w-full mt-2" onClick={() => navigate('/')}>Voltar para login</Button>
+              <Button type="button" variant="ghost" className="w-full mt-2 text-pana-grape hover:text-pana-indigo" onClick={() => navigate('/')}>Voltar para login</Button>
             </form>
           </CardContent>
         </Card>
       </div>
     </div>
   );
-} 
+}

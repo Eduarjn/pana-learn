@@ -10,8 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, Download, Eye, Trophy, FileText, Award, Filter, LayoutTemplate } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { downloadCertificateAsPDF, openCertificateInNewWindow } from '@/utils/certificateGenerator';
-import { previewCertificateInNewTab } from '@/utils/generateCertificatePDF';
+import { generateCertificatePDFFromData, openCertificateFromRow, certRowToCertificateData } from '@/utils/generateCertificatePDF';
 import { getDefaultTemplate } from '@/services/certificateService';
 import type { Certificate, CertificateTemplate } from '@/types/certificate';
 
@@ -51,7 +50,7 @@ const Certificados: React.FC = () => {
     try {
       const isAdmin = userProfile.tipo_usuario === 'admin' || userProfile.tipo_usuario === 'admin_master';
       const query = supabase.from('certificados')
-        .select('*, usuarios!certificados_usuario_id_fkey(nome,email), cursos!certificados_curso_id_fkey(nome,categoria)')
+        .select('*, usuarios!certificados_usuario_id_fkey(nome,email), cursos!certificados_curso_id_fkey(nome,categoria), certificate_templates(*)')
         .order('data_emissao', { ascending: false });
       const { data, error } = isAdmin ? await query : await query.eq('usuario_id', userProfile.id);
       if (error) throw error;
@@ -81,34 +80,29 @@ const Certificados: React.FC = () => {
     setFilteredCertificates(f);
   };
 
+  // Garante que o certificado tenha um template: usa o vinculado ou o padrão como fallback
+  const certWithTemplate = (cert: Certificate) => ({
+    ...cert,
+    certificate_templates: (cert.certificate_templates as CertificateTemplate) ?? defaultTemplate ?? undefined,
+  });
+
   const handleDownload = async (cert: Certificate) => {
     toast({ title: 'Gerando PDF...', description: cert.cursos?.nome || cert.curso_nome });
-    // Use new template-aware PDF if template data available, else fall back
-    if (defaultTemplate && cert.carga_horaria != null) {
-      try {
-        await previewCertificateInNewTab({
-          id: cert.id,
-          student_name: cert.usuarios?.nome || cert.usuario_nome || 'Aluno',
-          course_name: cert.cursos?.nome || cert.curso_nome || 'Curso',
-          carga_horaria: cert.carga_horaria ?? 0,
-          aproveitamento: cert.aproveitamento ?? cert.nota_final ?? cert.nota ?? 0,
-          issued_at: cert.issued_at || cert.data_emissao,
-          validation_code: cert.validation_code || cert.numero_certificado,
-          template: (cert.certificate_templates as CertificateTemplate) ?? defaultTemplate,
-        });
-      } catch {
-        const ok = await downloadCertificateAsPDF(cert);
-        if (!ok) toast({ title: 'Erro', description: 'Falha ao gerar PDF.', variant: 'destructive' });
-      }
-    } else {
-      const ok = await downloadCertificateAsPDF(cert);
-      if (!ok) toast({ title: 'Erro', description: 'Falha ao gerar PDF.', variant: 'destructive' });
+    try {
+      // Renderiza SEMPRE com o template (vinculado ou padrão) — layout único em todos os pontos
+      await generateCertificatePDFFromData(certRowToCertificateData(certWithTemplate(cert)));
+    } catch {
+      toast({ title: 'Erro', description: 'Falha ao gerar PDF.', variant: 'destructive' });
     }
   };
 
   const handleView = async (cert: Certificate) => {
-    const ok = await openCertificateInNewWindow(cert);
-    if (!ok) toast({ title: 'Erro', description: 'Erro ao abrir certificado.', variant: 'destructive' });
+    try {
+      // Mesmo renderizador da geração/download — layout consistente
+      openCertificateFromRow(certWithTemplate(cert));
+    } catch {
+      toast({ title: 'Erro', description: 'Erro ao abrir certificado.', variant: 'destructive' });
+    }
   };
 
   if (loading) return (

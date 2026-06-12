@@ -12,29 +12,32 @@ import { AudioPlayer } from '@/components/AudioPlayer';
 interface CourseQuizModalProps {
   courseId: string;
   courseName: string;
+  quizId?: string;
   isOpen: boolean;
   onClose: () => void;
   onQuizComplete: (passed: boolean, score: number) => void;
 }
 
-export function CourseQuizModal({ 
-  courseId, 
-  courseName, 
-  isOpen, 
-  onClose, 
-  onQuizComplete 
+export function CourseQuizModal({
+  courseId,
+  courseName,
+  quizId,
+  isOpen,
+  onClose,
+  onQuizComplete
 }: CourseQuizModalProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { 
-    quizConfig, 
-    isLoading, 
-    error, 
-    isQuizAvailable, 
-    userProgress, 
-    certificate, 
+  const {
+    quizConfig,
+    isLoading,
+    error,
+    isQuizAvailable,
+    userProgress,
+    certificate,
     submitQuiz,
-    checkQuizAvailability 
+    checkQuizAvailability,
+    loadQuizByFinalQuizId
   } = useQuiz(user?.id, courseId);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -43,12 +46,18 @@ export function CourseQuizModal({
   const [showResults, setShowResults] = useState(false);
   const [quizResult, setQuizResult] = useState<{ nota: number; aprovado: boolean } | null>(null);
 
-  // Verificar disponibilidade quando modal abre
+  // Carregar quiz específico quando modal abre
   useEffect(() => {
     if (isOpen && user?.id && courseId) {
-      checkQuizAvailability();
+      if (quizId) {
+        // Carregar quiz específico pelo ID
+        loadQuizByFinalQuizId(quizId);
+      } else {
+        // Fallback: carregar primeiro quiz vinculado
+        checkQuizAvailability();
+      }
     }
-  }, [isOpen, user?.id, courseId, checkQuizAvailability]);
+  }, [isOpen, user?.id, courseId, quizId, loadQuizByFinalQuizId, checkQuizAvailability]);
 
   // Resetar estado quando modal fecha
   useEffect(() => {

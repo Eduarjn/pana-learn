@@ -1,68 +1,54 @@
 import { useAuth } from '@/hooks/useAuth';
-import { Users, BookOpen, Award, GraduationCap } from 'lucide-react';
-
-const menuItems = [
-  { title: 'Dashboard', icon: Users },
-  { title: 'Treinamentos', icon: BookOpen },
-  { title: 'Certificados', icon: Award },
-  { title: 'Relatórios', icon: Award },
-  { title: 'Usuários', icon: Users },
-  { title: 'Configurações', icon: Award },
-];
+import { Users, BookOpen, Award, GraduationCap, TrendingUp, Clock } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function Dashboard() {
   const { userProfile, loading } = useAuth();
   if (loading) return null;
-  const userName = userProfile?.nome || 'João Silva';
+  const userName = userProfile?.nome || 'Usuário';
   const cursosEmAndamento = 3;
+
+  const stats = [
+    { label: 'Cursos em andamento', value: cursosEmAndamento, icon: BookOpen, color: 'bg-pana-teal' },
+    { label: 'Certificados', value: 2, icon: Award, color: 'bg-pana-grape' },
+    { label: 'Horas de estudo', value: '14h', icon: Clock, color: 'bg-pana-indigo' },
+    { label: 'Progresso geral', value: '68%', icon: TrendingUp, color: 'bg-pana-teal' },
+  ];
+
   return (
-    <div className="flex min-h-screen bg-primary">
-      {/* Sidebar */}
-      <aside className="bg-primary w-20 md:w-60 flex flex-col py-6 px-2 fixed h-full">
-        <div className="mb-8 flex items-center justify-center">
-          <GraduationCap className="h-10 w-10 text-accent" />
+    <div className="space-y-6">
+      {/* Hero */}
+      <section className="page-hero rounded-xl flex justify-between items-center p-8 shadow-lg">
+        <div>
+          <h2 className="text-2xl font-heading font-bold text-pana-bone">
+            Bem-vindo de volta, {userName.split(' ')[0]}!
+          </h2>
+          <p className="mt-2 text-pana-bone/80">
+            Você tem <span className="font-semibold text-pana-petal">{cursosEmAndamento} cursos</span> em andamento.
+          </p>
+          <button className="mt-4 bg-pana-teal text-white px-6 py-2.5 rounded-lg font-semibold hover:bg-pana-teal/90 transition-all duration-200 text-sm">
+            Ver meus cursos
+          </button>
         </div>
-        <nav className="flex-1 space-y-2">
-          {menuItems.map(item => (
-            <button
-              key={item.title}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-contrast hover:bg-neutral hover:text-accent transition-colors duration-200"
-            >
-              <item.icon className="h-6 w-6" />
-              <span className="hidden md:inline text-base">{item.title}</span>
-            </button>
-          ))}
-        </nav>
-      </aside>
+        <GraduationCap className="h-16 w-16 text-pana-bone/30 hidden sm:block" />
+      </section>
 
-      {/* Main Content */}
-      <div className="flex-1 ml-20 md:ml-60">
-        {/* Header */}
-        <header className="bg-primary h-16 flex items-center justify-between px-8 shadow">
-          <h1 className="text-accent text-2xl font-bold">ERA Learn</h1>
-          <div className="flex items-center gap-4">
-            <button className="bg-accent text-primary px-4 py-2 rounded-lg font-semibold hover:bg-accent/80 transition-colors duration-200">
-              Fale Conosco
-            </button>
-            <span className="text-surface">Bem-vindo, {userName}</span>
-          </div>
-        </header>
-
-        {/* Hero Card */}
-        <section className="page-hero w-full rounded-2xl flex justify-between items-center p-6 mt-6 shadow-md">
-          <div>
-            <h2 className="text-2xl font-bold">Bem-vindo de volta!</h2>
-            <p className="mt-2 text-lg">Você tem <span className="font-bold">{cursosEmAndamento} cursos</span> em andamento.</p>
-            <button className="mt-4 bg-surface text-accent px-6 py-2 rounded-lg font-semibold hover:bg-neutral transition-colors duration-200">
-              Ver meus cursos
-            </button>
-          </div>
-          <GraduationCap className="h-16 w-16 opacity-80 text-primary" />
-        </section>
-
-        {/* Métricas */}
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat) => (
+          <Card key={stat.label} className="bg-white border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-5 flex items-center space-x-4">
+              <div className={`${stat.color} w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                <stat.icon className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <p className="text-2xl font-heading font-bold text-pana-indigo">{stat.value}</p>
+                <p className="text-sm text-pana-text-secondary">{stat.label}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );
 }
- 

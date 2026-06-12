@@ -126,32 +126,32 @@ export function AuthForm() {
         <Card className="backdrop-blur-md bg-white/95 border-white/30 shadow-2xl">
           <CardHeader className="text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
-                <img 
-                  src="/lovable-uploads/92441561-a944-48ee-930e-7e3b16318673.png" 
-                  alt="Platform Symbol" 
+              <div className="w-10 h-10 bg-pana-indigo rounded-xl flex items-center justify-center">
+                <img
+                  src="/lovable-uploads/92441561-a944-48ee-930e-7e3b16318673.png"
+                  alt="PanaLearn"
                   className="w-6 h-6 filter invert"
                 />
               </div>
               <div>
-                <CardTitle className="text-3xl font-bold text-accent">ERA Learn</CardTitle>
-                <p className="text-xs text-contrast">Smart Training Platform</p>
+                <h1 className="text-3xl font-heading font-bold text-pana-indigo">PanaLearn</h1>
+                <p className="text-xs text-pana-text-secondary">Plataforma LMS para treinamento corporativo</p>
               </div>
             </div>
-            <CardDescription className="text-contrast">
+            <CardDescription className="text-pana-text-secondary">
               Acesse sua plataforma de treinamento
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs value={tab} onValueChange={setTab} defaultValue="signin" className="space-y-4">
-              <TabsList className="grid w-full grid-cols-3 bg-era-light-gray">
-                <TabsTrigger value="signin" className="data-[state=active]:bg-era-lime data-[state=active]:text-era-dark-blue text-era-dark-blue">
+              <TabsList className="grid w-full grid-cols-3 bg-pana-background">
+                <TabsTrigger value="signin" className="data-[state=active]:bg-pana-teal data-[state=active]:text-white text-pana-text">
                   Entrar
                 </TabsTrigger>
-                <TabsTrigger value="signup" className="data-[state=active]:bg-era-lime data-[state=active]:text-era-dark-blue text-era-dark-blue">
+                <TabsTrigger value="signup" className="data-[state=active]:bg-pana-teal data-[state=active]:text-white text-pana-text">
                   Cadastrar
                 </TabsTrigger>
-                <TabsTrigger value="forgot" className="data-[state=active]:bg-era-lime data-[state=active]:text-era-dark-blue text-era-dark-blue">
+                <TabsTrigger value="forgot" className="data-[state=active]:bg-pana-teal data-[state=active]:text-white text-pana-text">
                   Esqueci a senha
                 </TabsTrigger>
               </TabsList>
@@ -184,7 +184,7 @@ export function AuthForm() {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full era-lime-button !text-white font-semibold" 
+                    className="w-full era-lime-button font-semibold" 
                     disabled={loading}
                   >
                     {loading ? (
@@ -196,7 +196,7 @@ export function AuthForm() {
                       'Entrar'
                     )}
                   </Button>
-                  <button type="button" onClick={() => setTab('forgot')} className="text-era-lime underline text-sm mt-2">
+                  <button type="button" onClick={() => setTab('forgot')} className="text-pana-teal underline text-sm mt-2">
                     Esqueci minha senha?
                   </button>
                 </form>
@@ -208,7 +208,7 @@ export function AuthForm() {
                     <Label htmlFor="reset-email">Email</Label>
                     <Input id="reset-email" name="reset-email" type="email" value={resetEmail} onChange={e => setResetEmail(e.target.value)} required disabled={loading} />
                   </div>
-                  <Button type="submit" className="w-full era-lime-button text-era-dark-blue font-semibold" disabled={loading}>
+                  <Button type="submit" className="w-full era-lime-button font-semibold" disabled={loading}>
                     {loading ? (<><Loader2 className="mr-2 h-4 w-4 animate-spin" />Enviando...</>) : ('Enviar link de redefinição')}
                   </Button>
                   {resetMessage && (
@@ -221,7 +221,7 @@ export function AuthForm() {
                       <AlertDescription className="text-red-800">{resetError}</AlertDescription>
                     </Alert>
                   )}
-                  <button type="button" onClick={() => setTab('signin')} className="text-era-lime underline text-sm mt-2">
+                  <button type="button" onClick={() => setTab('signin')} className="text-pana-teal underline text-sm mt-2">
                     Voltar para login
                   </button>
                 </form>
@@ -230,7 +230,7 @@ export function AuthForm() {
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-nome" className="text-era-dark-blue font-medium">Nome completo *</Label>
+                    <Label htmlFor="signup-nome" className="text-pana-indigo font-medium">Nome completo *</Label>
                     <Input
                       id="signup-nome"
                       name="nome"
@@ -244,7 +244,7 @@ export function AuthForm() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-era-dark-blue font-medium">Email *</Label>
+                    <Label htmlFor="signup-email" className="text-pana-indigo font-medium">Email *</Label>
                     <Input
                       id="signup-email"
                       name="email"
@@ -257,7 +257,7 @@ export function AuthForm() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-era-dark-blue font-medium">Senha *</Label>
+                    <Label htmlFor="signup-password" className="text-pana-indigo font-medium">Senha *</Label>
                     <div className="relative">
                       <Input
                         id="signup-password"
@@ -274,7 +274,7 @@ export function AuthForm() {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-era-gray hover:text-era-dark-blue"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-era-gray hover:text-pana-indigo"
                         onClick={() => setShowPassword(!showPassword)}
                       >
                         {showPassword ? (
@@ -287,7 +287,7 @@ export function AuthForm() {
                   </div>
                   <Button 
                     type="submit" 
-                    className="w-full era-lime-button text-era-dark-blue font-semibold" 
+                    className="w-full era-lime-button font-semibold" 
                     disabled={loading}
                   >
                     {loading ? (

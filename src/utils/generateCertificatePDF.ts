@@ -3,7 +3,7 @@ import { DEFAULT_TEMPLATE } from '@/types/certificate';
 
 // ─── HTML builder per layout ───────────────────────────────────────────────────
 
-function buildCertificateHTML(data: CertificateData): string {
+export function buildCertificateHTML(data: CertificateData): string {
   const t: CertificateTemplate = data.template ?? { ...DEFAULT_TEMPLATE, id: '', empresa_id: '', created_at: '', updated_at: '' };
   const issuedDate = new Date(data.issued_at).toLocaleDateString('pt-BR', {
     day: '2-digit', month: 'long', year: 'numeric',
@@ -147,6 +147,37 @@ function buildCertificateHTML(data: CertificateData): string {
 </head>
 <body>${body}</body>
 </html>`;
+}
+
+// ─── Conversão de linha de certificado → CertificateData ────────────────────────
+// Fonte única de verdade: qualquer lugar que renderize um certificado deve passar
+// pela mesma função, garantindo o MESMO layout (template) em todos os pontos.
+
+export function certRowToCertificateData(cert: any): CertificateData {
+  return {
+    id: cert.id,
+    student_name: cert.usuarios?.nome || cert.usuario?.nome || cert.usuario_nome || 'Aluno',
+    course_name: cert.cursos?.nome || cert.curso?.nome || cert.curso_nome || 'Curso',
+    carga_horaria: cert.carga_horaria ?? 0,
+    aproveitamento: cert.aproveitamento ?? cert.nota_final ?? cert.nota ?? 0,
+    issued_at: cert.issued_at || cert.data_emissao || cert.data_conclusao || new Date().toISOString(),
+    validation_code: cert.validation_code || cert.numero_certificado || (cert.id ? cert.id.slice(0, 8).toUpperCase() : ''),
+    template: cert.certificate_templates ?? null,
+  };
+}
+
+// Renderiza o HTML do certificado a partir de uma linha do banco (com template).
+export function buildCertificateHTMLFromRow(cert: any): string {
+  return buildCertificateHTML(certRowToCertificateData(cert));
+}
+
+// Abre o certificado (com seu template) numa nova aba — usado por "Visualizar".
+export function openCertificateFromRow(cert: any): void {
+  const html = buildCertificateHTMLFromRow(cert);
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 15_000);
 }
 
 // ─── Public API ────────────────────────────────────────────────────────────────

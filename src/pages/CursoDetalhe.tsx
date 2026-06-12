@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Module, Course } from '@/hooks/useCourses';
 import type { Database } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CheckCircle, Play, Clock, PlusCircle, Video, BookOpen, FileText, Award } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Play, Clock, PlusCircle, Video, BookOpen, FileText, Award, Target } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -128,14 +128,24 @@ const CursoDetalhe = () => {
   const currentCategory = currentCourseData?.categoria;
   const { data: modules = [] } = useCourseModules(id || '');
 
-  // ── Final Quiz binding (admin) ─────────────────────────────────
+  // ── Quiz binding (admin) — suporta múltiplos quizzes ─────────
   const [availableQuizzes, setAvailableQuizzes] = React.useState<{ id: string; titulo: string; categoria: string }[]>([]);
   const [selectedFinalQuizId, setSelectedFinalQuizId] = React.useState<string>('');
-  const [linkedQuizTitle, setLinkedQuizTitle] = React.useState<string>('');
-  const [linkedQuizId, setLinkedQuizId] = React.useState<string>('');
+  const [linkedQuizzes, setLinkedQuizzes] = React.useState<{ id: string; titulo: string }[]>([]);
   const [savingQuiz, setSavingQuiz] = React.useState(false);
+  const [activeQuizId, setActiveQuizId] = React.useState<string>('');
+  const [completedQuizIds, setCompletedQuizIds] = React.useState<Set<string>>(new Set());
 
-  // Load available quizzes and current mapping on mount
+  // ── Template de certificado (admin) ─────────
+  const [availableTemplates, setAvailableTemplates] = React.useState<{ id: string; name: string; is_default: boolean }[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = React.useState<string>('');
+  const [currentTemplateId, setCurrentTemplateId] = React.useState<string>('');
+  const [savingTemplate, setSavingTemplate] = React.useState(false);
+
+  // Atalhos de compatibilidade
+  const linkedQuizId = linkedQuizzes.length > 0 ? linkedQuizzes[0].id : '';
+
+  // Load available quizzes and current mappings on mount
   React.useEffect(() => {
     const fetchQuizData = async () => {
       const { data: quizList } = await supabase
@@ -145,40 +155,149 @@ const CursoDetalhe = () => {
         .order('titulo');
       if (quizList) setAvailableQuizzes(quizList);
 
-      // Load the current mapping from curso_quiz_mapping
+      // Load ALL mappings from curso_quiz_mapping
       if (id) {
-        const { data: mapping } = await supabase
+        const { data: mappings } = await supabase
           .from('curso_quiz_mapping')
           .select('quiz_id')
-          .eq('curso_id', id)
-          .maybeSingle();
-        if (mapping?.quiz_id) {
-          setSelectedFinalQuizId(mapping.quiz_id);
-          setLinkedQuizId(mapping.quiz_id);
-          const linked = quizList?.find(q => q.id === mapping.quiz_id);
-          if (linked) setLinkedQuizTitle(linked.titulo);
+          .eq('curso_id', id);
+        if (mappings && mappings.length > 0 && quizList) {
+          const linked = mappings
+            .map(m => {
+              const q = quizList.find(quiz => quiz.id === m.quiz_id);
+              return q ? { id: q.id, titulo: q.titulo } : null;
+            })
+            .filter(Boolean) as { id: string; titulo: string }[];
+          setLinkedQuizzes(linked);
+
+          // Buscar progresso individual de cada quiz vinculado para o usuário atual
+          if (userId) {
+            const quizIds = linked.map(q => q.id);
+            const { data: quizProgressData } = await supabase
+              .from('progresso_quiz')
+              .select('quiz_id, aprovado')
+              .eq('usuario_id', userId)
+              .in('quiz_id', quizIds);
+            if (quizProgressData) {
+              const completed = new Set(
+                quizProgressData.filter(p => p.aprovado === true).map(p => p.quiz_id)
+              );
+              setCompletedQuizIds(completed);
+            }
+          }
         }
       }
     };
     fetchQuizData();
   }, [id]);
 
+  // Load templates de certificado (admin)
+  React.useEffect(() => {
+    if (!isAdmin) return;
+    const fetchTemplates = async () => {
+      const { data: templates } = await supabase
+        .from('certificate_templates')
+        .select('id, name, is_default')
+        .order('is_default', { ascending: false });
+      if (templates) setAvailableTemplates(templates);
+
+      // Verificar template vinculado: (1) banco → (2) localStorage → (3) padrão
+      if (id) {
+        let bound: string | null = null;
+
+        // Tenta ler do banco (cursos.template_id)
+        const { data: cursoRow, error: cursoErr } = await supabase
+          .from('cursos')
+          .select('template_id')
+          .eq('id', id)
+          .single();
+        if (!cursoErr && (cursoRow as any)?.template_id) {
+          bound = (cursoRow as any).template_id;
+        }
+
+        // Fallback: localStorage
+        if (!bound) bound = localStorage.getItem(`curso_template_${id}`);
+
+        if (bound) {
+          setCurrentTemplateId(bound);
+          setSelectedTemplateId(bound);
+        } else if (templates && templates.length > 0) {
+          const defaultT = templates.find(t => t.is_default);
+          if (defaultT) {
+            setCurrentTemplateId(defaultT.id);
+            setSelectedTemplateId(defaultT.id);
+          }
+        }
+      }
+    };
+    fetchTemplates();
+  }, [id, isAdmin]);
+
+  const handleSaveTemplate = async () => {
+    if (!id || !selectedTemplateId) return;
+    setSavingTemplate(true);
+
+    // 1. Tentar persistir no banco (cursos.template_id) — funciona entre todos os usuários
+    const { error: dbError } = await supabase
+      .from('cursos')
+      .update({ template_id: selectedTemplateId } as any)
+      .eq('id', id);
+
+    // 2. Sempre guardar no localStorage como cache/fallback
+    localStorage.setItem(`curso_template_${id}`, selectedTemplateId);
+    setCurrentTemplateId(selectedTemplateId);
+    setSavingTemplate(false);
+
+    if (dbError) {
+      // Coluna ainda não existe no banco — vínculo salvo apenas localmente
+      console.warn('Coluna cursos.template_id ausente, usando localStorage:', dbError.message);
+      toast({
+        title: 'Template vinculado (local)',
+        description: 'Vínculo salvo neste navegador. Para valer entre todos os usuários, adicione a coluna cursos.template_id no banco.',
+      });
+    } else {
+      toast({ title: 'Template vinculado', description: 'O template de certificado foi vinculado a este curso.' });
+    }
+  };
+
   const handleSaveFinalQuiz = async () => {
     if (!id || !selectedFinalQuizId) return;
+    // Verificar se já está vinculado
+    if (linkedQuizzes.find(q => q.id === selectedFinalQuizId)) {
+      toast({ title: 'Aviso', description: 'Este quiz já está vinculado ao curso.', variant: 'destructive' });
+      return;
+    }
     setSavingQuiz(true);
-    // Upsert into curso_quiz_mapping (delete old, insert new for clean 1-to-1)
-    await supabase.from('curso_quiz_mapping').delete().eq('curso_id', id);
     const { error } = await supabase
       .from('curso_quiz_mapping')
       .insert({ curso_id: id, quiz_id: selectedFinalQuizId });
     setSavingQuiz(false);
     if (error) {
-      toast({ title: 'Erro', description: 'Não foi possível salvar o quiz.', variant: 'destructive' });
+      toast({ title: 'Erro', description: 'Não foi possível vincular o quiz.', variant: 'destructive' });
     } else {
       const linked = availableQuizzes.find(q => q.id === selectedFinalQuizId);
-      setLinkedQuizTitle(linked?.titulo || '');
-      setLinkedQuizId(selectedFinalQuizId);
-      toast({ title: 'Vínculo salvo!', description: `Quiz "${linked?.titulo}" vinculado ao curso.` });
+      if (linked) {
+        setLinkedQuizzes(prev => [...prev, { id: linked.id, titulo: linked.titulo }]);
+      }
+      setSelectedFinalQuizId('');
+      toast({ title: 'Quiz vinculado!', description: `"${linked?.titulo}" adicionado ao curso.` });
+    }
+  };
+
+  const handleRemoveQuiz = async (quizId: string) => {
+    if (!id) return;
+    setSavingQuiz(true);
+    const { error } = await supabase
+      .from('curso_quiz_mapping')
+      .delete()
+      .eq('curso_id', id)
+      .eq('quiz_id', quizId);
+    setSavingQuiz(false);
+    if (error) {
+      toast({ title: 'Erro', description: 'Não foi possível remover o quiz.', variant: 'destructive' });
+    } else {
+      setLinkedQuizzes(prev => prev.filter(q => q.id !== quizId));
+      toast({ title: 'Quiz removido', description: 'Quiz desvinculado do curso.' });
     }
   };
   // ─────────────────────────────────────────────────────────────
@@ -259,11 +378,105 @@ const CursoDetalhe = () => {
     }
   }, [videos, progress, quizState.quizAlreadyCompleted, checkCourseCompletion]);
 
+  // ── Lógica centralizada de certificado ──────────────────────────
+  // Certificado é gerado APENAS quando:
+  // 1. Vídeos + Quizzes → todos vídeos concluídos E todos quizzes aprovados
+  // 2. Só vídeos (sem quizzes) → todos vídeos concluídos
+  // 3. Só quizzes (sem vídeos) → todos quizzes aprovados
+  const checkAndGenerateCertificate = React.useCallback(async () => {
+    if (!userId || !id || !generateCertificate) return;
+
+    try {
+      // ── Buscar TUDO diretamente do banco (evita estado React desatualizado) ──
+
+      // 1. Vídeos vinculados ao curso
+      const { data: courseVideos } = await supabase
+        .from('videos')
+        .select('id')
+        .eq('curso_id', id);
+      const videoIds = (courseVideos || []).map(v => v.id);
+      const hasVideos = videoIds.length > 0;
+
+      // 2. Quizzes vinculados ao curso
+      const { data: courseMappings } = await supabase
+        .from('curso_quiz_mapping')
+        .select('quiz_id')
+        .eq('curso_id', id);
+      const quizIds = (courseMappings || []).map(m => m.quiz_id);
+      const hasQuizzes = quizIds.length > 0;
+
+      // Sem conteúdo = sem certificado
+      if (!hasVideos && !hasQuizzes) return;
+
+      // 3. Verificar progresso dos vídeos
+      let allVideosOk = true;
+      if (hasVideos) {
+        const { data: videoProgressData } = await supabase
+          .from('video_progress')
+          .select('video_id, concluido, percentual_assistido')
+          .eq('user_id', userId)
+          .in('video_id', videoIds);
+
+        allVideosOk = videoIds.every(vid =>
+          (videoProgressData || []).some(
+            p => p.video_id === vid && (p.concluido === true || (p.percentual_assistido ?? 0) >= 90)
+          )
+        );
+      }
+
+      // 4. Verificar progresso dos quizzes
+      let allQuizzesOk = true;
+      if (hasQuizzes) {
+        const { data: quizProgressData } = await supabase
+          .from('progresso_quiz')
+          .select('quiz_id, aprovado')
+          .eq('usuario_id', userId)
+          .in('quiz_id', quizIds);
+
+        allQuizzesOk = quizIds.every(qid =>
+          (quizProgressData || []).some(p => p.quiz_id === qid && p.aprovado === true)
+        );
+      }
+
+      // 5. Decidir se gera certificado
+      const shouldGenerate =
+        (hasVideos && hasQuizzes && allVideosOk && allQuizzesOk) ||  // caso 1
+        (hasVideos && !hasQuizzes && allVideosOk) ||                  // caso 2
+        (!hasVideos && hasQuizzes && allQuizzesOk);                   // caso 3
+
+      console.log('🎓 Verificação de certificado (DB):', {
+        hasVideos, hasQuizzes, allVideosOk, allQuizzesOk, shouldGenerate,
+        videoIds, quizIds
+      });
+
+      if (shouldGenerate) {
+        await generateCertificate(100);
+        console.log('✅ Certificado gerado com sucesso!');
+        toast({
+          title: "Parabéns!",
+          description: "Você concluiu todo o conteúdo do curso! Seu certificado foi gerado.",
+        });
+      }
+    } catch (error) {
+      console.error('❌ Erro ao verificar/gerar certificado:', error);
+    }
+  }, [userId, id, generateCertificate, toast]);
+
+  // Verificação retroativa: ao carregar o curso, se o aluno já completou
+  // todo o conteúdo numa sessão anterior, emite o certificado pendente.
+  // (generateCertificate tem proteção anti-duplicata, então é seguro.)
+  const retroCheckDone = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!userId || !id || isAdmin || loading) return;
+    if (retroCheckDone.current === id) return;
+    retroCheckDone.current = id;
+    checkAndGenerateCertificate();
+  }, [userId, id, isAdmin, loading, checkAndGenerateCertificate]);
+
   const handleCourseComplete = React.useCallback(async (courseId: string) => {
     if (!userId || !id) return;
-    
+
     try {
-      // Verificar se todos os vídeos foram concluídos
       const allVideosCompleted = videos.every(video => {
         const videoProgress = progress[video.id];
         const isCompleted = videoProgress?.concluido === true || videoProgress?.percentual_assistido >= 90;
@@ -272,81 +485,41 @@ const CursoDetalhe = () => {
 
       if (allVideosCompleted) {
         console.log('🎉 Todos os vídeos foram concluídos!');
-        
-        // Forçar nova verificação do quiz
+
         await checkCourseCompletion();
-        
-        // Verificar se deve mostrar quiz imediatamente
+
         if (quizState.shouldShowQuiz && !quizCompleted && !quizShown) {
           console.log('🎯 Mostrando quiz imediatamente após conclusão do curso!');
           setShowQuizNotification(true);
           setQuizShown(true);
         }
-        
-        // Gerar certificado se disponível (nota 100 para conclusão por vídeos)
-        if (generateCertificate) {
-          try {
-            await generateCertificate(100);
-            console.log('✅ Certificado gerado com sucesso!');
-          } catch (error) {
-            console.error('❌ Erro ao gerar certificado:', error);
-          }
-        }
+
+        // Verificar se pode gerar certificado (lógica centralizada)
+        await checkAndGenerateCertificate();
       }
     } catch (error) {
       console.error('❌ Erro ao verificar conclusão do curso:', error);
     }
-  }, [userId, id, videos, progress, generateCertificate, quizState, quizCompleted, quizShown, checkCourseCompletion]);
+  }, [userId, id, videos, progress, quizState, quizCompleted, quizShown, checkCourseCompletion, checkAndGenerateCertificate]);
 
   const handleQuizComplete = React.useCallback(async () => {
     setQuizCompleted(true);
     setShowQuizModal(false);
     setShowQuizNotification(false);
-    
-    // Marcar quiz como completado no banco de dados
-    try {
-      if (currentCategory && userProfile?.id) {
-        // Buscar o quiz da categoria
-        const { data: quizData } = await supabase
-          .from('quizzes')
-          .select('id')
-          .eq('categoria', currentCategory)
-          .eq('ativo', true)
-          .single();
 
-        if (quizData) {
-          // Marcar como completado (mesmo que não tenha nota ainda)
-          await supabase
-            .from('progresso_quiz')
-            .upsert({
-              usuario_id: userProfile.id,
-              quiz_id: quizData.id,
-              respostas: {},
-              nota: 0, // Será atualizada quando o quiz for realmente completado
-              aprovado: false,
-              data_conclusao: new Date().toISOString()
-            });
+    // Marcar o quiz ativo como concluído na sidebar
+    if (activeQuizId) {
+      setCompletedQuizIds(prev => new Set([...prev, activeQuizId]));
+    }
 
-          console.log('✅ Quiz marcado como completado no banco de dados');
-        }
-      }
-    } catch (error) {
-      console.error('❌ Erro ao marcar quiz como completado:', error);
-    }
-    
-    // Gerar certificado após conclusão do quiz (nota será definida pelo quiz)
-    if (generateCertificate) {
-      try {
-        await generateCertificate(100); // Nota padrão para conclusão por quiz
-        toast({
-          title: "Parabéns!",
-          description: "Quiz concluído com sucesso! Seu certificado foi gerado.",
-        });
-      } catch (error) {
-        console.error('❌ Erro ao gerar certificado:', error);
-      }
-    }
-  }, [generateCertificate, toast, currentCategory, userProfile?.id]);
+    console.log('✅ Quiz completado! Verificando se pode gerar certificado...');
+
+    // Verificar se pode gerar certificado (lógica centralizada)
+    // Pequeno delay para garantir que o progresso do quiz foi salvo no banco
+    setTimeout(async () => {
+      await checkAndGenerateCertificate();
+    }, 1000);
+  }, [checkAndGenerateCertificate, activeQuizId]);
 
   const fetchVideosAndProgress = async () => {
     setLoading(true);
@@ -363,61 +536,20 @@ const CursoDetalhe = () => {
     
     try {
       if (!isAdmin) {
-        // ========== DIAGNÓSTICO COMPLETO PARA ALUNOS ==========
-        console.log('🔎 [ALUNO] Iniciando busca de vídeos...');
-        console.log('🔎 [ALUNO] curso_id:', id);
-        console.log('🔎 [ALUNO] currentCategory:', currentCategory);
-
-        // Teste 1: Busca simples SEM filtros (verifica se RLS bloqueia tudo)
-        const { data: allVideosTest, error: allVideosError } = await supabase
-          .from('videos')
-          .select('id, titulo, curso_id, categoria')
-          .limit(5);
-        
-        console.log('🔎 [ALUNO] Teste RLS - SELECT sem filtro:', {
-          count: allVideosTest?.length ?? 'null',
-          error: allVideosError?.message ?? 'nenhum',
-          errorCode: allVideosError?.code ?? 'nenhum',
-          data: allVideosTest
-        });
-
-        // Teste 2: Busca por curso_id
+        // Aluno: buscar apenas vídeos vinculados ao curso (mesmo comportamento do admin)
         const { data: videosByCourse, error: courseError } = await supabase
           .from('videos')
           .select('*')
           .eq('curso_id', id)
           .order('data_criacao', { ascending: true });
 
-        console.log('🔎 [ALUNO] Busca por curso_id:', {
-          count: videosByCourse?.length ?? 'null',
-          error: courseError?.message ?? 'nenhum',
-          errorCode: courseError?.code ?? 'nenhum'
-        });
+        if (courseError) {
+          console.error('❌ Erro ao buscar vídeos do curso:', courseError);
+        }
 
         if (videosByCourse && videosByCourse.length > 0) {
           finalVideos = videosByCourse;
-        } else if (currentCategory) {
-          // Teste 3: Busca por categoria (sem restringir curso_id null)
-          const { data: videosByCategory, error: catError } = await supabase
-            .from('videos')
-            .select('*')
-            .eq('categoria', currentCategory)
-            .order('data_criacao', { ascending: true });
-
-          console.log('🔎 [ALUNO] Busca por categoria:', {
-            categoria: currentCategory,
-            count: videosByCategory?.length ?? 'null',
-            error: catError?.message ?? 'nenhum',
-            errorCode: catError?.code ?? 'nenhum'
-          });
-            
-          if (!catError && videosByCategory) {
-            finalVideos = videosByCategory;
-          }
         }
-        
-        console.log('🔎 [ALUNO] Final - vídeos encontrados:', finalVideos.length);
-        // ========== FIM DIAGNÓSTICO ==========
       } else {
         // Logica para ADMINS (com atualizacao de orfaos)
         const { data: videosData, error: videosError } = await supabase
@@ -526,7 +658,7 @@ const CursoDetalhe = () => {
   const filteredVideos = videos.filter(v => {
     // Verificar se o vídeo pertence ao curso atual
     // Ou se é um aluno e o vídeo é órfão da mesma categoria (carregado via fallback)
-    return v.curso_id === id || (!isAdmin && !v.curso_id && v.categoria === currentCategory);
+    return v.curso_id === id;
   });
 
   // Log apenas quando necessário para debug
@@ -539,20 +671,23 @@ const CursoDetalhe = () => {
     });
   }
 
-  // Mostrar modal do quiz apenas 1 vez: curso concluído + sem certificado + quiz não aprovado ainda
+  // Mostrar modal do quiz apenas 1 vez: curso concluído + sem certificado +
+  // quiz não aprovado ainda + existe pelo menos um quiz pendente
   React.useEffect(() => {
+    const hasPendingQuiz = linkedQuizzes.some(q => !completedQuizIds.has(q.id));
     if (
       isCourseCompleted &&
       !certificate &&
       quizConfig &&
       !quizCompleted &&
       !quizShown &&
-      !quizUserProgress?.aprovado
+      !quizUserProgress?.aprovado &&
+      hasPendingQuiz
     ) {
       setShowQuizModal(true);
       setQuizShown(true);
     }
-  }, [isCourseCompleted, certificate, quizConfig, quizCompleted, quizShown, quizUserProgress]);
+  }, [isCourseCompleted, certificate, quizConfig, quizCompleted, quizShown, quizUserProgress, linkedQuizzes, completedQuizIds]);
 
   const handleViewCertificate = () => {
     if (certificate) {
@@ -665,7 +800,7 @@ const CursoDetalhe = () => {
             style={{ background: '#14213D', border: '1px solid rgba(75,63,114,0.28)' }}
           >
             <h2 className="text-base font-bold mb-3" style={{ color: '#E5E5E5' }}>
-              Configuração da Prova Final
+              Configuração de Quizzes
             </h2>
             <div className="flex items-center gap-3">
               <select
@@ -679,24 +814,86 @@ const CursoDetalhe = () => {
                 }}
               >
                 <option value="">— Selecionar quiz —</option>
-                {availableQuizzes.map(q => (
-                  <option key={q.id} value={q.id}>
-                    {q.titulo}
-                  </option>
-                ))}
+                {availableQuizzes
+                  .filter(q => !linkedQuizzes.find(lq => lq.id === q.id))
+                  .map(q => (
+                    <option key={q.id} value={q.id}>
+                      {q.titulo}
+                    </option>
+                  ))}
               </select>
               <Button
                 onClick={handleSaveFinalQuiz}
                 disabled={savingQuiz || !selectedFinalQuizId}
                 style={{ background: '#417B5A', color: '#fff', fontWeight: 700, whiteSpace: 'nowrap' }}
               >
-                {savingQuiz ? 'Salvando...' : 'Salvar vínculo'}
+                {savingQuiz ? 'Adicionando...' : 'Adicionar quiz'}
               </Button>
             </div>
-            {linkedQuizTitle && (
-              <p className="mt-2 text-sm">
-                <span style={{ color: 'rgba(229,229,229,0.5)' }}>Quiz atualmente vinculado: </span>
-                <span className="font-semibold" style={{ color: '#D0CEBA' }}>{linkedQuizTitle}</span>
+            {linkedQuizzes.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs" style={{ color: 'rgba(229,229,229,0.5)' }}>
+                  Quizzes vinculados ({linkedQuizzes.length}):
+                </p>
+                {linkedQuizzes.map(q => (
+                  <div key={q.id} className="flex items-center justify-between px-3 py-2 rounded-lg"
+                    style={{ background: 'rgba(65,123,90,0.08)', border: '1px solid rgba(65,123,90,0.2)' }}>
+                    <span className="text-sm font-medium" style={{ color: '#D0CEBA' }}>{q.titulo}</span>
+                    <button
+                      onClick={() => handleRemoveQuiz(q.id)}
+                      disabled={savingQuiz}
+                      className="text-xs px-2 py-1 rounded hover:opacity-80 transition-opacity"
+                      style={{ color: '#ef4444', background: 'rgba(239,68,68,0.1)' }}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        {/* ─────────────────────────────────────────────────────── */}
+
+        {/* ── Admin: Template de Certificado ───────────────────── */}
+        {isAdmin && availableTemplates.length > 0 && (
+          <div
+            className="mb-6 p-5 rounded-2xl"
+            style={{ background: '#14213D', border: '1px solid rgba(75,63,114,0.28)' }}
+          >
+            <h2 className="text-base font-bold mb-3 flex items-center gap-2" style={{ color: '#E5E5E5' }}>
+              <Award className="h-4 w-4" style={{ color: '#D0CEBA' }} />
+              Template de certificado
+            </h2>
+            <div className="flex items-center gap-3">
+              <select
+                value={selectedTemplateId}
+                onChange={e => setSelectedTemplateId(e.target.value)}
+                className="flex-1 rounded-lg px-3 py-2 text-sm border"
+                style={{
+                  background: '#0d1828',
+                  borderColor: 'rgba(65,123,90,0.35)',
+                  color: '#E5E5E5',
+                }}
+              >
+                <option value="">— Selecionar template —</option>
+                {availableTemplates.map(t => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} {t.is_default ? '(padrão)' : ''}
+                  </option>
+                ))}
+              </select>
+              <Button
+                onClick={handleSaveTemplate}
+                disabled={savingTemplate || !selectedTemplateId || selectedTemplateId === currentTemplateId}
+                style={{ background: '#417B5A', color: '#fff', fontWeight: 700, whiteSpace: 'nowrap' }}
+              >
+                {savingTemplate ? 'Salvando...' : 'Vincular template'}
+              </Button>
+            </div>
+            {currentTemplateId && (
+              <p className="mt-2 text-xs" style={{ color: 'rgba(229,229,229,0.5)' }}>
+                Template atual: {availableTemplates.find(t => t.id === currentTemplateId)?.name || 'Desconhecido'}
               </p>
             )}
           </div>
@@ -780,28 +977,56 @@ const CursoDetalhe = () => {
                     progresso={progress[selectedVideo.id]}
                   />
                   
-                  {/* Prova Final (student: shows when all videos done + quiz mapped) */}
-                  {isCourseComplete && linkedQuizId && (
-                    <div className="mt-6 p-4 rounded-lg" style={{ background: 'rgba(65,123,90,0.1)', border: '1px solid rgba(65,123,90,0.35)' }}>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-lg font-semibold mb-1" style={{ color: '#FFFFFF' }}>
-                            🎯 Prova Final Disponível
-                          </h3>
-                          <p className="text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>
-                            {quizConfig ? `${quizConfig.perguntas?.length || 0} perguntas • Nota mínima: ${quizConfig.nota_minima || 70}%` : 'Carregando quiz...'}
-                          </p>
+                  {/* Prova Final — só aparece se houver quiz pendente (não concluído) */}
+                  {isCourseComplete && linkedQuizzes.length > 0 && (() => {
+                    const pendingQuizzes = linkedQuizzes.filter(q => !completedQuizIds.has(q.id));
+                    const allQuizzesDone = pendingQuizzes.length === 0;
+
+                    if (allQuizzesDone) {
+                      // Todos os quizzes concluídos — mostrar estado finalizado, sem botão
+                      return (
+                        <div className="mt-6 p-4 rounded-lg" style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.35)' }}>
+                          <div className="flex items-center gap-3">
+                            <CheckCircle className="h-6 w-6" style={{ color: '#22c55e' }} />
+                            <div>
+                              <h3 className="text-lg font-semibold mb-0.5" style={{ color: '#FFFFFF' }}>
+                                Prova final concluída
+                              </h3>
+                              <p className="text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>
+                                Você concluiu todas as provas deste curso. Seu certificado está disponível na aba Certificados.
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <Button
-                          onClick={() => setShowQuizModal(true)}
-                          style={{ background: '#417B5A', color: '#fff', fontWeight: 700 }}
-                        >
-                          <FileText className="h-4 w-4 mr-2" />
-                          Iniciar Prova Final
-                        </Button>
+                      );
+                    }
+
+                    // Ainda há prova(s) pendente(s)
+                    return (
+                      <div className="mt-6 p-4 rounded-lg" style={{ background: 'rgba(65,123,90,0.1)', border: '1px solid rgba(65,123,90,0.35)' }}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-semibold mb-1" style={{ color: '#FFFFFF' }}>
+                              🎯 Prova Final Disponível
+                            </h3>
+                            <p className="text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>
+                              {pendingQuizzes.length} prova{pendingQuizzes.length !== 1 ? 's' : ''} pendente{pendingQuizzes.length !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <Button
+                            onClick={() => {
+                              setActiveQuizId(pendingQuizzes[0].id);
+                              setShowQuizModal(true);
+                            }}
+                            style={{ background: '#417B5A', color: '#fff', fontWeight: 700 }}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Iniciar Prova Final
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
                 </motion.div>
               ) : (
                 <motion.div
@@ -828,22 +1053,23 @@ const CursoDetalhe = () => {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Lista de Vídeos */}
+              {/* Lista de Conteúdo (Vídeos + Quizzes) */}
               <div className="rounded-2xl shadow-lg p-6" style={{ background: '#000000', border: '1px solid rgba(75,63,114,0.22)' }}>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: '#FFFFFF' }}>
-                  <Video className="h-5 w-5" style={{ color: '#D0CEBA' }} />
-                  Vídeos do Curso
+                  <BookOpen className="h-5 w-5" style={{ color: '#D0CEBA' }} />
+                  Conteúdo do Curso
                 </h3>
-                
-                {filteredVideos.length === 0 ? (
+
+                {filteredVideos.length === 0 && linkedQuizzes.length === 0 ? (
                   <div className="text-center py-8">
                     <Video className="h-8 w-8 mx-auto mb-2" style={{ color: 'rgba(229,229,229,0.3)' }} />
                     <p className="text-sm" style={{ color: 'rgba(229,229,229,0.45)' }}>
-                      Nenhum vídeo disponível para este curso.
+                      Nenhum conteúdo disponível para este curso.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
+                    {/* Vídeos */}
                     {filteredVideos.map((video, index) => {
                       const videoProgress = progress[video.id];
                       const isCompleted = videoProgress?.concluido === true || videoProgress?.percentual_assistido >= 90;
@@ -893,6 +1119,79 @@ const CursoDetalhe = () => {
                         </motion.div>
                       );
                     })}
+
+                    {/* Quizzes vinculados ao curso */}
+                    {linkedQuizzes.map((quiz, qIndex) => (
+                      <motion.div
+                        key={`quiz-${quiz.id}`}
+                        initial={{ opacity: 0, x: 12 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.25, delay: (filteredVideos.length + qIndex) * 0.05 }}
+                        className="p-3 rounded-xl cursor-pointer transition-colors duration-150"
+                        style={{
+                          background: activeQuizId === quiz.id ? 'rgba(65,123,90,0.12)' : 'rgba(65,123,90,0.06)',
+                          border: activeQuizId === quiz.id ? '1px solid rgba(65,123,90,0.45)' : '1px solid rgba(65,123,90,0.25)',
+                          borderLeft: '3px solid #417B5A',
+                        }}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                        onClick={() => {
+                          setActiveQuizId(quiz.id);
+                          setShowQuizModal(true);
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex-shrink-0">
+                            {completedQuizIds.has(quiz.id) ? (
+                              <CheckCircle className="h-5 w-5" style={{ color: '#22c55e' }} />
+                            ) : (
+                              <Target className="h-5 w-5" style={{ color: '#417B5A' }} />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-medium truncate" style={{ color: '#D0CEBA' }}>
+                              {quiz.titulo}
+                            </h4>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span
+                                className="text-xs font-medium px-1.5 py-0.5 rounded"
+                                style={{
+                                  background: 'rgba(65,123,90,0.15)',
+                                  color: '#417B5A',
+                                }}
+                              >
+                                Quiz
+                              </span>
+                              {completedQuizIds.has(quiz.id) ? (
+                                <span className="text-xs font-semibold" style={{ color: '#417B5A' }}>
+                                  Concluído
+                                </span>
+                              ) : (
+                                <span className="text-xs font-semibold" style={{ color: '#D0CEBA' }}>
+                                  Iniciar prova
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Contadores */}
+                {(filteredVideos.length > 0 || linkedQuizzes.length > 0) && (
+                  <div className="mt-4 pt-3 flex gap-4 text-xs" style={{ borderTop: '1px solid rgba(75,63,114,0.2)' }}>
+                    <span style={{ color: 'rgba(229,229,229,0.45)' }}>
+                      <Video className="h-3 w-3 inline mr-1" />
+                      {filteredVideos.length} vídeo{filteredVideos.length !== 1 ? 's' : ''}
+                    </span>
+                    {linkedQuizzes.length > 0 && (
+                      <span style={{ color: '#417B5A' }}>
+                        <Target className="h-3 w-3 inline mr-1" />
+                        {linkedQuizzes.length} quiz{linkedQuizzes.length !== 1 ? 'zes' : ''}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
@@ -963,6 +1262,7 @@ const CursoDetalhe = () => {
         <CourseQuizModal
           courseId={id || ''}
           courseName={currentCourseData?.nome || ''}
+          quizId={activeQuizId || undefined}
           isOpen={showQuizModal}
           onClose={() => setShowQuizModal(false)}
           onQuizComplete={handleQuizComplete}

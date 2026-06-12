@@ -135,14 +135,21 @@ export function useEmpresas() {
     setError(null);
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('empresas')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .select();
 
       if (error) {
         console.error('❌ useEmpresas: Erro ao deletar empresa:', error);
         throw error;
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error(
+          'Empresa não foi deletada. Possíveis causas: permissão insuficiente (RLS) ou registros vinculados (usuários, cursos).'
+        );
       }
 
       console.log('✅ useEmpresas: Empresa deletada:', id);

@@ -125,47 +125,46 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
     try {
       setIsLoading(true);
 
-      // 1. Buscar quiz vinculado via curso_quiz_mapping
-      const { data: mapping } = await supabase
+      // 1. Buscar quizzes vinculados via curso_quiz_mapping
+      const { data: mappings } = await supabase
         .from('curso_quiz_mapping')
         .select('quiz_id')
-        .eq('curso_id', courseId)
-        .maybeSingle();
+        .eq('curso_id', courseId);
 
-      if (!mapping?.quiz_id) {
+      if (!mappings || mappings.length === 0) {
         // Curso sem quiz vinculado — silently skip
         setIsQuizAvailable(false);
         return;
       }
 
-      // 2. Verificar se todos os vídeos foram concluídos
+      // Usar o primeiro quiz como padrão
+      const mapping = mappings[0];
+
+      // 2. Verificar progresso dos vídeos (para informação, mas não bloquear quiz)
       const { data: allVideos } = await supabase
         .from('videos')
         .select('id')
         .eq('curso_id', courseId);
 
-      if (!allVideos || allVideos.length === 0) {
-        setIsQuizAvailable(false);
-        return;
+      if (allVideos && allVideos.length > 0) {
+        const videoIds = allVideos.map(v => v.id);
+        const { data: progressRows } = await supabase
+          .from('video_progress')
+          .select('video_id, concluido, percentual_assistido')
+          .eq('user_id', userId)
+          .in('video_id', videoIds);
+
+        const completedCount = (progressRows || []).filter(
+          p => p.concluido === true || (p.percentual_assistido ?? 0) >= 90
+        ).length;
+
+        setIsCourseCompleted(completedCount >= allVideos.length);
+      } else {
+        setIsCourseCompleted(false);
       }
 
-      const videoIds = allVideos.map(v => v.id);
-      const { data: progressRows } = await supabase
-        .from('video_progress')
-        .select('video_id, concluido, percentual_assistido')
-        .eq('user_id', userId)
-        .in('video_id', videoIds);
-
-      const completedCount = (progressRows || []).filter(
-        p => p.concluido === true || (p.percentual_assistido ?? 0) >= 90
-      ).length;
-
-      const allDone = completedCount >= allVideos.length;
-      setIsCourseCompleted(allDone);
-
-      if (allDone) {
-        await loadQuizByFinalQuizId(mapping.quiz_id);
-      }
+      // 3. Sempre carregar o quiz quando vinculado (sem bloquear por vídeos)
+      await loadQuizByFinalQuizId(mapping.quiz_id);
     } catch (err) {
       console.error('Erro ao verificar disponibilidade do quiz:', err);
     } finally {
@@ -196,21 +195,77 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
         return;
       }
 
+      // Buscar empresa_id do usuário (necessário para RLS multi-tenant)
+      const { data: userData } = await supabase
+        .from('usuarios')
+        .select('empresa_id, nome')
+        .eq('id', userId)
+        .single();
+
+      // Buscar nome, categoria e template do curso (campos NOT NULL no banco)
+      // Tenta incluir template_id; se a coluna não existir, faz fallback sem ela.
+      let cursoData: any = null;
+      let cursoTemplateId: string | null = null;
+      {
+        const withTemplate = await supabase
+          .from('cursos')
+          .select('nome, categoria, template_id')
+          .eq('id', courseId)
+          .single();
+        if (!withTemplate.error) {
+          cursoData = withTemplate.data;
+          cursoTemplateId = (withTemplate.data as any)?.template_id || null;
+        } else {
+          // Coluna template_id ainda não existe — buscar só os campos básicos
+          const basic = await supabase
+            .from('cursos')
+            .select('nome, categoria')
+            .eq('id', courseId)
+            .single();
+          cursoData = basic.data;
+        }
+      }
+
+      // Prioridade do template: (1) coluna do curso no banco → (2) localStorage → (3) padrão
+      let templateId: string | null = cursoTemplateId;
+      if (!templateId && courseId) {
+        const savedTemplateId = localStorage.getItem(`curso_template_${courseId}`);
+        if (savedTemplateId) templateId = savedTemplateId;
+      }
+      if (!templateId) {
+        const { data: defaultTemplate } = await supabase
+          .from('certificate_templates')
+          .select('id')
+          .eq('is_default', true)
+          .maybeSingle();
+        templateId = defaultTemplate?.id || null;
+      }
+
       // Gerar número único: CERT-YYYYMMDD-XXXXX
       const now = new Date();
       const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
       const rand = Math.random().toString(36).substring(2, 7).toUpperCase();
       const numeroCertificado = `CERT-${dateStr}-${rand}`;
 
+      const insertPayload: Record<string, any> = {
+        usuario_id: userId,
+        curso_id: courseId,
+        nota_final: nota,
+        nota: nota,
+        numero_certificado: numeroCertificado,
+        data_emissao: now.toISOString(),
+        empresa_id: userData?.empresa_id || null,
+        curso_nome: cursoData?.nome || 'Curso',
+        categoria: cursoData?.categoria || 'Geral',
+        status: 'ativo',
+        template_id: templateId,
+        carga_horaria: 0,
+        aproveitamento: nota,
+      };
+
       const { data: newCert, error: insertError } = await supabase
         .from('certificados')
-        .insert({
-          usuario_id: userId,
-          curso_id: courseId,
-          nota_final: nota,
-          numero_certificado: numeroCertificado,
-          data_emissao: now.toISOString(),
-        })
+        .insert(insertPayload as any)
         .select()
         .single();
 
@@ -257,9 +312,9 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
 
       if (progressError) throw progressError;
 
-      if (aprovado && courseId) {
-        await generateCertificate(nota);
-      }
+      // NÃO gerar certificado aqui — a lógica centralizada em
+      // checkAndGenerateCertificate (CursoDetalhe) verifica se TODOS
+      // os quizzes foram aprovados antes de emitir o certificado.
 
       setUserProgress({
         usuario_id: userId,
@@ -297,6 +352,7 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
     certificate,
     submitQuiz,
     generateCertificate,
-    checkQuizAvailability
+    checkQuizAvailability,
+    loadQuizByFinalQuizId
   };
 }

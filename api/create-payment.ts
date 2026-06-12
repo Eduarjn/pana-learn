@@ -91,6 +91,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .from('empresas')
         .update({ plan, plan_status: 'trial' })
         .eq('id', organization_id);
+      await supabase
+        .from('organizations')
+        .update({ onboarding_completed: true })
+        .eq('id', organization_id);
       return res.status(200).json({
         trial: true,
         trialEndDate: trialEndDate.toISOString(),
@@ -153,6 +157,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     await supabase
       .from('empresas')
       .update({ plan, plan_status: 'trial' })
+      .eq('id', organization_id);
+
+    await supabase
+      .from('organizations')
+      .update({ onboarding_completed: true })
       .eq('id', organization_id);
 
     // ── 4. Devolver URL de pagamento (1ª cobrança vence em 14 dias) ────────
