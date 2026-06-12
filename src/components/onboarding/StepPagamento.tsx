@@ -31,9 +31,6 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
   const handleStartTrial = async () => {
     setTrialLoading(true);
     try {
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 14);
-
       try {
         await supabase.rpc('setup_tenant_environment', {
           p_organization_id: data.organizationId,
@@ -48,18 +45,21 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
         console.warn('setup_tenant_environment não disponível');
       }
 
-      await supabase.from('empresas').update({
-        plan: data.planoSelecionado,
-        plan_status: 'trial',
-      }).eq('id', data.organizationId);
-
-      await supabase.from('subscriptions').insert({
-        organization_id: data.organizationId,
-        user_id: data.userId,
-        plan: data.planoSelecionado,
-        status: 'trial',
-        trial_end_date: trialEnd.toISOString(),
+      const res = await fetch('/api/create-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: data.planoSelecionado,
+          user_id: data.userId,
+          organization_id: data.organizationId,
+          user_email: data.email,
+          user_name: data.nome,
+          cpf_cnpj: null,
+          trial: true,
+        }),
       });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Erro ao iniciar trial');
 
       toast({
         title: 'Seu ambiente está pronto!',
@@ -105,43 +105,46 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-1">Confirme e comece agora</h2>
-      <p className="text-gray-500 mb-8">Alunos recebem acesso e começam a aprender imediatamente.</p>
+      <h2 className="font-quicksand text-2xl font-bold text-pana-indigo mb-1">Confirme e comece agora</h2>
+      <p className="font-inter text-sm text-pana-text-secondary mb-8">Alunos recebem acesso e começam a aprender imediatamente.</p>
 
-      <div className="bg-gray-50 rounded-xl p-5 mb-6">
-        <p className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-3">Resumo da assinatura</p>
-        <div className="flex justify-between items-center">
+      {/* Card de resumo do plano */}
+      <div className="bg-pana-bg rounded-2xl border border-pana-bone/40 p-6 mb-6">
+        <div className="flex items-start justify-between mb-3">
           <div>
-            <p className="font-bold text-gray-900">Plano {plano.nome}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Cobrança mensal recorrente</p>
+            <p className="text-xs text-pana-text-secondary mb-1">Plano selecionado</p>
+            <p className="font-quicksand font-bold text-pana-indigo text-lg">{plano.nome}</p>
           </div>
-          <p className="text-xl font-extrabold text-gray-900">{plano.preco}</p>
+          <span className="bg-pana-petal text-pana-indigo text-xs rounded-full px-3 py-1 font-medium">
+            14 dias grátis
+          </span>
         </div>
+        <p className="text-3xl font-bold text-pana-teal">{plano.preco}</p>
+        <p className="text-xs text-pana-text-secondary mt-1">Cobrança mensal recorrente após o período de teste</p>
       </div>
 
-      {/* Trial gratuito */}
-      <div className="border-2 border-dashed border-green-300 rounded-xl p-5 mb-4 bg-green-50/50">
-        <div className="flex items-start gap-3">
-          <Gift className="w-6 h-6 text-green-600 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="font-bold text-gray-900">Testar 14 dias grátis</p>
-            <p className="text-xs text-gray-500 mt-0.5 mb-3">Sem cartão de crédito. Cancele quando quiser.</p>
-            <Button onClick={handleStartTrial} disabled={trialLoading} className="w-full bg-green-500 hover:bg-green-600 text-white">
-              {trialLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Iniciando...</> : 'Iniciar teste gratuito de 14 dias'}
-            </Button>
-          </div>
-        </div>
-      </div>
+      {/* Botão principal — trial */}
+      <Button
+        onClick={handleStartTrial}
+        disabled={trialLoading}
+        className="w-full bg-pana-teal hover:bg-pana-teal-dark text-white rounded-xl h-12 font-medium mb-3"
+      >
+        {trialLoading
+          ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Iniciando...</>
+          : <><Gift className="w-4 h-4 mr-2" />Iniciar 14 dias grátis</>
+        }
+      </Button>
+      <p className="text-xs text-pana-text-secondary text-center mb-6">Sem cartão de crédito. Cancele quando quiser.</p>
 
       <div className="flex items-center gap-3 my-4">
-        <div className="flex-1 h-px bg-gray-200" />
-        <p className="text-xs text-gray-400 font-medium">ou pague agora com desconto</p>
-        <div className="flex-1 h-px bg-gray-200" />
+        <div className="flex-1 h-px bg-pana-bone/40" />
+        <p className="text-xs text-pana-text-secondary font-medium">ou pague agora</p>
+        <div className="flex-1 h-px bg-pana-bone/40" />
       </div>
 
       {/* CPF/CNPJ */}
       <div className="mb-4">
-        <Label htmlFor="cpfCnpj" className="text-sm font-medium text-gray-700">CPF ou CNPJ *</Label>
+        <Label htmlFor="cpfCnpj" className="text-sm font-medium text-pana-indigo">CPF ou CNPJ *</Label>
         <Input
           id="cpfCnpj"
           value={cpfCnpj}
@@ -149,10 +152,10 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
           placeholder="000.000.000-00 ou 00.000.000/0001-00"
           className="mt-1"
         />
-        <p className="text-xs text-gray-400 mt-1">Necessário para emissão de cobrança via Asaas</p>
+        <p className="text-xs text-pana-text-secondary mt-1">Necessário para emissão de cobrança via Asaas</p>
       </div>
 
-      <Button onClick={handlePagar} disabled={loading} variant="outline" className="w-full border-2 border-gray-300 text-gray-700 h-12 font-semibold">
+      <Button onClick={handlePagar} disabled={loading} variant="outline" className="w-full border border-pana-grape text-pana-grape hover:bg-pana-grape-muted rounded-xl h-12 font-medium">
         {loading
           ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Redirecionando para pagamento...</>
           : <><CreditCard className="w-4 h-4 mr-2" />Pagar agora</>
@@ -160,12 +163,12 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
       </Button>
 
       <div className="flex items-center justify-center gap-4 mt-4">
-        <div className="flex items-center gap-1.5 text-xs text-gray-400"><ShieldCheck className="w-3.5 h-3.5" />Pagamento seguro</div>
-        <div className="flex items-center gap-1.5 text-xs text-gray-400"><ShieldCheck className="w-3.5 h-3.5" />Boleto, PIX ou cartão</div>
+        <div className="flex items-center gap-1.5 text-xs text-pana-text-secondary"><ShieldCheck className="w-3.5 h-3.5" />Pagamento seguro</div>
+        <div className="flex items-center gap-1.5 text-xs text-pana-text-secondary"><ShieldCheck className="w-3.5 h-3.5" />Boleto, PIX ou cartão</div>
       </div>
 
       <div className="flex justify-between mt-6">
-        <Button variant="outline" onClick={onBack}>Voltar</Button>
+        <Button variant="outline" onClick={onBack} className="border-pana-grape text-pana-grape hover:bg-pana-grape-muted">Voltar</Button>
       </div>
     </div>
   );

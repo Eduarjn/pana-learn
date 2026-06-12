@@ -77,8 +77,8 @@ export default function StepPersonalize({ data, updateData, onNext, onBack }: Pr
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-1">Personalize sua plataforma</h2>
-      <p className="text-gray-500 mb-8">Logo, cores e nome próprios. Parece que foi feito para a sua marca.</p>
+      <h2 className="font-quicksand text-2xl font-bold text-pana-indigo mb-1">Personalize sua plataforma</h2>
+      <p className="font-inter text-sm text-pana-text-secondary mb-8">Logo, cores e nome próprios. Parece que foi feito para a sua marca.</p>
 
       <div className="space-y-6">
         {/* Upload de logo */}
@@ -86,14 +86,14 @@ export default function StepPersonalize({ data, updateData, onNext, onBack }: Pr
           <Label>Logo da empresa</Label>
           <div className="mt-2 flex items-center gap-4">
             {logoPreview ? (
-              <img src={logoPreview} className="w-16 h-16 object-contain rounded-lg border" alt="logo preview" />
+              <img src={logoPreview} className="w-16 h-16 object-contain rounded-lg border border-pana-bone" alt="logo preview" />
             ) : (
-              <div className="w-16 h-16 rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-400">
+              <div className="w-16 h-16 rounded-lg border-2 border-dashed border-pana-bone flex items-center justify-center text-pana-text-secondary">
                 <Upload className="w-6 h-6" />
               </div>
             )}
             <label className="cursor-pointer">
-              <span className="text-sm text-green-600 font-medium hover:underline">
+              <span className="text-sm text-pana-teal font-medium hover:underline">
                 {logoPreview ? 'Trocar logo' : 'Fazer upload da logo'}
               </span>
               <input type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
@@ -139,15 +139,15 @@ export default function StepPersonalize({ data, updateData, onNext, onBack }: Pr
         </div>
 
         {/* Preview */}
-        <div className="rounded-xl p-4 border" style={{ borderColor: data.corPrimaria + '40' }}>
-          <p className="text-xs text-gray-500 mb-2">Preview:</p>
+        <div className="rounded-xl p-4 border border-pana-bone/40 bg-pana-bg">
+          <p className="text-xs text-pana-text-secondary mb-2">Preview:</p>
           <div className="flex items-center gap-2">
             {logoPreview ? (
               <img src={logoPreview} className="w-6 h-6 object-contain" alt="logo" />
             ) : (
               <div className="w-6 h-6 rounded" style={{ backgroundColor: data.corPrimaria }} />
             )}
-            <span className="font-semibold text-gray-800">
+            <span className="font-semibold text-pana-indigo">
               {data.nomePlataforma || data.organizacaoNome || 'Sua Plataforma'}
             </span>
           </div>
@@ -158,8 +158,8 @@ export default function StepPersonalize({ data, updateData, onNext, onBack }: Pr
       </div>
 
       <div className="flex justify-between pt-6">
-        <Button variant="outline" onClick={onBack}>← Voltar</Button>
-        <Button onClick={handleSave} disabled={loading} className="bg-green-500 hover:bg-green-600 text-white px-8">
+        <Button variant="outline" onClick={onBack} className="border-pana-grape text-pana-grape hover:bg-pana-grape-muted">← Voltar</Button>
+        <Button onClick={handleSave} disabled={loading} className="bg-pana-teal hover:bg-pana-teal-dark text-white rounded-xl px-8 h-11 font-medium">
           {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Salvando...</> : 'Continuar →'}
         </Button>
       </div>

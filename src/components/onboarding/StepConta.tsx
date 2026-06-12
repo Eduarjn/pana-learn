@@ -74,29 +74,53 @@ export default function StepConta({ data, updateData, onNext }: Props) {
 
       const empresaId = (orgData as any).id;
 
-      // 3. Criar registo na tabela usuarios e associar à empresa
-      const { error: userError } = await supabase
+      // 3. Linha em `usuarios` já foi criada pelo trigger handle_new_user
+      //    no momento do signUp (com tipo_usuario='cliente', sem empresa_id).
+      //    Aqui só promovemos para admin e associamos a empresa.
+      const { data: updated, error: userError } = await supabase
         .from('usuarios')
-        .insert({
-          id: authData.user.id,
-          user_id: authData.user.id,
+        .update({
           nome: formData.nome,
-          email: formData.email,
-          senha_hashed: '***',  // Gerido pelo Supabase Auth
           tipo_usuario: 'admin',
           status: 'ativo',
           empresa_id: empresaId,
-          data_criacao: new Date().toISOString(),
           data_atualizacao: new Date().toISOString(),
-        });
+        })
+        .eq('user_id', authData.user.id)
+        .select();
 
       if (userError) {
-        console.error('Erro ao criar usuario:', userError);
-        // Tentar update se já existe (trigger pode ter criado)
-        await supabase
+        console.error('Erro ao atualizar usuario:', {
+          message: userError.message,
+          code: userError.code,
+          details: userError.details,
+          hint: userError.hint,
+        });
+        throw new Error(`Erro ao vincular usuário à empresa: ${userError.message}`);
+      }
+
+      // Fallback: se o trigger não rodou (ex.: foi removido), insere manualmente
+      if (!updated || updated.length === 0) {
+        const { error: insertError } = await supabase
           .from('usuarios')
-          .update({ empresa_id: empresaId, tipo_usuario: 'admin' })
-          .or(`user_id.eq.${authData.user.id},id.eq.${authData.user.id}`);
+          .insert({
+            user_id: authData.user.id,
+            nome: formData.nome,
+            email: formData.email,
+            senha_hashed: 'supabase_auth',
+            tipo_usuario: 'admin',
+            status: 'ativo',
+            empresa_id: empresaId,
+          });
+        if (insertError) {
+          console.error('Erro ao inserir usuario (fallback):', {
+            message: insertError.message,
+            code: insertError.code,
+            details: insertError.details,
+            hint: insertError.hint,
+          });
+          throw new Error(`Erro ao criar usuário: ${insertError.message}`);
+        }
       }
 
       updateData({
@@ -123,8 +147,8 @@ export default function StepConta({ data, updateData, onNext }: Props) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-1">Crie sua conta</h2>
-      <p className="text-gray-500 mb-8">Cadastre sua organização e configure o ambiente rapidamente.</p>
+      <h2 className="font-quicksand text-2xl font-bold text-pana-indigo mb-1">Crie sua conta</h2>
+      <p className="font-inter text-sm text-pana-text-secondary mb-8">Cadastre sua organização e configure o ambiente rapidamente.</p>
 
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
@@ -159,11 +183,11 @@ export default function StepConta({ data, updateData, onNext }: Props) {
           </div>
         </div>
 
-        <div className="flex justify-end pt-4">
+        <div className="pt-4">
           <Button
             onClick={handleSubmit(onSubmit)}
             disabled={loading}
-            className="bg-green-500 hover:bg-green-600 text-white px-8"
+            className="w-full bg-pana-teal hover:bg-pana-teal-dark text-white rounded-xl h-11 font-medium"
           >
             {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Criando...</> : 'Continuar →'}
           </Button>

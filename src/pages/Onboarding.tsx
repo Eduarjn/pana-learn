@@ -61,56 +61,68 @@ export default function Onboarding() {
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
   return (
-    <div className="min-h-screen bg-[#f8f7ff] flex flex-col">
-      {/* Header com logo */}
-      <header className="py-6 px-8 flex items-center gap-3">
-        <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">P</div>
-        <span className="font-semibold text-gray-800 text-lg">Panalearn</span>
+    <div className="min-h-screen bg-pana-bg font-inter flex flex-col">
+      {/* Header fixo com logo */}
+      <header className="bg-pana-indigo py-5 px-6 flex items-center justify-center">
+        <img
+          src="/brand/panalearn-horizontal-white.png"
+          alt="PanaLearn"
+          className="h-8 w-auto"
+        />
       </header>
 
       {/* Stepper */}
-      <div className="w-full max-w-3xl mx-auto px-6 py-8">
-        <p className="text-center text-sm font-semibold text-green-600 tracking-widest uppercase mb-3">
-          PRIMEIROS PASSOS
-        </p>
-        <h1 className="text-center text-3xl font-extrabold text-gray-900 mb-10">
+      <div className="w-full max-w-3xl mx-auto px-6 py-10">
+        <h1 className="text-center font-quicksand text-3xl font-bold text-pana-indigo mb-2">
           Configure e comece em minutos
         </h1>
+        <p className="text-center text-sm text-pana-text-secondary mb-10">
+          Primeiros passos
+        </p>
 
-        {/* Linha de progresso com círculos numerados */}
-        <div className="relative flex items-start justify-between mb-12">
-          {/* Linha de conexão (background) */}
-          <div className="absolute top-5 left-0 right-0 h-0.5 bg-gray-200 z-0" />
-          {/* Linha de progresso (ativa) */}
+        {/* Progress bar linear */}
+        <div className="relative mb-12">
+          <div className="absolute top-4 left-4 right-4 h-1 bg-pana-bone/30 rounded-full z-0" />
           <div
-            className="absolute top-5 left-0 h-0.5 bg-green-500 z-0 transition-all duration-500"
-            style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
+            className="absolute top-4 left-4 h-1 bg-pana-teal rounded-full z-0 transition-all duration-500 ease-out"
+            style={{ width: `calc(${((currentStep - 1) / (STEPS.length - 1)) * 100}% - 1rem)` }}
           />
 
-          {STEPS.map((step) => (
-            <div key={step.number} className="relative z-10 flex flex-col items-center gap-2 flex-1">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
-                  step.number < currentStep
-                    ? 'bg-green-500 text-white shadow-md'
-                    : step.number === currentStep
-                    ? 'bg-green-500 text-white ring-4 ring-green-100 shadow-lg'
-                    : 'bg-white border-2 border-gray-200 text-gray-400'
-                }`}
-              >
-                {step.number < currentStep ? '✓' : step.number}
-              </div>
-              <span className={`text-xs font-medium text-center leading-tight ${
-                step.number <= currentStep ? 'text-gray-700' : 'text-gray-400'
-              }`}>
-                {step.label}
-              </span>
-            </div>
-          ))}
+          <div className="relative z-10 flex items-start justify-between">
+            {STEPS.map((step) => {
+              const isDone = step.number < currentStep;
+              const isCurrent = step.number === currentStep;
+              return (
+                <div key={step.number} className="flex flex-col items-center gap-2 flex-1">
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 ${
+                      isDone
+                        ? 'bg-pana-teal text-white shadow-md'
+                        : isCurrent
+                        ? 'bg-pana-grape text-pana-petal ring-4 ring-pana-grape/20 shadow-lg'
+                        : 'bg-pana-bone/30 text-pana-text-secondary'
+                    }`}
+                  >
+                    {isDone ? '✓' : step.number}
+                  </div>
+                  <span
+                    className={`font-inter text-sm text-center leading-tight ${
+                      step.number <= currentStep ? 'text-pana-indigo font-medium' : 'text-pana-text-secondary'
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* Conteúdo da etapa atual */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        {/* Card central — animação fade + slide-up por step */}
+        <div
+          key={currentStep}
+          className="bg-white rounded-2xl shadow-lg max-w-xl mx-auto p-8 animate-in fade-in slide-in-from-bottom-4 duration-300"
+        >
           {currentStep === 1 && (
             <StepConta data={onboardingData} updateData={updateData} onNext={nextStep} />
           )}

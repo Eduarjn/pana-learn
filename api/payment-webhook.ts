@@ -7,18 +7,30 @@ import { createClient } from '@supabase/supabase-js';
 
 const WEBHOOK_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN || '';
 
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Asaas valida o endpoint com GET
   if (req.method === 'GET') return res.status(200).json({ ok: true });
   if (req.method !== 'POST') return res.status(405).end();
 
   // ── Verificar token de autenticação do webhook ───────────────────────────
-  if (WEBHOOK_TOKEN) {
-    const token = req.headers['asaas-access-token'] || req.query?.token;
-    if (token !== WEBHOOK_TOKEN) {
-      console.warn('Webhook: token inválido');
-      return res.status(401).json({ error: 'Unauthorized' });
-    }
+  // Fail-closed: sem token configurado no servidor → rejeita tudo
+  if (!WEBHOOK_TOKEN) {
+    console.error('Webhook: ASAAS_WEBHOOK_TOKEN não configurado — rejeitando requisição');
+    return res.status(503).json({ error: 'Webhook not configured' });
+  }
+  // Token só via header (nunca query string — vaza em logs)
+  const rawToken = req.headers['asaas-access-token'];
+  const token = Array.isArray(rawToken) ? rawToken[0] : rawToken;
+  if (!token || !safeEqual(token, WEBHOOK_TOKEN)) {
+    console.warn('Webhook: token inválido ou ausente');
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   const { event, payment } = req.body;

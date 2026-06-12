@@ -38,8 +38,8 @@ export default function StepConteudo({ data, updateData, onNext, onBack }: Props
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-1">Que tipo de conteúdo você vai usar?</h2>
-      <p className="text-gray-500 mb-8">Suba vídeos, PDFs, quizzes e monte trilhas de aprendizado completas.</p>
+      <h2 className="font-quicksand text-2xl font-bold text-pana-indigo mb-1">Que tipo de conteúdo você vai usar?</h2>
+      <p className="font-inter text-sm text-pana-text-secondary mb-8">Suba vídeos, PDFs, quizzes e monte trilhas de aprendizado completas.</p>
 
       <div className="grid grid-cols-2 gap-3 mb-8">
         {TIPOS.map(tipo => {
@@ -51,30 +51,30 @@ export default function StepConteudo({ data, updateData, onNext, onBack }: Props
               onClick={() => toggle(tipo.id)}
               className={`relative p-4 rounded-xl border-2 text-left transition-all ${
                 selected
-                  ? 'border-green-500 bg-green-50'
-                  : 'border-gray-200 hover:border-gray-300 bg-white'
+                  ? 'border-pana-teal bg-pana-teal-muted'
+                  : 'border-pana-bone/60 hover:border-pana-grape bg-white'
               }`}
             >
               {selected && (
-                <CheckCircle2 className="absolute top-3 right-3 w-4 h-4 text-green-500" />
+                <CheckCircle2 className="absolute top-3 right-3 w-4 h-4 text-pana-teal" />
               )}
-              <Icon className={`w-6 h-6 mb-2 ${selected ? 'text-green-600' : 'text-gray-400'}`} />
-              <p className={`font-semibold text-sm ${selected ? 'text-green-700' : 'text-gray-700'}`}>
+              <Icon className={`w-6 h-6 mb-2 ${selected ? 'text-pana-teal' : 'text-pana-text-secondary'}`} />
+              <p className="font-semibold text-sm text-pana-indigo">
                 {tipo.label}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">{tipo.desc}</p>
+              <p className="text-xs text-pana-text-secondary mt-0.5">{tipo.desc}</p>
             </button>
           );
         })}
       </div>
 
-      <p className="text-xs text-gray-400 text-center mb-6">
+      <p className="text-xs text-pana-text-secondary text-center mb-6">
         Você poderá adicionar e gerenciar todo o conteúdo depois de finalizar a configuração.
       </p>
 
       <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>← Voltar</Button>
-        <Button onClick={handleNext} className="bg-green-500 hover:bg-green-600 text-white px-8">
+        <Button variant="outline" onClick={onBack} className="border-pana-grape text-pana-grape hover:bg-pana-grape-muted">← Voltar</Button>
+        <Button onClick={handleNext} className="bg-pana-teal hover:bg-pana-teal-dark text-white rounded-xl px-8 h-11 font-medium">
           Continuar →
         </Button>
       </div>
