@@ -67,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       nextMonth.setMonth(nextMonth.getMonth() + 1);
 
       // Atualizar subscription
-      const { data: sub } = await supabase
+      const { data: sub, error: subError } = await supabase
         .from('subscriptions')
         .update({
           status: 'active',
@@ -80,30 +80,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .select('organization_id, plan')
         .single();
 
-      if (sub?.organization_id) {
-        // Ativar empresa (tenant único — organizations não existe no banco)
-        const { error: empError } = await supabase
-          .from('empresas')
-          .update({
-            plan: sub.plan,
-            plan_status: 'active',
-            onboarding_completed: true,
-          })
-          .eq('id', sub.organization_id);
-
-        if (empError) {
-          console.error('[Asaas Webhook] Erro ao ativar empresa:', empError);
-        } else {
-          console.log(`[Asaas Webhook] Empresa ${sub.organization_id} ativada com plano ${sub.plan}`);
-        }
+      if (subError) {
+        console.error('[Asaas Webhook] Erro ao atualizar subscription (activated):', subError);
+        return res.status(500).json({ error: `Subscription update failed: ${subError.message}` });
+      }
+      if (!sub?.organization_id) {
+        console.error('[Asaas Webhook] Subscription não encontrada para', subscriptionId);
+        return res.status(500).json({ error: 'Subscription not found' });
       }
 
+      const { error: empError } = await supabase
+        .from('empresas')
+        .update({
+          plan: sub.plan,
+          plan_status: 'active',
+          onboarding_completed: true,
+        })
+        .eq('id', sub.organization_id);
+
+      if (empError) {
+        console.error('[Asaas Webhook] Erro ao ativar empresa:', empError);
+        return res.status(500).json({ error: `Empresa update failed: ${empError.message}` });
+      }
+
+      console.log(`[Asaas Webhook] Empresa ${sub.organization_id} ativada com plano ${sub.plan}`);
       return res.status(200).json({ ok: true, action: 'activated' });
     }
 
     // ── Pagamento vencido / não pago ──────────────────────────────────────
     if (event === 'PAYMENT_OVERDUE') {
-      const { data: sub } = await supabase
+      const { data: sub, error: subError } = await supabase
         .from('subscriptions')
         .update({
           status: 'overdue',
@@ -113,21 +119,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .select('organization_id')
         .single();
 
-      if (sub?.organization_id) {
-        await supabase
-          .from('empresas')
-          .update({ plan_status: 'overdue' })
-          .eq('id', sub.organization_id);
-
-        console.log(`[Asaas Webhook] Empresa ${sub.organization_id} com pagamento vencido`);
+      if (subError) {
+        console.error('[Asaas Webhook] Erro ao atualizar subscription (overdue):', subError);
+        return res.status(500).json({ error: `Subscription update failed: ${subError.message}` });
+      }
+      if (!sub?.organization_id) {
+        console.error('[Asaas Webhook] Subscription não encontrada para', subscriptionId);
+        return res.status(500).json({ error: 'Subscription not found' });
       }
 
+      const { error: empError } = await supabase
+        .from('empresas')
+        .update({ plan_status: 'overdue' })
+        .eq('id', sub.organization_id);
+      if (empError) {
+        console.error('[Asaas Webhook] Erro ao marcar empresa overdue:', empError);
+        return res.status(500).json({ error: `Empresa update failed: ${empError.message}` });
+      }
+
+      console.log(`[Asaas Webhook] Empresa ${sub.organization_id} com pagamento vencido`);
       return res.status(200).json({ ok: true, action: 'overdue' });
     }
 
     // ── Assinatura cancelada ─────────────────────────────────────────────
     if (event === 'PAYMENT_DELETED' || event === 'SUBSCRIPTION_DELETED') {
-      const { data: sub } = await supabase
+      const { data: sub, error: subError } = await supabase
         .from('subscriptions')
         .update({
           status: 'cancelled',
@@ -137,11 +153,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .select('organization_id')
         .single();
 
-      if (sub?.organization_id) {
-        await supabase
-          .from('empresas')
-          .update({ plan_status: 'cancelled' })
-          .eq('id', sub.organization_id);
+      if (subError) {
+        console.error('[Asaas Webhook] Erro ao atualizar subscription (cancelled):', subError);
+        return res.status(500).json({ error: `Subscription update failed: ${subError.message}` });
+      }
+      if (!sub?.organization_id) {
+        console.error('[Asaas Webhook] Subscription não encontrada para', subscriptionId);
+        return res.status(500).json({ error: 'Subscription not found' });
+      }
+
+      const { error: empError } = await supabase
+        .from('empresas')
+        .update({ plan_status: 'cancelled' })
+        .eq('id', sub.organization_id);
+      if (empError) {
+        console.error('[Asaas Webhook] Erro ao cancelar empresa:', empError);
+        return res.status(500).json({ error: `Empresa update failed: ${empError.message}` });
       }
 
       return res.status(200).json({ ok: true, action: 'cancelled' });
