@@ -65,21 +65,26 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     (async () => {
       setGate({ state: 'loading' });
       const { data, error } = await supabase
-        .from('current_tenant')
-        .select('empresa_id, onboarding_completed, plan_status')
+        .from('usuarios')
+        .select('empresa_id, empresas:empresa_id (onboarding_completed, plan_status)')
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (cancelled) return;
 
-      if (error || !data || !data.empresa_id) {
+      // Supabase pode devolver o relacionamento como objeto ou array de 1
+      const raw = (data as any)?.empresas;
+      const empresa = Array.isArray(raw) ? raw[0] : raw;
+
+      if (error || !data?.empresa_id || !empresa) {
         setGate({ state: 'no-tenant' });
         return;
       }
-      if (!data.onboarding_completed) {
+      if (!empresa.onboarding_completed) {
         setGate({ state: 'onboarding-pending' });
         return;
       }
-      if (data.plan_status !== 'trial' && data.plan_status !== 'active') {
+      if (empresa.plan_status !== 'trial' && empresa.plan_status !== 'active') {
         setGate({ state: 'payment-pending' });
         return;
       }

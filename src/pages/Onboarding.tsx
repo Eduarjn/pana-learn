@@ -1,6 +1,6 @@
 // src/pages/Onboarding.tsx
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import StepConta from '@/components/onboarding/StepConta';
@@ -20,10 +20,12 @@ const STEPS = [
 export default function Onboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const initialEmail = searchParams.get('email') || '';
   const [currentStep, setCurrentStep] = useState(1);
   const [onboardingData, setOnboardingData] = useState({
     // Etapa 1
-    nome: '', email: '', senha: '', organizacaoNome: '',
+    nome: '', email: initialEmail, senha: '', organizacaoNome: '',
     // Etapa 2
     logo: null as File | null, corPrimaria: '#22c55e', nomePlataforma: '', subdominio: '',
     // Etapa 3
@@ -37,12 +39,15 @@ export default function Onboarding() {
   // Se já logado e com org ativa, redirecionar
   useEffect(() => {
     if (user) {
-      supabase.from('empresas')
-        .select('id, plan, plan_status')
-        .limit(1)
+      // Buscar a empresa DO usuário logado (não a primeira do banco)
+      supabase.from('usuarios')
+        .select('empresa_id, empresas:empresa_id (id, plan, plan_status)')
+        .eq('user_id', user.id)
         .maybeSingle()
-        .then(({ data: empData }) => {
-          if (empData?.plan_status === 'active') {
+        .then(({ data }) => {
+          const raw = (data as any)?.empresas;
+          const empData = Array.isArray(raw) ? raw[0] : raw;
+          if (empData?.plan_status === 'active' || empData?.plan_status === 'trial') {
             navigate('/dashboard');
           } else if (empData) {
             setCurrentStep(2);

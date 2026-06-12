@@ -41,9 +41,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   console.log(`[Asaas Webhook] Evento: ${event}, Payment ID: ${payment.id}`);
 
+  // Fail-closed com erro legível (createClient lança se faltar env var → 500 opaco)
+  if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[Asaas Webhook] VITE_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configuradas');
+    return res.status(503).json({ error: 'Supabase credentials not configured' });
+  }
+
   const supabase = createClient(
-    process.env.VITE_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.VITE_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
 
   try {
@@ -75,22 +81,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .single();
 
       if (sub?.organization_id) {
-        // Ativar empresa (plan + plan_status moram em empresas)
-        await supabase
+        // Ativar empresa (tenant único — organizations não existe no banco)
+        const { error: empError } = await supabase
           .from('empresas')
           .update({
             plan: sub.plan,
             plan_status: 'active',
+            onboarding_completed: true,
           })
           .eq('id', sub.organization_id);
 
-        // onboarding_completed mora em organizations, não em empresas
-        await supabase
-          .from('organizations')
-          .update({ onboarding_completed: true })
-          .eq('id', sub.organization_id);
-
-        console.log(`[Asaas Webhook] Empresa ${sub.organization_id} ativada com plano ${sub.plan}`);
+        if (empError) {
+          console.error('[Asaas Webhook] Erro ao ativar empresa:', empError);
+        } else {
+          console.log(`[Asaas Webhook] Empresa ${sub.organization_id} ativada com plano ${sub.plan}`);
+        }
       }
 
       return res.status(200).json({ ok: true, action: 'activated' });

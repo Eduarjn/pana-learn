@@ -68,9 +68,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const plano = PLANOS[plan];
 
+  // Fail-closed com erro legível (createClient lança se faltar env var → 500 opaco)
+  if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('create-payment: VITE_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configuradas');
+    return res.status(503).json({ error: 'Supabase credentials not configured no servidor' });
+  }
+
   const supabase = createClient(
-    process.env.VITE_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.VITE_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
 
   try {
@@ -79,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ── Trial sem CPF: registra apenas localmente, sem chamar Asaas ───────
     if (trial && !cpf_cnpj) {
-      await supabase.from('subscriptions').insert({
+      const { error: subError } = await supabase.from('subscriptions').insert({
         organization_id,
         user_id,
         plan,
@@ -87,14 +93,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         trial_end_date: trialEndDate.toISOString(),
         amount_cents: Math.round(plano.valor * 100),
       });
-      await supabase
+      if (subError) {
+        console.error('Erro ao criar subscription (trial):', subError);
+        return res.status(500).json({ error: `Erro ao registrar assinatura: ${subError.message}` });
+      }
+
+      const { data: empUpdated, error: empError } = await supabase
         .from('empresas')
-        .update({ plan, plan_status: 'trial' })
-        .eq('id', organization_id);
-      await supabase
-        .from('organizations')
-        .update({ onboarding_completed: true })
-        .eq('id', organization_id);
+        .update({ plan, plan_status: 'trial', onboarding_completed: true })
+        .eq('id', organization_id)
+        .select('id');
+      if (empError || !empUpdated || empUpdated.length === 0) {
+        console.error('Erro ao ativar empresa (trial):', empError ?? 'empresa não encontrada');
+        return res.status(500).json({ error: `Erro ao ativar empresa: ${empError?.message ?? 'empresa não encontrada'}` });
+      }
+
       return res.status(200).json({
         trial: true,
         trialEndDate: trialEndDate.toISOString(),
@@ -144,7 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     // ── 3. Registar assinatura no Supabase (status trial) ──────────────────
-    await supabase.from('subscriptions').insert({
+    const { error: subError } = await supabase.from('subscriptions').insert({
       organization_id,
       user_id,
       plan,
@@ -153,16 +166,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       trial_end_date: trialEndDate.toISOString(),
       amount_cents: Math.round(plano.valor * 100),
     });
+    if (subError) {
+      console.error('Erro ao criar subscription:', subError);
+      return res.status(500).json({ error: `Erro ao registrar assinatura: ${subError.message}` });
+    }
 
-    await supabase
+    const { data: empUpdated, error: empError } = await supabase
       .from('empresas')
-      .update({ plan, plan_status: 'trial' })
-      .eq('id', organization_id);
-
-    await supabase
-      .from('organizations')
-      .update({ onboarding_completed: true })
-      .eq('id', organization_id);
+      .update({ plan, plan_status: 'trial', onboarding_completed: true })
+      .eq('id', organization_id)
+      .select('id');
+    if (empError || !empUpdated || empUpdated.length === 0) {
+      console.error('Erro ao ativar empresa:', empError ?? 'empresa não encontrada');
+      return res.status(500).json({ error: `Erro ao ativar empresa: ${empError?.message ?? 'empresa não encontrada'}` });
+    }
 
     // ── 4. Devolver URL de pagamento (1ª cobrança vence em 14 dias) ────────
     return res.status(200).json({
