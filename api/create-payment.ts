@@ -13,16 +13,16 @@ const PLANOS: Record<string, { nome: string; valor: number }> = {
   enterprise: { nome: 'Panalearn Enterprise',  valor: 1097.00 },
 };
 
-async function asaasFetch(endpoint: string, body: Record<string, unknown>) {
+async function asaasFetch(endpoint: string, body?: Record<string, unknown>, method: 'POST' | 'GET' = 'POST') {
   let res: Response;
   try {
     res = await fetch(`${ASAAS_API_URL}${endpoint}`, {
-      method: 'POST',
+      method,
       headers: {
         'Content-Type': 'application/json',
         access_token: ASAAS_API_KEY,
       },
-      body: JSON.stringify(body),
+      body: method === 'GET' ? undefined : JSON.stringify(body ?? {}),
     });
   } catch (networkErr: any) {
     const err: any = new Error(`Asaas network error: ${networkErr.message}`);
@@ -181,9 +181,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: `Erro ao ativar empresa: ${empError?.message ?? 'empresa não encontrada'}` });
     }
 
-    // ── 4. Devolver URL de pagamento (1ª cobrança vence em 14 dias) ────────
+    // ── 4. Buscar a 1ª cobrança gerada pela subscription p/ obter invoiceUrl
+    // (subscription.invoiceUrl vem null — /i/sub_xxx não existe, precisa pay_xxx)
+    let paymentUrl: string | null = null;
+    try {
+      const payments = await asaasFetch(`/subscriptions/${subscription.id}/payments`, undefined, 'GET');
+      const firstPayment = payments?.data?.[0];
+      paymentUrl = firstPayment?.invoiceUrl || firstPayment?.bankSlipUrl || null;
+    } catch (e: any) {
+      console.error('Falha ao buscar payments da subscription:', e.message);
+    }
+
     return res.status(200).json({
-      paymentUrl: subscription.invoiceUrl || `https://sandbox.asaas.com/i/${subscription.id}`,
+      paymentUrl: paymentUrl || `https://sandbox.asaas.com/c/${subscription.customer}`,
       subscriptionId: subscription.id,
       trialEndDate: trialEndDate.toISOString(),
     });
