@@ -161,7 +161,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       organization_id,
       user_id,
       plan,
-      status: 'trial',
+      status: 'awaiting_payment',
       asaas_subscription_id: subscription.id,
       trial_end_date: trialEndDate.toISOString(),
       amount_cents: Math.round(plano.valor * 100),
@@ -171,9 +171,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: `Erro ao registrar assinatura: ${subError.message}` });
     }
 
+    // Pagar agora: marca onboarding como completo mas plan_status fica pendente.
+    // Só o webhook PAYMENT_RECEIVED muda para 'active' — ProtectedRoute redireciona
+    // para /onboarding/pagamento até confirmar.
     const { data: empUpdated, error: empError } = await supabase
       .from('empresas')
-      .update({ plan, plan_status: 'trial', onboarding_completed: true })
+      .update({ plan, plan_status: 'awaiting_payment', onboarding_completed: true })
       .eq('id', organization_id)
       .select('id');
     if (empError || !empUpdated || empUpdated.length === 0) {
