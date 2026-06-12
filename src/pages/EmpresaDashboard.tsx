@@ -82,12 +82,13 @@ const EmpresaDashboard: React.FC = () => {
       setEmpresa(foundEmpresa || null);
       setLoading(false);
       
-      // Carregar usuários da empresa
+      // Carregar usuários da empresa (fetchUsersByEmpresa is stable via useCallback)
       if (foundEmpresa) {
         fetchUsersByEmpresa(empresaId);
       }
     }
-  }, [empresaId, empresas, fetchUsersByEmpresa]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [empresaId, empresas]);
 
   // Verificar se é admin_master (usando o tipo original)
   if (currentUserType !== 'admin_master') {
@@ -147,7 +148,7 @@ const EmpresaDashboard: React.FC = () => {
 
   const handleSetupNewClient = async () => {
     setSetupLoading(true);
-    const result = await setupDefaultUsers(empresa.id);
+    const result = await setupDefaultUsers(empresa.id, empresa.nome);
     
     if (result.success) {
       toast({

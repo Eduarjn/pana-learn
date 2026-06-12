@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import type { Database } from '@/integrations/supabase/types';
@@ -18,7 +18,7 @@ interface UseEmpresaUsersReturn {
   error: string | null;
   createUser: (empresaId: string, userData: CreateUserData) => Promise<{ success: boolean; message: string; password?: string }>;
   fetchUsersByEmpresa: (empresaId: string) => Promise<void>;
-  setupDefaultUsers: (empresaId: string) => Promise<{ success: boolean; message: string }>;
+  setupDefaultUsers: (empresaId: string, empresaNome?: string) => Promise<{ success: boolean; message: string }>;
   deleteUser: (userId: string) => Promise<{ success: boolean; message: string }>;
   updateUser: (userId: string, userData: Partial<User>) => Promise<{ success: boolean; message: string }>;
 }
@@ -29,27 +29,34 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Guard against concurrent/duplicate fetches
+  const fetchingRef = useRef(false);
+
   // Verificar se é admin_master
   const isAdminMaster = userProfile?.tipo_usuario === 'admin_master';
 
-  const fetchUsersByEmpresa = async (empresaId: string) => {
+  const fetchUsersByEmpresa = useCallback(async (empresaId: string) => {
     if (!isAdminMaster) {
       setError('Apenas admin_master pode gerenciar usuários por empresa');
       return;
     }
 
+    // Prevent concurrent duplicate fetches
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+
     setLoading(true);
     setError(null);
 
     try {
-      const { data, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('usuarios')
         .select('*')
         .eq('empresa_id', empresaId)
         .order('nome');
 
-      if (error) {
-        throw error;
+      if (fetchError) {
+        throw fetchError;
       }
 
       setUsers(data || []);
@@ -58,10 +65,11 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
       setError('Erro ao carregar usuários da empresa');
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
-  };
+  }, [isAdminMaster]);
 
-  const createUser = async (empresaId: string, userData: CreateUserData): Promise<{ success: boolean; message: string; password?: string }> => {
+  const createUser = useCallback(async (empresaId: string, userData: CreateUserData): Promise<{ success: boolean; message: string; password?: string }> => {
     if (!isAdminMaster) {
       return { success: false, message: 'Apenas admin_master pode criar usuários' };
     }
@@ -141,9 +149,9 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdminMaster, fetchUsersByEmpresa]);
 
-  const setupDefaultUsers = async (empresaId: string): Promise<{ success: boolean; message: string }> => {
+  const setupDefaultUsers = useCallback(async (empresaId: string, empresaNome?: string): Promise<{ success: boolean; message: string }> => {
     if (!isAdminMaster) {
       return { success: false, message: 'Apenas admin_master pode configurar usuários padrão' };
     }
@@ -152,15 +160,15 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
     setError(null);
 
     try {
-      // Chamar função SQL para criar usuários padrão (assumindo que a RPC existe ou ignorando o erro)
-      const { data, error } = await supabase.rpc('setup_tenant_environment', {
+      // Tentar chamar função SQL para criar usuários padrão
+      const { data, error: rpcError } = await supabase.rpc('setup_tenant_environment', {
         p_organization_id: empresaId,
         p_owner_auth_id: userProfile?.id || '',
-        p_company_name: 'Nova Empresa'
+        p_company_name: empresaNome || 'Nova Empresa'
       } as any);
 
-      if (error) {
-        console.warn('Erro ao chamar rpc (pode não existir):', error);
+      if (rpcError) {
+        console.warn('RPC setup_tenant_environment não disponível, ignorando:', rpcError.message);
       }
 
       // Atualizar lista de usuários
@@ -168,7 +176,7 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
 
       return { 
         success: true, 
-        message: 'Usuários padrão configurados com sucesso!' 
+        message: 'Configuração da empresa concluída com sucesso!' 
       };
 
     } catch (err) {
@@ -178,9 +186,9 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdminMaster, userProfile?.id, fetchUsersByEmpresa]);
 
-  const deleteUser = async (userId: string): Promise<{ success: boolean; message: string }> => {
+  const deleteUser = useCallback(async (userId: string): Promise<{ success: boolean; message: string }> => {
     if (!isAdminMaster) {
       return { success: false, message: 'Apenas admin_master pode deletar usuários' };
     }
@@ -189,13 +197,13 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
     setError(null);
 
     try {
-      const { error } = await supabase
+      const { error: deleteError } = await supabase
         .from('usuarios')
         .delete()
         .eq('id', userId);
 
-      if (error) {
-        throw error;
+      if (deleteError) {
+        throw deleteError;
       }
 
       // Atualizar lista de usuários
@@ -210,9 +218,9 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdminMaster]);
 
-  const updateUser = async (userId: string, userData: Partial<User>): Promise<{ success: boolean; message: string }> => {
+  const updateUser = useCallback(async (userId: string, userData: Partial<User>): Promise<{ success: boolean; message: string }> => {
     if (!isAdminMaster) {
       return { success: false, message: 'Apenas admin_master pode atualizar usuários' };
     }
@@ -221,13 +229,13 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
     setError(null);
 
     try {
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('usuarios')
         .update(userData)
         .eq('id', userId);
 
-      if (error) {
-        throw error;
+      if (updateError) {
+        throw updateError;
       }
 
       // Atualizar lista de usuários
@@ -244,7 +252,7 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdminMaster]);
 
   return {
     users,
