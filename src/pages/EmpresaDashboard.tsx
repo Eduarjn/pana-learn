@@ -136,9 +136,8 @@ const EmpresaDashboard: React.FC = () => {
   }
 
   const handleAccessClient = () => {
-    const clientUrl = empresa.subdominio 
-      ? `https://${empresa.subdominio}.panalearn.com` 
-      : window.location.origin;
+    // Usa o parâmetro de simulação no domínio atual para não quebrar em subdomínios e proteger a conta original do admin
+    const clientUrl = `${window.location.origin}/dashboard?simular_empresa=${empresa.id}`;
     window.open(clientUrl, '_blank');
     toast({
       title: "🔗 Acessando Empresa",

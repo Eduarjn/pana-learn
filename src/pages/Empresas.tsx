@@ -192,13 +192,13 @@ const Empresas: React.FC = () => {
   };
 
   const handleAccessClient = (empresa: Empresa) => {
-    const clientUrl = empresa.subdominio 
-      ? `https://${empresa.subdominio}.panalearn.com` 
-      : window.location.origin;
+    // Usa a mesma origem, mas passa o parâmetro de simulação.
+    // Assim o admin pode testar o ambiente em uma nova guia sem perder a conta original (via sessionStorage).
+    const clientUrl = `${window.location.origin}/dashboard?simular_empresa=${empresa.id}`;
     
     toast({
-      title: "🔗 Acessando Empresa",
-      description: `Redirecionando...`,
+      title: "🔗 Acessando Ambiente",
+      description: `Iniciando simulação para ${empresa.nome}...`,
     });
 
     window.open(clientUrl, '_blank');

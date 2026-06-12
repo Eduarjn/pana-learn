@@ -78,6 +78,22 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
           setCurrentUserType(usuario.tipo_usuario);
         }
 
+        // Suporte para simulação de ambiente (Masquerade)
+        const urlParams = new URLSearchParams(window.location.search);
+        const simularEmpresaId = urlParams.get('simular_empresa');
+        
+        if (usuario?.tipo_usuario === 'admin_master') {
+          if (simularEmpresaId) {
+            sessionStorage.setItem('masquerade_empresa_id', simularEmpresaId);
+          }
+          // Limpa a simulação se voltar para as páginas de gestão de empresas
+          if (location.pathname === '/empresas' || location.pathname === '/empresa') {
+            sessionStorage.removeItem('masquerade_empresa_id');
+          }
+        }
+        
+        const masqueradeId = sessionStorage.getItem('masquerade_empresa_id');
+
         // 3. Determinar qual empresa carregar
         if (isClientRoute && usuario?.tipo_usuario === 'admin_master') {
           // Admin master simulando visão de cliente
@@ -85,6 +101,9 @@ export function EmpresaProvider({ children }: { children: ReactNode }) {
           if (empresaIdDaRota) {
             await fetchEmpresaData(empresaIdDaRota);
           }
+        } else if (usuario?.tipo_usuario === 'admin_master' && masqueradeId) {
+          // Admin master simulando visão de toda a plataforma para um tenant específico
+          await fetchEmpresaData(masqueradeId);
         } else if (usuario?.empresa_id) {
           // Usuário padrão ou admin na própria empresa
           await fetchEmpresaData(usuario.empresa_id);
