@@ -11,7 +11,7 @@ import { useMonthlyUsage } from '@/hooks/useMonthlyUsage';
 import {
   CheckCircle, Video, Award, Clock, BookOpen,
   TrendingUp, Settings, Users, ArrowRight, BookMarked, MonitorPlay,
-  Zap, HardDrive, BarChart3, ShieldAlert
+  Zap, HardDrive, BarChart3, ShieldAlert, PlayCircle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -31,22 +31,24 @@ const formatTimeAgo = (d: string) => {
 };
 
 const getActivityIcon = (type: string) => {
-  if (type === 'course_completed')   return <CheckCircle className="h-4 w-4 text-green-600" />;
-  if (type === 'course_started')     return <Video className="h-4 w-4 text-blue-600" />;
-  if (type === 'certificate_earned') return <Award className="h-4 w-4 text-orange-600" />;
-  return <Clock className="h-4 w-4 text-gray-400" />;
+  if (type === 'course_completed')   return <CheckCircle className="h-4 w-4 text-pana-teal" />;
+  if (type === 'course_started')     return <Video className="h-4 w-4 text-pana-grape" />;
+  if (type === 'certificate_earned') return <Award className="h-4 w-4 text-pana-teal" />;
+  return <Clock className="h-4 w-4 text-muted-foreground" />;
 };
 
 const getActivityText = (a: { type: string; user_name: string; course_name?: string; category_name?: string }) => {
   if (a.type === 'course_completed')   return `${a.user_name} completou o curso ${a.course_name ?? 'desconhecido'}`;
   if (a.type === 'course_started')     return `${a.user_name} iniciou o curso ${a.course_name ?? 'desconhecido'}`;
-  if (a.type === 'certificate_earned') return `${a.user_name} conquistou certificado${a.category_name ? ` de ${a.category_name}` : ''}`;
+  if (a.type === 'certificate_earned') return `${a.user_name} conquistou um certificado${a.category_name ? ` de ${a.category_name}` : ''}`;
   return 'Atividade realizada';
 };
 
-const CATEGORY_COLORS: Record<string, string> = {
-  PABX: '#3B82F6', CALLCENTER: '#4B3F72', OMNICHANNEL: '#417B5A', VoIP: '#F97316',
+// Acento por categoria — restrito à paleta da marca
+const CATEGORY_ACCENT: Record<string, string> = {
+  PABX: '#4B3F72', CALLCENTER: '#1F2041', OMNICHANNEL: '#417B5A', VoIP: '#356649',
 };
+const accentFor = (cat: string) => CATEGORY_ACCENT[cat] ?? '#4B3F72';
 
 const Dashboard = () => {
   const { data: courses = [], isLoading: coursesLoading } = useCourses();
@@ -59,141 +61,234 @@ const Dashboard = () => {
   const { data: monthlyUsage } = useMonthlyUsage();
 
   const isAdmin = userProfile?.tipo_usuario === 'admin' || userProfile?.tipo_usuario === 'admin_master';
-  const userName = userProfile?.nome?.split(' ')[0] || 'Usuário';
+  const userName = userProfile?.nome?.split(' ')[0] || 'aluno';
+
+  // Bloco "continuar de onde parou": categoria em progresso com maior avanço
+  const inProgress = (categoryProgress ?? [])
+    .filter(c => c.progress > 0 && c.progress < 100)
+    .sort((a, b) => b.progress - a.progress);
+  const continueItem = inProgress[0] ?? null;
+
+  const courseIdFor = (name?: string, cat?: string) => {
+    const match = courses.find(c => c.nome === name) ?? courses.find(c => c.categoria === cat);
+    return match?.id;
+  };
+  const goToContinue = () => {
+    const id = continueItem ? courseIdFor(continueItem.course_name, continueItem.categoria) : courses[0]?.id;
+    navigate(id ? `/curso/${id}` : '/treinamentos');
+  };
+
+  const avgProgress = categoryProgress?.length
+    ? Math.round(categoryProgress.reduce((s, c) => s + c.progress, 0) / categoryProgress.length)
+    : 0;
+  const modulesDone = categoryProgress?.reduce((s, c) => s + c.modules_completed, 0) ?? 0;
+
+  const learnerStats = [
+    { icon: BookMarked, label: 'Cursos disponíveis', value: courses.length, accent: '#1F2041' },
+    { icon: Award,      label: 'Módulos concluídos', value: modulesDone,     accent: '#417B5A' },
+    { icon: TrendingUp, label: 'Progresso médio',    value: `${avgProgress}%`, accent: '#4B3F72' },
+    { icon: Clock,      label: 'Em andamento',       value: inProgress.length, accent: '#356649' },
+  ];
 
   return (
     <ERALayout>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-pana-bg font-inter">
 
-        {/* Hero */}
-        <motion.div
+        {/* Header de marca — sóbrio, sólido indigo */}
+        <motion.header
           initial="hidden" animate="visible" variants={fadeIn}
-          className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #2d2f5e 60%, #4B3F72 100%)' }}
+          className="relative w-full rounded-2xl mb-6 lg:mb-8 overflow-hidden bg-pana-indigo"
         >
-          <div className="px-6 lg:px-10 py-8 lg:py-12">
-            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          {/* Acento decorativo discreto (sem gradiente flashy) */}
+          <div className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-[0.07] bg-pana-teal" />
+          <div className="pointer-events-none absolute right-24 -bottom-24 w-72 h-72 rounded-full opacity-[0.05] bg-pana-grape" />
 
-              <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="flex-1">
+          <div className="relative px-6 lg:px-10 py-8 lg:py-10">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
+              <motion.div variants={staggerContainer} initial="hidden" animate="visible">
                 <motion.div variants={fadeInUp} className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#D0CEBA' }}></div>
-                  <span className="text-xs lg:text-sm font-medium text-white/80">Plataforma de Ensino</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-pana-teal" />
+                  <span className="text-[11px] font-medium uppercase tracking-[0.07em] text-pana-bone/80">
+                    Plataforma de ensino
+                  </span>
                 </motion.div>
-                <motion.h1 variants={fadeInUp} className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">
-                  Olá, {userName}!
+                <motion.h1 variants={fadeInUp} className="font-quicksand font-bold text-3xl lg:text-4xl text-white mb-2">
+                  Olá, {userName}
                 </motion.h1>
-                <motion.p variants={fadeInUp} className="text-sm sm:text-base lg:text-lg text-white/80 max-w-2xl mb-4">
-                  Você tem {courses.length} cursos disponíveis. Continue aprendendo!
+                <motion.p variants={fadeInUp} className="text-sm lg:text-base text-pana-bone/80 max-w-xl">
+                  {courses.length > 0
+                    ? `Você tem ${courses.length} curso${courses.length > 1 ? 's' : ''} disponíve${courses.length > 1 ? 'is' : 'l'}. Bons estudos.`
+                    : 'Seus cursos aparecerão aqui assim que forem publicados.'}
                 </motion.p>
-                <motion.div variants={staggerFast} className="flex flex-wrap items-center gap-4">
-                  {[
-                    { icon: BookOpen, label: 'Cursos disponíveis' },
-                    { icon: Clock,    label: 'Progresso contínuo' },
-                    { icon: Award,    label: 'Certificações' },
-                  ].map(({ icon: Icon, label }) => (
-                    <motion.div key={label} variants={fadeInUp} className="flex items-center gap-2 text-xs lg:text-sm text-white/80">
-                      <Icon className="h-4 w-4" style={{ color: '#D0CEBA' }} />
-                      <span>{label}</span>
-                    </motion.div>
-                  ))}
-                </motion.div>
               </motion.div>
 
               <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.45, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-col gap-3"
+                initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+                className="flex flex-col items-stretch gap-3 w-full sm:w-auto"
               >
                 {isAdmin && stats && (
-                  <motion.div variants={staggerFast} initial="hidden" animate="visible" className="flex gap-3 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
+                  <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
                     {[
-                      { value: stats.totalUsers ?? 0,                   label: 'Usuários' },
-                      { value: stats.totalCourses ?? courses.length,    label: 'Cursos' },
-                      { value: stats.totalCertificates ?? 0,             label: 'Certificados' },
-                      { value: `${stats.completionRate ?? 0}%`,          label: 'Taxa' },
+                      { value: stats.totalUsers ?? 0,                label: 'Usuários' },
+                      { value: stats.totalCourses ?? courses.length, label: 'Cursos' },
+                      { value: stats.totalCertificates ?? 0,         label: 'Certificados' },
+                      { value: `${stats.completionRate ?? 0}%`,      label: 'Conclusão' },
                     ].map(({ value, label }) => (
-                      <motion.div key={label} variants={cardItem}
-                        className="flex flex-col items-center justify-center rounded-xl px-4 py-3 text-center min-w-[76px]"
-                        style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)' }}>
-                        <span className="text-xl font-bold text-white leading-tight">{value}</span>
-                        <span className="text-[11px] text-white/70 uppercase tracking-wider font-semibold mt-1">{label}</span>
-                      </motion.div>
+                      <div key={label}
+                        className="flex flex-col items-center justify-center rounded-lg px-4 py-2.5 text-center min-w-[78px] bg-white/[0.08] border border-white/10">
+                        <span className="font-quicksand font-bold text-lg text-white leading-tight">{value}</span>
+                        <span className="text-[10px] text-pana-bone/70 uppercase tracking-wider font-medium mt-0.5">{label}</span>
+                      </div>
                     ))}
-                  </motion.div>
+                  </div>
                 )}
                 <Button
                   onClick={() => navigate('/treinamentos')}
-                  variant="default"
-                  className="font-semibold rounded-xl flex items-center gap-2 justify-center h-11"
+                  className="bg-pana-teal hover:bg-pana-teal-dark text-white font-medium rounded-lg h-11 gap-2"
                 >
                   <MonitorPlay className="h-4 w-4" />
-                  Acessar Meus Cursos
+                  Acessar meus cursos
                 </Button>
               </motion.div>
-
             </div>
           </div>
-        </motion.div>
+        </motion.header>
 
         <div className="px-4 lg:px-6 pb-10">
           <div className="max-w-7xl mx-auto space-y-6">
 
-            {/* Atividade recente + Progresso */}
+            {/* Continuar de onde parou — destaque educativo */}
+            {!coursesLoading && courses.length > 0 && (
+              <motion.section
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                className="rounded-xl border border-border bg-card shadow-sm overflow-hidden"
+              >
+                <div className="flex flex-col sm:flex-row items-stretch">
+                  <div
+                    className="flex items-center justify-center px-6 py-5 sm:py-0 sm:w-16 flex-shrink-0"
+                    style={{ background: (continueItem ? accentFor(continueItem.categoria) : '#417B5A') + '14' }}
+                  >
+                    <PlayCircle
+                      className="h-8 w-8"
+                      style={{ color: continueItem ? accentFor(continueItem.categoria) : '#417B5A' }}
+                    />
+                  </div>
+                  <div className="flex-1 px-6 py-5">
+                    <p className="text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground mb-1">
+                      {continueItem ? 'Continue de onde parou' : 'Comece por aqui'}
+                    </p>
+                    <h3 className="font-quicksand font-semibold text-lg text-foreground">
+                      {continueItem ? continueItem.course_name || continueItem.categoria : courses[0].nome}
+                    </h3>
+                    {continueItem && (
+                      <div className="mt-3 max-w-md">
+                        <div className="flex justify-between items-center mb-1.5">
+                          <span className="text-xs text-muted-foreground">
+                            {continueItem.modules_completed} de {continueItem.total_modules} módulos
+                          </span>
+                          <span className="text-xs font-semibold" style={{ color: accentFor(continueItem.categoria) }}>
+                            {continueItem.progress}%
+                          </span>
+                        </div>
+                        <div className="h-2 rounded-full overflow-hidden bg-muted">
+                          <motion.div
+                            initial={{ width: 0 }} animate={{ width: `${continueItem.progress}%` }}
+                            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                            className="h-full rounded-full"
+                            style={{ background: accentFor(continueItem.categoria) }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center px-6 py-5 sm:py-0">
+                    <Button onClick={goToContinue} className="bg-pana-grape hover:bg-pana-grape-dark text-pana-petal font-medium rounded-lg h-10 gap-2 w-full sm:w-auto">
+                      {continueItem ? 'Continuar' : 'Começar'}
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </motion.section>
+            )}
+
+            {/* Métricas resumidas do aluno */}
+            <motion.div
+              variants={staggerFast} initial="hidden" whileInView="visible"
+              viewport={{ once: true, margin: '-40px' }}
+              className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+            >
+              {learnerStats.map(({ icon: Icon, label, value, accent }) => (
+                <motion.div key={label} variants={cardItem} whileHover={cardHover}
+                  className="bg-card rounded-xl p-5 shadow-sm border border-border flex items-center gap-4"
+                >
+                  <div className="rounded-lg p-2.5 flex-shrink-0" style={{ background: accent + '14', color: accent }}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-quicksand font-bold text-2xl text-foreground leading-tight">{value}</p>
+                    <p className="text-[13px] text-muted-foreground mt-0.5 truncate">{label}</p>
+                  </div>
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* Atividade recente + progresso por categoria */}
             <motion.div
               variants={staggerFast} initial="hidden" whileInView="visible"
               viewport={{ once: true, margin: '-60px' }}
               className="grid grid-cols-1 lg:grid-cols-2 gap-6"
             >
               {/* Atividade recente */}
-              <motion.div variants={cardItem} whileHover={cardHover}
-                className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col h-full"
+              <motion.div variants={cardItem}
+                className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col"
               >
-                <div className="px-5 py-4 flex items-center gap-3 border-b border-border bg-muted/30">
-                  <div className="p-2 rounded-lg" style={{ background: '#e8e4f3' }}>
-                    <Clock className="h-4 w-4" style={{ color: '#4B3F72' }} />
+                <div className="px-5 py-4 flex items-center gap-3 border-b border-border">
+                  <div className="p-2 rounded-lg bg-pana-grape-muted">
+                    <Clock className="h-4 w-4 text-pana-grape" />
                   </div>
                   <div>
-                    <span className="font-semibold text-foreground">Atividade Recente</span>
+                    <h3 className="font-quicksand font-semibold text-foreground">Atividade recente</h3>
                     <p className="text-xs text-muted-foreground">Últimas ações na plataforma</p>
                   </div>
                 </div>
                 <div className="p-5 flex-1">
                   {recentActivities && recentActivities.length > 0 ? (
-                    <motion.div variants={staggerFast} initial="hidden" animate="visible" className="space-y-3">
+                    <div className="space-y-3">
                       {recentActivities.map(activity => (
-                        <motion.div key={activity.id} variants={fadeInUp}
-                          className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border/50"
+                        <div key={activity.id}
+                          className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50"
                         >
-                          <div className="mt-0.5 flex-shrink-0 bg-background p-1.5 rounded-md shadow-sm border border-border">
+                          <div className="mt-0.5 flex-shrink-0 bg-card p-1.5 rounded-md shadow-sm border border-border">
                             {getActivityIcon(activity.type)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-foreground font-medium leading-snug">{getActivityText(activity)}</p>
+                            <p className="text-sm text-foreground leading-snug">{getActivityText(activity)}</p>
                             <p className="text-xs text-muted-foreground mt-1">{formatTimeAgo(activity.created_at)}</p>
                           </div>
-                        </motion.div>
+                        </div>
                       ))}
-                    </motion.div>
+                    </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-                      <Clock className="h-10 w-10 mb-3 text-muted-foreground/30" />
-                      <p className="text-sm font-medium text-muted-foreground">Nenhuma atividade recente</p>
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <Clock className="h-9 w-9 mb-3 text-muted-foreground/30" />
+                      <p className="text-sm text-muted-foreground">Nenhuma atividade recente</p>
                     </div>
                   )}
                 </div>
               </motion.div>
 
               {/* Progresso por categoria */}
-              <motion.div variants={cardItem} whileHover={cardHover}
-                className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col h-full"
+              <motion.div variants={cardItem}
+                className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col"
               >
-                <div className="px-5 py-4 flex items-center gap-3 border-b border-border bg-muted/30">
-                  <div className="p-2 rounded-lg" style={{ background: '#d4e8dc' }}>
-                    <TrendingUp className="h-4 w-4" style={{ color: '#417B5A' }} />
+                <div className="px-5 py-4 flex items-center gap-3 border-b border-border">
+                  <div className="p-2 rounded-lg bg-pana-teal-muted">
+                    <TrendingUp className="h-4 w-4 text-pana-teal" />
                   </div>
                   <div>
-                    <span className="font-semibold text-foreground">Progresso por Categoria</span>
+                    <h3 className="font-quicksand font-semibold text-foreground">Progresso por categoria</h3>
                     <p className="text-xs text-muted-foreground">Acompanhe seu avanço nos cursos</p>
                   </div>
                 </div>
@@ -201,17 +296,16 @@ const Dashboard = () => {
                   {categoryProgress && categoryProgress.length > 0 ? (
                     <div className="space-y-5">
                       {categoryProgress.map(cat => {
-                        const accent = CATEGORY_COLORS[cat.categoria] ?? '#4B3F72';
+                        const accent = accentFor(cat.categoria);
                         return (
-                          <div key={cat.categoria} className="group">
+                          <div key={cat.categoria}>
                             <div className="flex justify-between items-center mb-2">
-                              <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">{cat.categoria}</span>
-                              <span className="text-sm font-bold" style={{ color: accent }}>{cat.progress}%</span>
+                              <span className="text-sm font-medium text-foreground">{cat.categoria}</span>
+                              <span className="text-sm font-semibold" style={{ color: accent }}>{cat.progress}%</span>
                             </div>
-                            <div className="h-2.5 rounded-full overflow-hidden bg-muted border border-border/50">
+                            <div className="h-2 rounded-full overflow-hidden bg-muted">
                               <motion.div
-                                initial={{ width: 0 }}
-                                whileInView={{ width: `${cat.progress}%` }}
+                                initial={{ width: 0 }} whileInView={{ width: `${cat.progress}%` }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
                                 className="h-full rounded-full"
@@ -223,16 +317,16 @@ const Dashboard = () => {
                       })}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-                      <TrendingUp className="h-10 w-10 mb-3 text-muted-foreground/30" />
-                      <p className="text-sm font-medium text-muted-foreground">Nenhum progresso disponível</p>
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <TrendingUp className="h-9 w-9 mb-3 text-muted-foreground/30" />
+                      <p className="text-sm text-muted-foreground">Nenhum progresso disponível</p>
                     </div>
                   )}
                 </div>
               </motion.div>
             </motion.div>
 
-            {/* Tabs de estatísticas detalhadas */}
+            {/* Painel detalhado (abas) */}
             <motion.div
               initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-40px' }}
@@ -240,37 +334,28 @@ const Dashboard = () => {
               className="bg-card rounded-xl shadow-sm overflow-hidden border border-border"
             >
               <Tabs defaultValue="user" className="w-full">
-                <div className="px-5 py-3 border-b border-border bg-muted/20">
+                <div className="px-5 py-3 border-b border-border">
                   <TabsList>
-                    <TabsTrigger value="user">Meu Painel</TabsTrigger>
+                    <TabsTrigger value="user">Meu painel</TabsTrigger>
                     {isAdmin && <TabsTrigger value="admin">Administração</TabsTrigger>}
                   </TabsList>
                 </div>
 
                 <TabsContent value="user" className="p-5 outline-none m-0">
-                  <motion.div
-                    variants={staggerFast} initial="hidden" animate="visible"
-                    className="grid grid-cols-2 lg:grid-cols-4 gap-4"
-                  >
-                    {[
-                      { icon: <BookMarked className="h-6 w-6" />, label: 'Disponíveis',   value: courses.length,                                                                           sub: 'Cursos ativos',      color: '#1F2041' },
-                      { icon: <Award className="h-6 w-6" />,      label: 'Concluídos',    value: categoryProgress?.reduce((s, c) => s + c.modules_completed, 0) ?? 0,                    sub: 'Módulos concluídos', color: '#417B5A' },
-                      { icon: <TrendingUp className="h-6 w-6" />, label: 'Seu Progresso', value: categoryProgress?.length ? `${Math.round(categoryProgress.reduce((s, c) => s + c.progress, 0) / categoryProgress.length)}%` : '—', sub: 'Média geral', color: '#4B3F72' },
-                      { icon: <Clock className="h-6 w-6" />,      label: 'Em Andamento',  value: categoryProgress?.filter(c => c.progress > 0 && c.progress < 100).length ?? 0,          sub: 'Categorias',         color: '#7a5840' },
-                    ].map(({ icon, label, value, sub, color }) => (
-                      <motion.div key={label} variants={cardItem} whileHover={cardHover}
-                        className="bg-background rounded-xl p-5 shadow-sm border border-border flex items-center gap-4 cursor-default"
-                      >
-                        <div className="rounded-lg p-2.5 flex-shrink-0" style={{ background: color + '18', color: color }}>
-                          {icon}
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-foreground leading-tight">{value}</p>
-                          <p className="text-[13px] text-muted-foreground font-medium mt-0.5">{label}</p>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </motion.div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Cursos disponíveis</p>
+                      <p className="font-quicksand font-bold text-2xl text-foreground">{courses.length}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Módulos concluídos</p>
+                      <p className="font-quicksand font-bold text-2xl text-foreground">{modulesDone}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">Progresso médio</p>
+                      <p className="font-quicksand font-bold text-2xl text-foreground">{avgProgress}%</p>
+                    </div>
+                  </div>
                 </TabsContent>
 
                 {isAdmin && (
@@ -281,7 +366,7 @@ const Dashboard = () => {
               </Tabs>
             </motion.div>
 
-            {/* Uso do Plano */}
+            {/* Uso do plano */}
             {isAdmin && planLimits && (
               <motion.div
                 initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
@@ -289,18 +374,18 @@ const Dashboard = () => {
                 transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
                 className="bg-card rounded-xl shadow-sm overflow-hidden border border-border"
               >
-                <div className="px-5 py-4 flex items-center justify-between border-b border-border bg-muted/30">
+                <div className="px-5 py-4 flex items-center justify-between border-b border-border">
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg" style={{ background: planLimits.planColor + '20' }}>
                       <BarChart3 className="h-4 w-4" style={{ color: planLimits.planColor }} />
                     </div>
                     <div>
-                      <span className="font-semibold text-foreground">Uso do Plano</span>
+                      <h3 className="font-quicksand font-semibold text-foreground">Uso do plano</h3>
                       <p className="text-xs text-muted-foreground">Plano {planLimits.planName} · {monthlyUsage?.currentMonth}</p>
                     </div>
                   </div>
                   {(planLimits.isAtLimit || planLimits.isNearLimit) && (
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
+                    <span className="text-xs font-medium px-2.5 py-1 rounded-full"
                       style={{
                         background: planLimits.isAtLimit ? '#FEE2E2' : '#FEF3C7',
                         color: planLimits.isAtLimit ? '#DC2626' : '#D97706',
@@ -317,14 +402,13 @@ const Dashboard = () => {
                       <span className="text-sm font-medium text-foreground">Usuários</span>
                     </div>
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-foreground">{planLimits.currentUsers}</span>
+                      <span className="font-quicksand font-bold text-2xl text-foreground">{planLimits.currentUsers}</span>
                       <span className="text-sm text-muted-foreground">/ {planLimits.maxUsers >= 9999 ? '∞' : planLimits.maxUsers}</span>
                     </div>
                     {planLimits.maxUsers < 9999 && (
                       <div className="h-2 rounded-full bg-muted overflow-hidden">
                         <motion.div
-                          initial={{ width: 0 }}
-                          whileInView={{ width: `${planLimits.usagePercent}%` }}
+                          initial={{ width: 0 }} whileInView={{ width: `${planLimits.usagePercent}%` }}
                           viewport={{ once: true }}
                           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
                           className="h-full rounded-full"
@@ -344,7 +428,7 @@ const Dashboard = () => {
                       <Zap className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium text-foreground">Horas assistidas</span>
                     </div>
-                    <div className="text-2xl font-bold text-foreground">{monthlyUsage?.totalWatchHours ?? '—'}</div>
+                    <div className="font-quicksand font-bold text-2xl text-foreground">{monthlyUsage?.totalWatchHours ?? '—'}</div>
                     <p className="text-xs text-muted-foreground">No mês atual</p>
                   </div>
 
@@ -353,15 +437,14 @@ const Dashboard = () => {
                       <HardDrive className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm font-medium text-foreground">Bandwidth estimado</span>
                     </div>
-                    <div className="text-2xl font-bold text-foreground">{monthlyUsage?.totalGb ?? '—'}</div>
+                    <div className="font-quicksand font-bold text-2xl text-foreground">{monthlyUsage?.totalGb ?? '—'}</div>
                     <p className="text-xs text-muted-foreground">Consumo de vídeo</p>
                   </div>
                 </div>
 
                 {planLimits.isAtLimit && (
                   <div className="px-5 pb-5">
-                    <div className="flex items-center gap-3 p-3 rounded-lg"
-                      style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+                    <div className="flex items-center gap-3 p-3 rounded-lg" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
                       <ShieldAlert className="h-4 w-4 flex-shrink-0" style={{ color: '#DC2626' }} />
                       <p className="text-sm" style={{ color: '#991B1B' }}>
                         Limite de usuários atingido. Entre em contato para fazer upgrade do seu plano.
@@ -380,24 +463,24 @@ const Dashboard = () => {
               className="pt-2"
             >
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-                  <div className="w-1.5 h-6 rounded-full" style={{ background: '#4B3F72' }}></div>
-                  Cursos Recomendados
+                <h2 className="font-quicksand font-bold text-xl text-foreground flex items-center gap-2.5">
+                  <span className="w-1 h-5 rounded-full bg-pana-grape" />
+                  Cursos recomendados
                 </h2>
-                <Button variant="outline" onClick={() => navigate('/treinamentos')} className="text-sm flex items-center gap-2 h-9">
-                  Ver Catálogo
+                <Button variant="outline" onClick={() => navigate('/treinamentos')} className="text-sm gap-2 h-9 border-pana-grape text-pana-grape hover:bg-pana-grape-muted">
+                  Ver catálogo
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
 
               {coursesLoading ? (
                 <div className="flex justify-center py-16">
-                  <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#4B3F72', borderTopColor: 'transparent' }} />
+                  <div className="w-8 h-8 border-2 border-pana-grape border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : courses.length === 0 ? (
                 <div className="text-center py-16 bg-card rounded-xl border border-border">
                   <MonitorPlay className="h-10 w-10 mx-auto mb-3 text-muted-foreground/40" />
-                  <p className="text-foreground font-medium">Nenhum curso disponível.</p>
+                  <p className="text-foreground font-medium">Nenhum curso disponível</p>
                   <p className="text-muted-foreground text-sm mt-1">Sua lista de cursos recomendados aparecerá aqui.</p>
                 </div>
               ) : (
@@ -408,10 +491,7 @@ const Dashboard = () => {
                 >
                   {courses.slice(0, 4).map(course => (
                     <motion.div key={course.id} variants={cardItem} whileHover={cardHover}>
-                      <CourseCard
-                        course={course}
-                        onStartCourse={(id) => navigate(`/curso/${id}`)}
-                      />
+                      <CourseCard course={course} onStartCourse={(id) => navigate(`/curso/${id}`)} />
                     </motion.div>
                   ))}
                 </motion.div>
@@ -420,9 +500,9 @@ const Dashboard = () => {
 
             {isAdmin && (
               <div className="flex justify-center pt-6 pb-2">
-                <Button variant="secondary" onClick={() => navigate('/treinamentos')} className="flex items-center gap-2 shadow-sm">
+                <Button variant="outline" onClick={() => navigate('/treinamentos')} className="gap-2 border-pana-grape text-pana-grape hover:bg-pana-grape-muted">
                   <Settings className="h-4 w-4" />
-                  Gerenciar Treinamentos
+                  Gerenciar treinamentos
                 </Button>
               </div>
             )}
