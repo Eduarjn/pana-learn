@@ -15,10 +15,10 @@ import { runDiagnostics } from '@/utils/debug-env';
 // ── Páginas críticas (carregadas imediatamente) ─────────────────────────────
 import Index from "./pages/Index";
 import Landing from "./pages/Landing";
-import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
 // ── Páginas lazy (code-split — carregadas sob demanda) ──────────────────────
+const Login = lazy(() => import("./pages/Login"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Treinamentos = lazy(() => import("./pages/Treinamentos"));
 const Usuarios = lazy(() => import("./pages/Usuarios"));

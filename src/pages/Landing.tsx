@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 
 const LANDING_CSS = `
 /* Fonts loaded via <link> in index.html — removed render-blocking @import */
@@ -287,15 +287,19 @@ const starSVG = (
 );
 
 export default function Landing() {
-  const { user, userProfile, loading } = useAuth();
   const navigate = useNavigate();
   const styleRef = useRef<HTMLStyleElement | null>(null);
 
+  // Checa sessão direto (sem puxar AuthProvider no FCP da Landing)
   useEffect(() => {
-    if (!loading && user && userProfile) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [user, userProfile, loading, navigate]);
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled && data.session) {
+        navigate('/dashboard', { replace: true });
+      }
+    });
+    return () => { cancelled = true; };
+  }, [navigate]);
 
   useLayoutEffect(() => {
     const el = document.createElement('style');
