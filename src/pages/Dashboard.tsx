@@ -84,10 +84,10 @@ const Dashboard = () => {
   const modulesDone = categoryProgress?.reduce((s, c) => s + c.modules_completed, 0) ?? 0;
 
   const learnerStats = [
-    { icon: BookMarked, label: 'Cursos disponíveis', value: courses.length, accent: '#1F2041' },
-    { icon: Award,      label: 'Módulos concluídos', value: modulesDone,     accent: '#417B5A' },
-    { icon: TrendingUp, label: 'Progresso médio',    value: `${avgProgress}%`, accent: '#4B3F72' },
-    { icon: Clock,      label: 'Em andamento',       value: inProgress.length, accent: '#356649' },
+    { icon: BookMarked, label: 'Cursos disponíveis', value: courses.length,    accent: '#1F2041', bg: 'bg-pana-indigo-muted', border: 'border-pana-indigo/10' },
+    { icon: Award,      label: 'Módulos concluídos', value: modulesDone,        accent: '#417B5A', bg: 'bg-pana-teal-muted',   border: 'border-pana-teal/15' },
+    { icon: TrendingUp, label: 'Progresso médio',    value: `${avgProgress}%`,  accent: '#4B3F72', bg: 'bg-pana-grape-muted',  border: 'border-pana-grape/15' },
+    { icon: Clock,      label: 'Em andamento',       value: inProgress.length,  accent: '#7a5840', bg: 'bg-pana-petal/50',     border: 'border-pana-petal' },
   ];
 
   return (
@@ -163,12 +163,16 @@ const Dashboard = () => {
               <motion.section
                 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="rounded-xl border border-border bg-card shadow-sm overflow-hidden"
+                className="rounded-xl shadow-sm overflow-hidden border"
+                style={{
+                  background: (continueItem ? accentFor(continueItem.categoria) : '#417B5A') + '0C',
+                  borderColor: (continueItem ? accentFor(continueItem.categoria) : '#417B5A') + '26',
+                }}
               >
                 <div className="flex flex-col sm:flex-row items-stretch">
                   <div
                     className="flex items-center justify-center px-6 py-5 sm:py-0 sm:w-16 flex-shrink-0"
-                    style={{ background: (continueItem ? accentFor(continueItem.categoria) : '#417B5A') + '14' }}
+                    style={{ background: (continueItem ? accentFor(continueItem.categoria) : '#417B5A') + '1F' }}
                   >
                     <PlayCircle
                       className="h-8 w-8"
@@ -219,16 +223,16 @@ const Dashboard = () => {
               viewport={{ once: true, margin: '-40px' }}
               className="grid grid-cols-2 lg:grid-cols-4 gap-4"
             >
-              {learnerStats.map(({ icon: Icon, label, value, accent }) => (
+              {learnerStats.map(({ icon: Icon, label, value, accent, bg, border }) => (
                 <motion.div key={label} variants={cardItem} whileHover={cardHover}
-                  className="bg-card rounded-xl p-5 shadow-sm border border-border flex items-center gap-4"
+                  className={`${bg} ${border} rounded-xl p-5 shadow-sm border flex items-center gap-4`}
                 >
-                  <div className="rounded-lg p-2.5 flex-shrink-0" style={{ background: accent + '14', color: accent }}>
+                  <div className="rounded-lg p-2.5 flex-shrink-0 bg-white/70" style={{ color: accent }}>
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-quicksand font-bold text-2xl text-foreground leading-tight">{value}</p>
-                    <p className="text-[13px] text-muted-foreground mt-0.5 truncate">{label}</p>
+                    <p className="font-quicksand font-bold text-2xl leading-tight" style={{ color: accent }}>{value}</p>
+                    <p className="text-[13px] text-foreground/70 mt-0.5 truncate">{label}</p>
                   </div>
                 </motion.div>
               ))}
@@ -244,8 +248,8 @@ const Dashboard = () => {
               <motion.div variants={cardItem}
                 className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col"
               >
-                <div className="px-5 py-4 flex items-center gap-3 border-b border-border">
-                  <div className="p-2 rounded-lg bg-pana-grape-muted">
+                <div className="px-5 py-4 flex items-center gap-3 border-b border-pana-grape/10 bg-pana-grape-muted/40">
+                  <div className="p-2 rounded-lg bg-white shadow-sm">
                     <Clock className="h-4 w-4 text-pana-grape" />
                   </div>
                   <div>
@@ -283,8 +287,8 @@ const Dashboard = () => {
               <motion.div variants={cardItem}
                 className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col"
               >
-                <div className="px-5 py-4 flex items-center gap-3 border-b border-border">
-                  <div className="p-2 rounded-lg bg-pana-teal-muted">
+                <div className="px-5 py-4 flex items-center gap-3 border-b border-pana-teal/10 bg-pana-teal-muted/40">
+                  <div className="p-2 rounded-lg bg-white shadow-sm">
                     <TrendingUp className="h-4 w-4 text-pana-teal" />
                   </div>
                   <div>
@@ -334,7 +338,7 @@ const Dashboard = () => {
               className="bg-card rounded-xl shadow-sm overflow-hidden border border-border"
             >
               <Tabs defaultValue="user" className="w-full">
-                <div className="px-5 py-3 border-b border-border">
+                <div className="px-5 py-3 border-b border-pana-indigo/10 bg-pana-indigo-muted/30">
                   <TabsList>
                     <TabsTrigger value="user">Meu painel</TabsTrigger>
                     {isAdmin && <TabsTrigger value="admin">Administração</TabsTrigger>}
@@ -374,9 +378,9 @@ const Dashboard = () => {
                 transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
                 className="bg-card rounded-xl shadow-sm overflow-hidden border border-border"
               >
-                <div className="px-5 py-4 flex items-center justify-between border-b border-border">
+                <div className="px-5 py-4 flex items-center justify-between border-b" style={{ background: planLimits.planColor + '0C', borderColor: planLimits.planColor + '1F' }}>
                   <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg" style={{ background: planLimits.planColor + '20' }}>
+                    <div className="p-2 rounded-lg bg-white shadow-sm" style={{ color: planLimits.planColor }}>
                       <BarChart3 className="h-4 w-4" style={{ color: planLimits.planColor }} />
                     </div>
                     <div>
