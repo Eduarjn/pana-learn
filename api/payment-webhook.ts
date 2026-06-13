@@ -71,6 +71,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       nextMonth.setMonth(nextMonth.getMonth() + 1);
 
       // Atualizar subscription
+      // Validar valor do pagamento contra subscriptions.amount_cents
+      // para nao ativar plano com cobranca subdimensionada
+      const { data: subCheck, error: subCheckErr } = await supabase
+        .from('subscriptions')
+        .select('amount_cents')
+        .eq('asaas_subscription_id', subscriptionId)
+        .single();
+      if (subCheckErr || !subCheck) {
+        console.error('[Asaas Webhook] Subscription nao encontrada para validacao:', subscriptionId);
+        return res.status(500).json({ error: 'Subscription not found' });
+      }
+      const paymentCents = Math.round(Number(payment.value) * 100);
+      if (paymentCents < subCheck.amount_cents) {
+        console.warn(
+          `[Asaas Webhook] Valor recebido (${paymentCents}) menor que esperado (${subCheck.amount_cents}) para ${subscriptionId}`
+        );
+        return res.status(400).json({ error: 'Payment value below subscription amount' });
+      }
+
       const { data: sub, error: subError } = await supabase
         .from('subscriptions')
         .update({

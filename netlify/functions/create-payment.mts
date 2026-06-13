@@ -42,19 +42,33 @@ async function asaasFetch(endpoint: string, body?: Record<string, unknown>, meth
   return await res.json();
 }
 
-const jsonResponse = (body: unknown, status = 200) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: {
-      'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type',
-    },
-  });
+const ALLOWED_ORIGINS = new Set([
+  'https://www.panalearn.com',
+  'https://panalearn.com',
+  'https://panalearn.netlify.app',
+  'http://localhost:8080',
+  'http://localhost:5173',
+]);
+
+const corsHeaders = (origin: string) => {
+  const h: Record<string, string> = {
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+  if (ALLOWED_ORIGINS.has(origin)) {
+    h['Access-Control-Allow-Origin'] = origin;
+    h['Vary'] = 'Origin';
+  }
+  return h;
+};
 
 export default async (req: Request, _ctx: Context) => {
-  if (req.method === 'OPTIONS') return new Response(null, { status: 200 });
+  const origin = req.headers.get('origin') || '';
+  const baseHeaders = { 'Content-Type': 'application/json', ...corsHeaders(origin) };
+  const jsonResponse = (body: unknown, status = 200) =>
+    new Response(JSON.stringify(body), { status, headers: baseHeaders });
+
+  if (req.method === 'OPTIONS') return new Response(null, { status: 200, headers: corsHeaders(origin) });
   if (req.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405);
 
   const { plan, user_id, organization_id, user_email, user_name, cpf_cnpj, trial } = await req.json();
@@ -62,6 +76,7 @@ export default async (req: Request, _ctx: Context) => {
 
   if (!plan || !PLANOS[plan]) return jsonResponse({ error: 'Plano inválido' }, 400);
   if (!trial && !cpf_cnpj) return jsonResponse({ error: 'CPF ou CNPJ obrigatório para o Asaas' }, 400);
+  if (!user_id || !organization_id) return jsonResponse({ error: 'user_id e organization_id obrigatórios' }, 400);
 
   const plano = PLANOS[plan];
 
@@ -74,6 +89,23 @@ export default async (req: Request, _ctx: Context) => {
     process.env.VITE_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
+
+  // Authenticacao: Bearer token + validacao de pertencimento ao tenant
+  const authHeader = req.headers.get('authorization') || '';
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  if (!bearer) return jsonResponse({ error: 'Authorization Bearer obrigatório' }, 401);
+  const { data: authData, error: authErr } = await supabase.auth.getUser(bearer);
+  if (authErr || !authData.user) return jsonResponse({ error: 'Token inválido' }, 401);
+  if (authData.user.id !== user_id) return jsonResponse({ error: 'user_id não corresponde ao token' }, 403);
+  const { data: callerUsuario, error: cuErr } = await supabase
+    .from('usuarios')
+    .select('empresa_id')
+    .eq('user_id', user_id)
+    .maybeSingle();
+  if (cuErr) return jsonResponse({ error: `Falha ao validar usuário: ${cuErr.message}` }, 500);
+  if (!callerUsuario || callerUsuario.empresa_id !== organization_id) {
+    return jsonResponse({ error: 'Usuário não pertence à empresa informada' }, 403);
+  }
 
   try {
     const trialEndDate = new Date();

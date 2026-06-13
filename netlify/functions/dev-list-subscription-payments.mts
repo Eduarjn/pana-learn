@@ -13,10 +13,10 @@ const json = (body: unknown, status = 200) =>
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== 'GET') return json({ error: 'Method not allowed' }, 405);
 
-  const url = new URL(req.url);
-  const token = req.headers.get('x-admin-token') || url.searchParams.get('token') || '';
+  const token = req.headers.get('x-admin-token') || '';
   if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) return json({ error: 'Unauthorized' }, 401);
 
+  const url = new URL(req.url);
   const subscriptionId = url.searchParams.get('subscriptionId') || url.searchParams.get('sub');
   if (!subscriptionId) return json({ error: 'subscriptionId obrigatorio' }, 400);
 

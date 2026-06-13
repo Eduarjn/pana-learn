@@ -65,6 +65,23 @@ export default async (req: Request, _ctx: Context) => {
       const nextMonth = new Date(now);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
 
+      const { data: subCheck, error: subCheckErr } = await supabase
+        .from('subscriptions')
+        .select('amount_cents')
+        .eq('asaas_subscription_id', subscriptionId)
+        .single();
+      if (subCheckErr || !subCheck) {
+        console.error('[Asaas Webhook] Subscription nao encontrada para validacao:', subscriptionId);
+        return json({ error: 'Subscription not found' }, 500);
+      }
+      const paymentCents = Math.round(Number(payment.value) * 100);
+      if (paymentCents < subCheck.amount_cents) {
+        console.warn(
+          `[Asaas Webhook] Valor recebido (${paymentCents}) menor que esperado (${subCheck.amount_cents}) para ${subscriptionId}`
+        );
+        return json({ error: 'Payment value below subscription amount' }, 400);
+      }
+
       const { data: sub, error: subError } = await supabase
         .from('subscriptions')
         .update({

@@ -13,8 +13,7 @@ const json = (body: unknown, status = 200) =>
 export default async (req: Request, _ctx: Context) => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
 
-  const url = new URL(req.url);
-  const token = req.headers.get('x-admin-token') || url.searchParams.get('token') || '';
+  const token = req.headers.get('x-admin-token') || '';
   if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) return json({ error: 'Unauthorized' }, 401);
 
   const body = await req.json().catch(() => ({}));

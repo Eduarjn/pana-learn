@@ -12,7 +12,7 @@ const ADMIN_TOKEN = process.env.ASAAS_WEBHOOK_TOKEN || '';
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const token = (req.headers['x-admin-token'] || req.query.token) as string;
+  const token = req.headers['x-admin-token'] as string;
   if (!ADMIN_TOKEN || token !== ADMIN_TOKEN) {
     return res.status(401).json({ error: 'Unauthorized' });
   }

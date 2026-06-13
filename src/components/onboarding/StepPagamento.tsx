@@ -26,31 +26,44 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
   const [cpfCnpj, setCpfCnpj] = useState(data.cpfCnpj || '');
   const [waitingPayment, setWaitingPayment] = useState(false);
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [pollTimedOut, setPollTimedOut] = useState(false);
   const pollRef = useRef<number | null>(null);
+  const timeoutRef = useRef<number | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const plano = PLANO_INFO[data.planoSelecionado] || { nome: '', preco: '' };
 
-  // Polling: enquanto aguarda pagamento, checa plan_status a cada 4s.
-  // Quando virar 'active' (webhook PAYMENT_RECEIVED), redireciona p/ dashboard.
+  // Polling: checa plan_status a cada 4s. Para após 10min se nada chegar.
   useEffect(() => {
     if (!waitingPayment || !data.organizationId) return;
+    setPollTimedOut(false);
     const tick = async () => {
-      const { data: emp } = await supabase
-        .from('empresas')
-        .select('plan_status')
-        .eq('id', data.organizationId)
-        .maybeSingle();
-      if (emp?.plan_status === 'active' || emp?.plan_status === 'trial') {
-        if (pollRef.current) window.clearInterval(pollRef.current);
-        toast({ title: 'Pagamento confirmado', description: 'Redirecionando…' });
-        navigate('/dashboard');
+      try {
+        const { data: emp } = await supabase
+          .from('empresas')
+          .select('plan_status')
+          .eq('id', data.organizationId)
+          .maybeSingle();
+        if (emp?.plan_status === 'active' || emp?.plan_status === 'trial') {
+          if (pollRef.current) window.clearInterval(pollRef.current);
+          if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+          toast({ title: 'Pagamento confirmado', description: 'Redirecionando…' });
+          navigate('/dashboard');
+        }
+      } catch (e) {
+        // erros transitórios de rede — continua polling
+        console.warn('polling plan_status falhou:', e);
       }
     };
     pollRef.current = window.setInterval(tick, 4000);
+    timeoutRef.current = window.setTimeout(() => {
+      if (pollRef.current) window.clearInterval(pollRef.current);
+      setPollTimedOut(true);
+    }, 10 * 60 * 1000);
     tick();
     return () => {
       if (pollRef.current) window.clearInterval(pollRef.current);
+      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
     };
   }, [waitingPayment, data.organizationId, navigate, toast]);
 
@@ -71,9 +84,15 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
         console.warn('setup_tenant_environment não disponível');
       }
 
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.');
       const res = await fetch('/api/create-payment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           plan: data.planoSelecionado,
           user_id: data.userId,
@@ -106,9 +125,15 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
     }
     setLoading(true);
     try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.');
       const res = await fetch('/api/create-payment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           plan: data.planoSelecionado,
           user_id: data.userId,
@@ -136,12 +161,29 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
   if (waitingPayment) {
     return (
       <div className="text-center py-4">
-        <Loader2 className="w-10 h-10 animate-spin text-pana-teal mx-auto mb-4" />
-        <h2 className="font-quicksand text-2xl font-bold text-pana-indigo mb-2">Aguardando confirmação</h2>
-        <p className="font-inter text-sm text-pana-text-secondary mb-6">
-          Finalize o pagamento na aba que abrimos. Esta tela atualiza sozinha quando o Asaas confirmar.
-        </p>
-        {paymentUrl && (
+        {!pollTimedOut ? (
+          <>
+            <Loader2 className="w-10 h-10 animate-spin text-pana-teal mx-auto mb-4" />
+            <h2 className="font-quicksand text-2xl font-bold text-pana-indigo mb-2">Aguardando confirmação</h2>
+            <p className="font-inter text-sm text-pana-text-secondary mb-6">
+              Finalize o pagamento na aba que abrimos. Esta tela atualiza sozinha quando o Asaas confirmar.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2 className="font-quicksand text-2xl font-bold text-pana-indigo mb-2">A confirmação está demorando</h2>
+            <p className="font-inter text-sm text-pana-text-secondary mb-6">
+              Seu pagamento pode ainda estar sendo processado pelo Asaas. Se já pagou, aguarde alguns minutos e atualize a página. Se precisar de ajuda, fale com o suporte.
+            </p>
+            <a
+              href="mailto:suporte@panalearn.com"
+              className="inline-flex items-center gap-2 text-sm text-pana-teal hover:underline font-medium"
+            >
+              Falar com o suporte
+            </a>
+          </>
+        )}
+        {paymentUrl && !pollTimedOut && (
           <a
             href={paymentUrl}
             target="_blank"
@@ -155,7 +197,7 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
         <div className="mt-8 pt-6 border-t border-pana-bone/40">
           <Button
             variant="outline"
-            onClick={() => setWaitingPayment(false)}
+            onClick={() => { setWaitingPayment(false); setPollTimedOut(false); }}
             className="border-pana-grape text-pana-grape hover:bg-pana-grape-muted"
           >
             Cancelar e voltar

@@ -47,10 +47,22 @@ async function asaasFetch(endpoint: string, body?: Record<string, unknown>, meth
   return await res.json();
 }
 
+const ALLOWED_ORIGINS = new Set([
+  'https://www.panalearn.com',
+  'https://panalearn.com',
+  'https://panalearn.netlify.app',
+  'http://localhost:8080',
+  'http://localhost:5173',
+]);
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  const origin = (req.headers.origin as string) || '';
+  if (ALLOWED_ORIGINS.has(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
@@ -61,14 +73,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!plan || !PLANOS[plan]) {
     return res.status(400).json({ error: 'Plano inválido' });
   }
-  // Trial pode iniciar sem CPF; "Pagar agora" continua exigindo
   if (!trial && !cpf_cnpj) {
     return res.status(400).json({ error: 'CPF ou CNPJ obrigatório para o Asaas' });
+  }
+  if (!user_id || !organization_id) {
+    return res.status(400).json({ error: 'user_id e organization_id obrigatórios' });
   }
 
   const plano = PLANOS[plan];
 
-  // Fail-closed com erro legível (createClient lança se faltar env var → 500 opaco)
   if (!process.env.VITE_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error('create-payment: VITE_SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configuradas');
     return res.status(503).json({ error: 'Supabase credentials not configured no servidor' });
@@ -78,6 +91,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     process.env.VITE_SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
+
+  // Authenticacao: exige Bearer token; valida que auth.uid() === user_id
+  // e que o usuario pertence ao organization_id solicitado.
+  const authHeader = req.headers.authorization || '';
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  if (!bearer) {
+    return res.status(401).json({ error: 'Authorization Bearer obrigatório' });
+  }
+  const { data: authData, error: authErr } = await supabase.auth.getUser(bearer);
+  if (authErr || !authData.user) {
+    return res.status(401).json({ error: 'Token inválido' });
+  }
+  if (authData.user.id !== user_id) {
+    return res.status(403).json({ error: 'user_id não corresponde ao token' });
+  }
+  const { data: callerUsuario, error: cuErr } = await supabase
+    .from('usuarios')
+    .select('empresa_id')
+    .eq('user_id', user_id)
+    .maybeSingle();
+  if (cuErr) {
+    return res.status(500).json({ error: `Falha ao validar usuário: ${cuErr.message}` });
+  }
+  if (!callerUsuario || callerUsuario.empresa_id !== organization_id) {
+    return res.status(403).json({ error: 'Usuário não pertence à empresa informada' });
+  }
 
   try {
     const trialEndDate = new Date();
