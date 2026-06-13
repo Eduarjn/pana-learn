@@ -53,6 +53,20 @@ export default function StepConta({ data, updateData, onNext }: Props) {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Erro ao criar usuário');
 
+      // Garante sessao propagada antes do INSERT (senao request vai como anon)
+      if (!authData.session) {
+        // Email confirmation pode estar ON — tenta logar imediatamente
+        const { error: signInErr } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.senha,
+        });
+        if (signInErr) {
+          throw new Error(
+            'Conta criada, mas confirme seu email antes de continuar (verifique a caixa de entrada).'
+          );
+        }
+      }
+
       // 2. Criar organização
       const subdominio = formData.organizacaoNome
         .toLowerCase()
