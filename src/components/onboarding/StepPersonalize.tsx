@@ -53,7 +53,6 @@ export default function StepPersonalize({ data, updateData, onNext, onBack }: Pr
         logoUrl = urlData.publicUrl;
       }
 
-      // Upsert em branding_config (empresa_id é UNIQUE)
       const brandingPayload: Record<string, any> = {
         empresa_id: data.organizationId,
         company_name: data.nomePlataforma || data.organizacaoNome,
@@ -62,9 +61,16 @@ export default function StepPersonalize({ data, updateData, onNext, onBack }: Pr
       };
       if (logoUrl) brandingPayload.logo_url = logoUrl;
 
-      const { error: brandingError } = await supabase
+      // Select-then-update-or-insert (banco real pode nao ter UNIQUE na empresa_id)
+      const { data: existing } = await supabase
         .from('branding_config')
-        .upsert(brandingPayload, { onConflict: 'empresa_id' });
+        .select('id')
+        .eq('empresa_id', data.organizationId)
+        .maybeSingle();
+
+      const { error: brandingError } = existing
+        ? await supabase.from('branding_config').update(brandingPayload).eq('id', existing.id)
+        : await supabase.from('branding_config').insert(brandingPayload);
 
       if (brandingError) {
         console.error('Erro ao salvar branding:', brandingError);
