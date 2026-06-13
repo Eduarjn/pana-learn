@@ -61,7 +61,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ── Eventos de pagamento confirmado ──────────────────────────────────
-    if (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED') {
+    if (
+      event === 'PAYMENT_CONFIRMED' ||
+      event === 'PAYMENT_RECEIVED' ||
+      event === 'PAYMENT_RECEIVED_IN_CASH'
+    ) {
       const now = new Date();
       const nextMonth = new Date(now);
       nextMonth.setMonth(nextMonth.getMonth() + 1);
