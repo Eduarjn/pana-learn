@@ -73,20 +73,21 @@ export default function StepConta({ data, updateData, onNext }: Props) {
         .replace(/\s+/g, '-')
         .replace(/[^a-z0-9-]/g, '');
 
-      const { data: orgData, error: orgError } = await supabase
-        .from('empresas')
-        .insert({
-          nome: formData.organizacaoNome,
-          subdominio,
-          plan: 'starter',
-          plan_status: 'trial',
-        })
-        .select()
-        .single();
+      // Usa RPC SECURITY DEFINER para evitar bloqueio do RLS SELECT pos-INSERT
+      // (usuario ainda nao tem empresa_id, entao get_empresa_id() retorna NULL).
+      const { data: rpcId, error: orgError } = await supabase.rpc(
+        'create_empresa_for_user',
+        {
+          p_nome: formData.organizacaoNome,
+          p_subdominio: subdominio,
+          p_plan: 'starter',
+          p_plan_status: 'pending',
+        }
+      );
 
       if (orgError) throw orgError;
 
-      const empresaId = (orgData as any).id;
+      const empresaId = rpcId as string;
 
       // 3. Linha em `usuarios` já foi criada pelo trigger handle_new_user
       //    no momento do signUp (com tipo_usuario='cliente', sem empresa_id).
