@@ -47,6 +47,7 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
         if (emp?.plan_status === 'active' || emp?.plan_status === 'trial') {
           if (pollRef.current) window.clearInterval(pollRef.current);
           if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+          try { sessionStorage.removeItem('panalearn:onboarding'); } catch {}
           toast({ title: 'Pagamento confirmado', description: 'Redirecionando…' });
           navigate('/dashboard');
         }
@@ -70,20 +71,6 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
   const handleStartTrial = async () => {
     setTrialLoading(true);
     try {
-      try {
-        await supabase.rpc('setup_tenant_environment', {
-          p_organization_id: data.organizationId,
-          p_owner_auth_id: data.userId,
-          p_company_name: data.organizacaoNome,
-          p_platform_name: data.nomePlataforma || data.organizacaoNome,
-          p_primary_color: data.corPrimaria || '#22c55e',
-          p_logo_url: null,
-          p_subdominio: null,
-        });
-      } catch {
-        console.warn('setup_tenant_environment não disponível');
-      }
-
       const { data: sess } = await supabase.auth.getSession();
       const token = sess.session?.access_token;
       if (!token) throw new Error('Sessão expirada. Faça login novamente.');
@@ -106,8 +93,9 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro ao iniciar trial');
 
+      try { sessionStorage.removeItem('panalearn:onboarding'); } catch {}
       toast({
-        title: 'Seu ambiente está pronto!',
+        title: 'Seu ambiente está pronto',
         description: `Bem-vindo ao Plano ${plano.nome}. 14 dias grátis começando agora.`,
       });
       navigate('/dashboard');

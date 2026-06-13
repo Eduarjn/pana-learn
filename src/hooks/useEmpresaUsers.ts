@@ -160,18 +160,9 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
     setError(null);
 
     try {
-      // Tentar chamar função SQL para criar usuários padrão
-      const { data, error: rpcError } = await supabase.rpc('setup_tenant_environment', {
-        p_organization_id: empresaId,
-        p_owner_auth_id: userProfile?.id || '',
-        p_company_name: empresaNome || 'Nova Empresa'
-      } as any);
-
-      if (rpcError) {
-        console.warn('RPC setup_tenant_environment não disponível, ignorando:', rpcError.message);
-      }
-
-      // Atualizar lista de usuários
+      // RPC setup_tenant_environment removida: referenciava tabela
+      // 'organizations' que nao existe, e o fluxo de onboarding novo
+      // ja cria empresa + usuarios via create_empresa_for_user.
       await fetchUsersByEmpresa(empresaId);
 
       return { 

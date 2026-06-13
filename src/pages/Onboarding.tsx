@@ -17,29 +17,64 @@ const STEPS = [
   { number: 5, label: 'Pagamento' },
 ];
 
+const STORAGE_KEY = 'panalearn:onboarding';
+
+type OnboardingData = {
+  nome: string; email: string; senha: string; organizacaoNome: string;
+  logo: File | null; corPrimaria: string; nomePlataforma: string; subdominio: string;
+  contentTypes: string[];
+  planoSelecionado: '' | 'trial' | 'starter' | 'pro' | 'enterprise';
+  userId: string; organizationId: string;
+};
+
+const DEFAULT_DATA: OnboardingData = {
+  nome: '', email: '', senha: '', organizacaoNome: '',
+  logo: null, corPrimaria: '#22c55e', nomePlataforma: '', subdominio: '',
+  contentTypes: [],
+  planoSelecionado: '',
+  userId: '', organizationId: '',
+};
+
+// Persiste tudo menos senha e File (não-serializáveis / sensíveis)
+function persist(step: number, data: OnboardingData) {
+  try {
+    const { senha, logo, ...safe } = data;
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ step, data: safe }));
+  } catch {}
+}
+
+function restore(): { step: number; data: OnboardingData } | null {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return { step: parsed.step, data: { ...DEFAULT_DATA, ...parsed.data } };
+  } catch {
+    return null;
+  }
+}
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const initialEmail = searchParams.get('email') || '';
-  const [currentStep, setCurrentStep] = useState(1);
-  const [onboardingData, setOnboardingData] = useState({
-    // Etapa 1
-    nome: '', email: initialEmail, senha: '', organizacaoNome: '',
-    // Etapa 2
-    logo: null as File | null, corPrimaria: '#22c55e', nomePlataforma: '', subdominio: '',
-    // Etapa 3
-    contentTypes: [] as string[],
-    // Etapa 4
-    planoSelecionado: '' as '' | 'trial' | 'starter' | 'pro' | 'enterprise',
-    // IDs gerados
-    userId: '', organizationId: '',
-  });
+
+  // Restaura state se existir (ex: usuário deu refresh no meio do wizard)
+  const restored = restore();
+  const [currentStep, setCurrentStep] = useState(restored?.step ?? 1);
+  const [onboardingData, setOnboardingData] = useState<OnboardingData>(
+    restored?.data ?? { ...DEFAULT_DATA, email: initialEmail }
+  );
+
+  // Persiste a cada mudança
+  useEffect(() => {
+    persist(currentStep, onboardingData);
+  }, [currentStep, onboardingData]);
 
   // Se já logado e com org ativa, redirecionar
   useEffect(() => {
     if (user) {
-      // Buscar a empresa DO usuário logado (não a primeira do banco)
       supabase.from('usuarios')
         .select('empresa_id, empresas:empresa_id (id, plan, plan_status)')
         .eq('user_id', user.id)
@@ -48,17 +83,18 @@ export default function Onboarding() {
           const raw = (data as any)?.empresas;
           const empData = Array.isArray(raw) ? raw[0] : raw;
           if (empData?.plan_status === 'active' || empData?.plan_status === 'trial') {
+            sessionStorage.removeItem(STORAGE_KEY);
             navigate('/dashboard');
           } else if (empData) {
-            setCurrentStep(2);
+            // Só pula para step 2 se não houver state salvo mais avançado
+            setCurrentStep(prev => Math.max(prev, 2));
             setOnboardingData(prev => ({ ...prev, userId: user.id, organizationId: empData.id }));
           }
-          // Se não tem empresa, fica no step 1 (criar conta)
         });
     }
   }, [user, navigate]);
 
-  const updateData = (newData: Partial<typeof onboardingData>) => {
+  const updateData = (newData: Partial<OnboardingData>) => {
     setOnboardingData(prev => ({ ...prev, ...newData }));
   };
 

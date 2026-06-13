@@ -19,37 +19,7 @@ type TenantGate =
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const location = useLocation();
   const [gate, setGate] = useState<TenantGate>({ state: 'loading' });
-
-  // Tentar usar useAuth com tratamento de erro
-  let user = null;
-  let userProfile = null;
-  let loading = true;
-
-  try {
-    const auth = useAuth();
-    user = auth.user;
-    userProfile = auth.userProfile;
-    loading = auth.loading;
-  } catch (error) {
-    console.log('AuthProvider ainda não está disponível, aguardando...');
-    // Retornar loading enquanto o AuthProvider não estiver disponível
-    return (
-      <div className="min-h-screen flex items-center justify-center hero-background">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-era-green" />
-          <p className="text-white">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
-
-  console.log('🛡️ ProtectedRoute - Estado:', {
-    user: user?.email,
-    userProfile: userProfile?.nome,
-    loading,
-    pathname: location.pathname,
-    status: user ? 'authenticated' : 'unauthenticated'
-  });
+  const { user, userProfile, loading } = useAuth();
 
   const isAdminMaster = userProfile?.tipo_usuario === 'admin_master';
   const isOnboardingPath = location.pathname.startsWith('/onboarding');
@@ -121,7 +91,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const isAdmin = userProfile?.tipo_usuario === 'admin' || userProfile?.tipo_usuario === 'admin_master';
 
   if (isAdminOnlyPath && !isAdmin) {
-    console.log('🚫 Acesso negado - Usuário não é admin para', location.pathname);
     return <Navigate to="/dashboard" replace />;
   }
 
