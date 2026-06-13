@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -290,6 +290,38 @@ export default function Landing() {
   const { user, userProfile, loading } = useAuth();
   const navigate = useNavigate();
   const styleRef = useRef<HTMLStyleElement | null>(null);
+  const [testOpen, setTestOpen] = useState(false);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testErr, setTestErr] = useState<string | null>(null);
+
+  const handleTestCharge = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setTestErr(null);
+    const form = e.currentTarget;
+    const nome = (form.elements.namedItem('nome') as HTMLInputElement).value.trim();
+    const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim();
+    const cpfCnpj = (form.elements.namedItem('cpfCnpj') as HTMLInputElement).value.trim();
+    if (!nome || !email || !cpfCnpj) {
+      setTestErr('Preencha todos os campos');
+      return;
+    }
+    setTestLoading(true);
+    try {
+      const r = await fetch('/api/dev-test-charge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, email, cpfCnpj }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Falha ao criar cobranca');
+      window.open(data.invoiceUrl, '_blank', 'noopener,noreferrer');
+      setTestOpen(false);
+    } catch (err: any) {
+      setTestErr(err.message);
+    } finally {
+      setTestLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!loading && user && userProfile) {
@@ -349,9 +381,9 @@ export default function Landing() {
       if (lm) lm.classList.toggle('active', !window.__lpIsAnnual);
       if (la) la.classList.toggle('active', window.__lpIsAnnual);
       const prices: Record<string, { monthly: number; annual: number }> = {
-        starter: { monthly: 397, annual: 317 },
-        pro: { monthly: 697, annual: 557 },
-        enterprise: { monthly: 1097, annual: 877 }
+        starter: { monthly: 697, annual: 597 },
+        pro: { monthly: 997, annual: 857 },
+        enterprise: { monthly: SOB-DEMANDA, annual: SOB-DEMANDA },
       };
       for (const [plan, vals] of Object.entries(prices)) {
         const price = document.getElementById('lp-p-' + plan);
@@ -785,8 +817,81 @@ export default function Landing() {
             <span className="lp-micro"><svg viewBox="0 0 14 14" fill="none"><path d="M7 2a3 3 0 100 6 3 3 0 000-6zM2 12a5 5 0 0110 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>Suporte em português</span>
             <span className="lp-micro"><svg viewBox="0 0 14 14" fill="none"><rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.5"/><path d="M4.5 6V4a2.5 2.5 0 015 0v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>Dados seguros (LGPD)</span>
           </div>
+          <div style={{ marginTop: 24, textAlign: 'center' }}>
+            <button
+              type="button"
+              onClick={() => setTestOpen(true)}
+              style={{
+                background: 'transparent',
+                color: '#fff',
+                opacity: 0.7,
+                border: '1px solid rgba(255,255,255,0.4)',
+                padding: '8px 18px',
+                borderRadius: 24,
+                fontSize: '0.85rem',
+              }}
+            >
+              Testar pagamento R$ 10 (Pix)
+            </button>
+          </div>
         </div>
       </section>
+
+      {testOpen && (
+        <div
+          onClick={() => setTestOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(31,32,65,0.6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#fff', borderRadius: 16, padding: 32, width: 'min(420px, 90vw)',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.25)', fontFamily: 'Inter, sans-serif',
+            }}
+          >
+            <h3 style={{ fontFamily: 'Quicksand, sans-serif', fontWeight: 700, color: '#1F2041', fontSize: '1.3rem', marginBottom: 6 }}>
+              Pagamento de teste R$ 10
+            </h3>
+            <p style={{ color: '#6B7280', fontSize: '0.9rem', marginBottom: 20 }}>
+              Cobrança Pix gerada via Asaas. Não inicia trial nem cadastro.
+            </p>
+            <form onSubmit={handleTestCharge}>
+              <input
+                name="nome" placeholder="Nome completo" required
+                style={{ width: '100%', padding: '10px 14px', border: '1px solid #D0CEBA', borderRadius: 10, marginBottom: 10, fontSize: '0.95rem' }}
+              />
+              <input
+                name="email" type="email" placeholder="E-mail" required
+                style={{ width: '100%', padding: '10px 14px', border: '1px solid #D0CEBA', borderRadius: 10, marginBottom: 10, fontSize: '0.95rem' }}
+              />
+              <input
+                name="cpfCnpj" placeholder="CPF ou CNPJ" required
+                style={{ width: '100%', padding: '10px 14px', border: '1px solid #D0CEBA', borderRadius: 10, marginBottom: 16, fontSize: '0.95rem' }}
+              />
+              {testErr && (
+                <div style={{ color: '#dc2626', fontSize: '0.85rem', marginBottom: 12 }}>{testErr}</div>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button" onClick={() => setTestOpen(false)} disabled={testLoading}
+                  style={{ flex: 1, padding: '10px', background: '#fff', border: '1px solid #4B3F72', color: '#4B3F72', borderRadius: 10, fontWeight: 500 }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit" disabled={testLoading}
+                  style={{ flex: 1, padding: '10px', background: '#417B5A', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 500 }}
+                >
+                  {testLoading ? 'Gerando...' : 'Gerar Pix R$ 10'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER */}
       <footer className="lp-footer">
