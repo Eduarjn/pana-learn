@@ -1,12 +1,12 @@
 // src/components/onboarding/StepPagamento.tsx
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, CreditCard, Gift, ShieldCheck } from 'lucide-react';
+import { Loader2, CreditCard, Gift, ShieldCheck, ExternalLink } from 'lucide-react';
 
 const PLANO_INFO: Record<string, { nome: string; preco: string }> = {
   starter:    { nome: 'Starter',    preco: 'R$ 397,00/mês' },
@@ -24,9 +24,35 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
   const [loading, setLoading] = useState(false);
   const [trialLoading, setTrialLoading] = useState(false);
   const [cpfCnpj, setCpfCnpj] = useState(data.cpfCnpj || '');
+  const [waitingPayment, setWaitingPayment] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const pollRef = useRef<number | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
   const plano = PLANO_INFO[data.planoSelecionado] || { nome: '', preco: '' };
+
+  // Polling: enquanto aguarda pagamento, checa plan_status a cada 4s.
+  // Quando virar 'active' (webhook PAYMENT_RECEIVED), redireciona p/ dashboard.
+  useEffect(() => {
+    if (!waitingPayment || !data.organizationId) return;
+    const tick = async () => {
+      const { data: emp } = await supabase
+        .from('empresas')
+        .select('plan_status')
+        .eq('id', data.organizationId)
+        .maybeSingle();
+      if (emp?.plan_status === 'active' || emp?.plan_status === 'trial') {
+        if (pollRef.current) window.clearInterval(pollRef.current);
+        toast({ title: 'Pagamento confirmado', description: 'Redirecionando…' });
+        navigate('/dashboard');
+      }
+    };
+    pollRef.current = window.setInterval(tick, 4000);
+    tick();
+    return () => {
+      if (pollRef.current) window.clearInterval(pollRef.current);
+    };
+  }, [waitingPayment, data.organizationId, navigate, toast]);
 
   const handleStartTrial = async () => {
     setTrialLoading(true);
@@ -95,13 +121,49 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || 'Erro ao iniciar pagamento');
 
-      // Redirecionar para o checkout do Asaas
-      window.location.href = result.paymentUrl;
+      // Abre Asaas em nova aba e ativa polling local; quando o webhook
+      // confirmar, o useEffect redireciona para /dashboard automaticamente.
+      setPaymentUrl(result.paymentUrl);
+      setWaitingPayment(true);
+      window.open(result.paymentUrl, '_blank', 'noopener,noreferrer');
     } catch (error: any) {
       toast({ title: 'Erro no pagamento', description: error.message, variant: 'destructive' });
+    } finally {
       setLoading(false);
     }
   };
+
+  if (waitingPayment) {
+    return (
+      <div className="text-center py-4">
+        <Loader2 className="w-10 h-10 animate-spin text-pana-teal mx-auto mb-4" />
+        <h2 className="font-quicksand text-2xl font-bold text-pana-indigo mb-2">Aguardando confirmação</h2>
+        <p className="font-inter text-sm text-pana-text-secondary mb-6">
+          Finalize o pagamento na aba que abrimos. Esta tela atualiza sozinha quando o Asaas confirmar.
+        </p>
+        {paymentUrl && (
+          <a
+            href={paymentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm text-pana-teal hover:underline font-medium"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Abrir página de pagamento novamente
+          </a>
+        )}
+        <div className="mt-8 pt-6 border-t border-pana-bone/40">
+          <Button
+            variant="outline"
+            onClick={() => setWaitingPayment(false)}
+            className="border-pana-grape text-pana-grape hover:bg-pana-grape-muted"
+          >
+            Cancelar e voltar
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

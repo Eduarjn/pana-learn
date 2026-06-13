@@ -33,9 +33,8 @@ export default function StepPersonalize({ data, updateData, onNext, onBack }: Pr
   const handleSave = async () => {
     setLoading(true);
     try {
-      let logoUrl = '';
+      let logoUrl: string | null = null;
 
-      // Upload da logo se fornecida
       if (data.logo && data.organizationId) {
         const ext = data.logo.name.split('.').pop();
         const path = `${data.organizationId}/logo.${ext}`;
@@ -43,30 +42,36 @@ export default function StepPersonalize({ data, updateData, onNext, onBack }: Pr
           .from('organization-assets')
           .upload(path, data.logo, { upsert: true });
 
-        if (!uploadError) {
-          const { data: urlData } = supabase.storage
-            .from('organization-assets')
-            .getPublicUrl(path);
-          logoUrl = urlData.publicUrl;
+        if (uploadError) {
+          console.error('Erro upload logo:', uploadError);
+          throw new Error(`Falha ao enviar logo: ${uploadError.message}`);
         }
+
+        const { data: urlData } = supabase.storage
+          .from('organization-assets')
+          .getPublicUrl(path);
+        logoUrl = urlData.publicUrl;
       }
 
-      // Salvar configurações na organização
-      const updatePayload: Record<string, any> = {
+      // Upsert em branding_config (empresa_id é UNIQUE)
+      const brandingPayload: Record<string, any> = {
+        empresa_id: data.organizationId,
+        company_name: data.nomePlataforma || data.organizacaoNome,
         primary_color: data.corPrimaria,
-        platform_name: data.nomePlataforma || data.organizacaoNome,
-        onboarding_step: 3,
+        updated_at: new Date().toISOString(),
       };
-      if (logoUrl) updatePayload.logo_url = logoUrl;
+      if (logoUrl) brandingPayload.logo_url = logoUrl;
 
-      // Salvar branding na tabela correta (empresas ou branding_config)
-      try {
-        await supabase.from('empresas').update({
-          updated_at: new Date().toISOString(),
-        }).eq('id', data.organizationId);
-      } catch { /* ignore */ }
+      const { error: brandingError } = await supabase
+        .from('branding_config')
+        .upsert(brandingPayload, { onConflict: 'empresa_id' });
 
-      toast({ title: '✅ Personalização salva!' });
+      if (brandingError) {
+        console.error('Erro ao salvar branding:', brandingError);
+        throw new Error(`Falha ao salvar branding: ${brandingError.message}`);
+      }
+
+      toast({ title: 'Personalização salva' });
       onNext();
     } catch (error: any) {
       toast({ title: 'Erro', description: error.message, variant: 'destructive' });
