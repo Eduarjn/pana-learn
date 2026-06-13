@@ -625,29 +625,6 @@
   overflow: hidden;
 }
 
-/* Fallback para imagem de fundo do login */
-.login-background {
-  background-image: url('/lovable-uploads/aafcc16a-d43c-4f66-9fa4-70da46d38ccb.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-
-/* Fallback gradiente se a imagem não carregar */
-.login-background-fallback {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
-}
-
-/* Detectar se a imagem carregou */
-.login-background:not(.image-loaded) {
-  background-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .era-login-bg::before, .era-login-bg::after {
   content: '';
   position: absolute;

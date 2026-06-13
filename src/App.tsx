@@ -43,7 +43,6 @@ const Blog = lazy(() => import("@/pages/Blog"));
 // ── Componentes de diagnóstico ──────────────────────────────────────────────
 import { TestComponent } from '@/components/TestComponent';
 import { CadastroTest } from '@/components/CadastroTest';
-import { ImageDiagnostic } from '@/components/ImageDiagnostic';
 
 // ── Loading fallback ────────────────────────────────────────────────────────
 const PageLoader = () => (
@@ -84,7 +83,6 @@ const App = () => {
                 {import.meta.env.DEV && <>
                   <Route path="/test" element={<TestComponent />} />
                   <Route path="/cadastro-test" element={<CadastroTest />} />
-                  <Route path="/image-diagnostic" element={<ImageDiagnostic />} />
                 </>}
                 {/* Rotas públicas */}
                 <Route path="/" element={<Landing />} />
