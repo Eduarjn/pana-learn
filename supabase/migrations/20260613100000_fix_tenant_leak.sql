@@ -53,6 +53,9 @@ CREATE POLICY "usuarios_update_tenant"
 -- ── EMPRESAS ────────────────────────────────────────────────────────────────
 DROP POLICY IF EXISTS "Authenticated users can view empresas" ON public.empresas;
 DROP POLICY IF EXISTS "Authenticated users can update empresas" ON public.empresas;
+-- Nomes que sobreviveram em prod (com USING true) — dropar tambem
+DROP POLICY IF EXISTS "empresas_select" ON public.empresas;
+DROP POLICY IF EXISTS "empresas_update" ON public.empresas;
 -- Authenticated users can create empresas (INSERT) mantido p/ onboarding.
 
 CREATE POLICY "empresas_select_tenant"
