@@ -266,6 +266,15 @@ export const VideoPlayerWithProgress: React.FC<VideoPlayerWithProgressProps> = (
               style={{ border: 0 }}
               title={video.titulo}
             />
+          ) : video.url_video.endsWith('.mp4') ? (
+            // Fallback: sem library id configurada, toca o MP4 direto do CDN
+            <video
+              src={video.url_video}
+              className="w-full h-full"
+              poster={video.thumbnail_url}
+              controls
+              playsInline
+            />
           ) : (
             <div className="flex items-center justify-center h-full text-white text-sm">
               URL do vídeo inválida ou a processar no Bunny Stream…

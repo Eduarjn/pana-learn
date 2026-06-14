@@ -32,12 +32,16 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
   // Guard against concurrent/duplicate fetches
   const fetchingRef = useRef(false);
 
-  // Verificar se é admin_master
+  // admin_master gerencia qualquer empresa; admin gerencia só a própria
   const isAdminMaster = userProfile?.tipo_usuario === 'admin_master';
+  const isAdmin = userProfile?.tipo_usuario === 'admin' || isAdminMaster;
+  const myEmpresaId = (userProfile as any)?.empresa_id as string | undefined;
+  // true se pode gerenciar a empresa alvo (master = qualquer; admin = a sua)
+  const canManage = (empresaId: string) => isAdminMaster || (isAdmin && empresaId === myEmpresaId);
 
   const fetchUsersByEmpresa = useCallback(async (empresaId: string) => {
-    if (!isAdminMaster) {
-      setError('Apenas admin_master pode gerenciar usuários por empresa');
+    if (!canManage(empresaId)) {
+      setError('Sem permissão para gerenciar usuários desta empresa');
       return;
     }
 
@@ -67,11 +71,15 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
       setLoading(false);
       fetchingRef.current = false;
     }
-  }, [isAdminMaster]);
+  }, [isAdminMaster, isAdmin, myEmpresaId]);
 
   const createUser = useCallback(async (empresaId: string, userData: CreateUserData): Promise<{ success: boolean; message: string; password?: string }> => {
-    if (!isAdminMaster) {
-      return { success: false, message: 'Apenas admin_master pode criar usuários' };
+    if (!canManage(empresaId)) {
+      return { success: false, message: 'Sem permissão para criar usuários nesta empresa' };
+    }
+    // admin de empresa não pode criar admin_master
+    if (!isAdminMaster && userData.tipo_usuario === 'admin_master') {
+      return { success: false, message: 'Apenas admin_master pode criar outro admin_master' };
     }
 
     setLoading(true);
@@ -180,8 +188,8 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
   }, [isAdminMaster, userProfile?.id, fetchUsersByEmpresa]);
 
   const deleteUser = useCallback(async (userId: string): Promise<{ success: boolean; message: string }> => {
-    if (!isAdminMaster) {
-      return { success: false, message: 'Apenas admin_master pode deletar usuários' };
+    if (!isAdmin) {
+      return { success: false, message: 'Sem permissão para deletar usuários' };
     }
 
     setLoading(true);
@@ -212,8 +220,8 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
   }, [isAdminMaster]);
 
   const updateUser = useCallback(async (userId: string, userData: Partial<User>): Promise<{ success: boolean; message: string }> => {
-    if (!isAdminMaster) {
-      return { success: false, message: 'Apenas admin_master pode atualizar usuários' };
+    if (!isAdmin) {
+      return { success: false, message: 'Sem permissão para atualizar usuários' };
     }
 
     setLoading(true);
