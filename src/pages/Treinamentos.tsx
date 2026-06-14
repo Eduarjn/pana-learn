@@ -85,7 +85,7 @@ export const Treinamentos = () => {
       // Join direto — elimina o N+1 (era: query videos + query cursos separada)
       const { data: vd, error: vErr } = await supabase
         .from('videos')
-        .select('id, titulo, duracao, storage_path, url_video, curso_id, data_criacao, cursos!videos_curso_id_fkey(id, nome, categoria)')
+        .select('id, titulo, duracao, storage_path, url_video, curso_id, data_criacao, cursos!fk_curso(id, nome, categoria)')
         .order('data_criacao', { ascending: false });
       if (vErr) throw vErr;
       setVideos(vd || []);

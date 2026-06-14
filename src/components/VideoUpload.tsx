@@ -81,15 +81,20 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
       toast({ title: 'Campo obrigatório', description: 'Informe o nome da categoria.', variant: 'destructive' });
       return;
     }
+    const empresaId = (userProfile as any)?.empresa_id;
+    if (!empresaId) {
+      toast({ title: 'Empresa não identificada', description: 'Faça login novamente.', variant: 'destructive' });
+      return;
+    }
     setSavingCategory(true);
     try {
       const { data, error } = await supabase
         .from('categorias')
-        .insert({ nome: quickCategory.nome.trim(), cor: quickCategory.cor })
+        .insert({ nome: quickCategory.nome.trim(), cor: quickCategory.cor, empresa_id: empresaId })
         .select()
         .single();
       if (error) throw error;
-      toast({ title: 'Categoria criada!', description: quickCategory.nome });
+      toast({ title: 'Categoria criada', description: quickCategory.nome });
       await loadCategories();
       // Se estava a criar um curso, preencher a categoria automaticamente
       setQuickCourse(p => ({ ...p, categoria: data.nome, categoria_id: data.id }));
@@ -112,6 +117,11 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
       toast({ title: 'Campo obrigatório', description: 'Selecione ou crie uma categoria.', variant: 'destructive' });
       return;
     }
+    const empresaId = (userProfile as any)?.empresa_id;
+    if (!empresaId) {
+      toast({ title: 'Empresa não identificada', description: 'Faça login novamente.', variant: 'destructive' });
+      return;
+    }
     setSavingCourse(true);
     try {
       const { data, error } = await supabase
@@ -121,11 +131,12 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
           categoria: quickCourse.categoria.trim(),
           categoria_id: quickCourse.categoria_id || null,
           status: 'ativo',
+          empresa_id: empresaId,
         })
         .select()
         .single();
       if (error) throw error;
-      toast({ title: 'Curso criado!', description: quickCourse.nome });
+      toast({ title: 'Curso criado', description: quickCourse.nome });
       await refetchCourses();
       setSelectedCourseId(data.id);
       setShowNewCourse(false);
