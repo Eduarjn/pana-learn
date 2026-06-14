@@ -146,8 +146,20 @@ export const Treinamentos = () => {
     if (!categoryForm.nome.trim()) { toast({ title: 'Campo obrigatorio', description: 'Informe o nome.', variant: 'destructive' }); return; }
     setSavingCategory(true);
     try {
-      if (editingCategoryId) { const { error } = await supabase.from('categorias').update({ nome: categoryForm.nome.trim(), descricao: categoryForm.descricao.trim() || null, cor: categoryForm.cor }).eq('id', editingCategoryId); if (error) throw error; toast({ title: 'Sucesso', description: 'Categoria atualizada!' }); }
-      else { const { error } = await supabase.from('categorias').insert({ nome: categoryForm.nome.trim(), descricao: categoryForm.descricao.trim() || null, cor: categoryForm.cor }); if (error) throw error; toast({ title: 'Sucesso', description: 'Categoria criada!' }); }
+      if (editingCategoryId) {
+        const { error } = await supabase.from('categorias').update({ nome: categoryForm.nome.trim(), descricao: categoryForm.descricao.trim() || null, cor: categoryForm.cor }).eq('id', editingCategoryId);
+        if (error) throw error;
+        toast({ title: 'Sucesso', description: 'Categoria atualizada.' });
+      } else {
+        const empresaId = (userProfile as any)?.empresa_id;
+        if (!empresaId) {
+          toast({ title: 'Empresa não identificada', description: 'Faça login novamente.', variant: 'destructive' });
+          return;
+        }
+        const { error } = await supabase.from('categorias').insert({ nome: categoryForm.nome.trim(), descricao: categoryForm.descricao.trim() || null, cor: categoryForm.cor, empresa_id: empresaId });
+        if (error) throw error;
+        toast({ title: 'Sucesso', description: 'Categoria criada.' });
+      }
       setCategoryForm({ ...emptyCF }); setEditingCategoryId(null); setShowCategoryForm(false); await loadCategories();
     } catch (err: any) { toast({ title: 'Erro', description: err.message || 'Erro ao salvar.', variant: 'destructive' }); }
     finally { setSavingCategory(false); }
@@ -166,13 +178,22 @@ export const Treinamentos = () => {
     setEditingCourseId(course.id); setShowCourseDialog(true);
   };
   const handleSaveCourse = async () => {
-    if (!courseForm.nome.trim()) { toast({ title: 'Campo obrigatorio', description: 'Informe o nome.', variant: 'destructive' }); return; }
-    if (!courseForm.categoria.trim()) { toast({ title: 'Campo obrigatorio', description: 'Informe a categoria.', variant: 'destructive' }); return; }
+    if (!courseForm.nome.trim()) { toast({ title: 'Campo obrigatório', description: 'Informe o nome.', variant: 'destructive' }); return; }
+    if (!courseForm.categoria.trim()) { toast({ title: 'Campo obrigatório', description: 'Informe a categoria.', variant: 'destructive' }); return; }
+    if (!editingCourseId && !(userProfile as any)?.empresa_id) {
+      toast({ title: 'Empresa não identificada', description: 'Faça login novamente.', variant: 'destructive' });
+      return;
+    }
     setSavingCourse(true);
     try {
-      const payload = { nome: courseForm.nome.trim(), descricao: courseForm.descricao.trim() || null, categoria: courseForm.categoria.trim(), categoria_id: courseForm.categoria_id || null, status: courseForm.status, ordem: courseForm.ordem || null };
-      if (editingCourseId) { const { error } = await supabase.from('cursos').update(payload).eq('id', editingCourseId); if (error) throw error; toast({ title: 'Sucesso', description: 'Curso atualizado!' }); }
-      else { const { error } = await supabase.from('cursos').insert(payload); if (error) throw error; toast({ title: 'Sucesso', description: 'Curso criado!' }); }
+      const payload: any = { nome: courseForm.nome.trim(), descricao: courseForm.descricao.trim() || null, categoria: courseForm.categoria.trim(), categoria_id: courseForm.categoria_id || null, status: courseForm.status, ordem: courseForm.ordem || null };
+      if (editingCourseId) { const { error } = await supabase.from('cursos').update(payload).eq('id', editingCourseId); if (error) throw error; toast({ title: 'Sucesso', description: 'Curso atualizado.' }); }
+      else {
+        payload.empresa_id = (userProfile as any).empresa_id;
+        const { error } = await supabase.from('cursos').insert(payload);
+        if (error) throw error;
+        toast({ title: 'Sucesso', description: 'Curso criado.' });
+      }
       setShowCourseDialog(false); setCourseForm({ ...emptyCoF }); setEditingCourseId(null); refetch();
     } catch (err: any) { toast({ title: 'Erro', description: err.message || 'Erro ao salvar.', variant: 'destructive' }); }
     finally { setSavingCourse(false); }

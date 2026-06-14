@@ -1,6 +1,9 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
+import { heroStagger, heroEntrance, ctaGlow, pressEffect, liftOnHover } from '@/lib/motion-variants';
+import { RotatingWords } from '@/components/ui/animated-hero';
 
 const LANDING_CSS = `
 /* Fonts loaded via <link> in index.html — removed render-blocking @import */
@@ -289,6 +292,7 @@ const starSVG = (
 export default function Landing() {
   const navigate = useNavigate();
   const styleRef = useRef<HTMLStyleElement | null>(null);
+  const prefersReduced = useReducedMotion();
 
   // Checa sessão direto (sem puxar AuthProvider no FCP da Landing)
   useEffect(() => {
@@ -448,28 +452,66 @@ export default function Landing() {
         </svg>
         <div className="lp-container">
           <div className="lp-hero-inner">
-            <div className="lp-fade">
-              <div className="lp-badge">
+
+            {/* Coluna esquerda — stagger sequencial */}
+            <motion.div
+              variants={heroStagger}
+              initial={prefersReduced ? 'visible' : 'hidden'}
+              animate="visible"
+            >
+              <motion.div variants={heroEntrance} className="lp-badge">
                 <svg viewBox="0 0 14 14" fill="none" style={{width:14,height:14}}><path d="M7 1L8.8 5.2L13 6L9.5 9.3L10.6 13.5L7 11.3L3.4 13.5L4.5 9.3L1 6L5.2 5.2L7 1Z" fill="currentColor"/></svg>
                 Plataforma LMS para qualquer segmento
-              </div>
-              <h1 className="lp-h1">Treine equipes, certifique talentos e transforme resultados.</h1>
-              <p className="lp-hsub">PanaLearn é a plataforma de aprendizado online que se adapta ao seu negócio — de escolas de idiomas a universidades corporativas, de redes de franquias a instituições de ensino.</p>
-              <div className="lp-ctas">
-                <a href="/onboarding" className="lp-btn lp-btn-g lp-btn-lg">Começar gratuitamente</a>
-                <a href="#lp-features" className="lp-btn lp-btn-ow lp-btn-lg">Ver demonstração</a>
-              </div>
-              <div className="lp-trust">
+              </motion.div>
+
+              <motion.h1 variants={heroEntrance} className="lp-h1">
+                Treine equipes, certifique talentos e{' '}
+                <RotatingWords
+                  words={['transforme resultados', 'amplie competências', 'acelere aprendizados']}
+                  className="text-[#417B5A]"
+                />
+              </motion.h1>
+
+              <motion.p variants={heroEntrance} className="lp-hsub">
+                PanaLearn é a plataforma de aprendizado online que se adapta ao seu negócio — de escolas de idiomas a universidades corporativas, de redes de franquias a instituições de ensino.
+              </motion.p>
+
+              <motion.div variants={heroEntrance} className="lp-ctas">
+                <motion.a
+                  href="/onboarding"
+                  className="lp-btn lp-btn-g lp-btn-lg"
+                  whileHover={prefersReduced ? undefined : ctaGlow}
+                  whileTap={prefersReduced ? undefined : pressEffect}
+                >
+                  Começar gratuitamente
+                </motion.a>
+                <motion.a
+                  href="#lp-features"
+                  className="lp-btn lp-btn-ow lp-btn-lg"
+                  whileHover={prefersReduced ? undefined : liftOnHover}
+                  whileTap={prefersReduced ? undefined : pressEffect}
+                >
+                  Ver demonstração
+                </motion.a>
+              </motion.div>
+
+              <motion.div variants={heroEntrance} className="lp-trust">
                 <span className="lp-trust-txt">Mais de 10 organizações já confiam na PanaLearn</span>
                 <div className="lp-trust-logos">
                   {['ACME Corp','EduMax','TechGroup','FranquiasBR','HealthCare'].map(n => (
                     <span className="lp-trust-pill" key={n}>{n}</span>
                   ))}
                 </div>
-              </div>
-            </div>
-            {/* MOCKUP */}
-            <div className="lp-mock lp-fade" style={{transitionDelay:'0.15s'}}>
+              </motion.div>
+            </motion.div>
+
+            {/* Coluna direita — mockup entra após o stagger da esquerda */}
+            <motion.div
+              className="lp-mock"
+              initial={prefersReduced ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1], delay: prefersReduced ? 0 : 0.7 }}
+            >
               <div className="lp-mock-hdr">
                 <div className="lp-dots"><div className="lp-dot"/><div className="lp-dot"/><div className="lp-dot"/></div>
                 <div className="lp-titlebar"/>
@@ -504,7 +546,8 @@ export default function Landing() {
                 <div className="lp-stat"><div className="lp-stat-n">247</div><div className="lp-stat-l">Alunos ativos</div></div>
                 <div className="lp-stat"><div className="lp-stat-n">94%</div><div className="lp-stat-l">Conclusão</div></div>
               </div>
-            </div>
+            </motion.div>
+
           </div>
         </div>
       </section>

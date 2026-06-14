@@ -35,11 +35,11 @@ export function RotatingWords({ words, interval = 2200, className }: RotatingWor
           key={word}
           className="absolute inset-0 flex items-center justify-center font-semibold whitespace-nowrap"
           initial={{ opacity: 0, y: 24 }}
-          transition={{ type: 'spring', stiffness: 60, damping: 14 }}
+          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           animate={
             index === i
               ? { y: 0, opacity: 1 }
-              : { y: index > i ? -28 : 28, opacity: 0 }
+              : { y: index > i ? -24 : 24, opacity: 0 }
           }
         >
           {word}

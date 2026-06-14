@@ -225,6 +225,9 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
       const { data: nextOrderData, error: orderError } = await supabase.rpc('obter_proxima_ordem_video', { p_curso_id: selectedCourseId });
       if (orderError) throw new Error('Erro ao calcular ordem do vídeo');
 
+      const empresaId = (userProfile as any)?.empresa_id;
+      if (!empresaId) throw new Error('Empresa não identificada — faça login novamente.');
+
       const { error: insertError } = await supabase.from('videos').insert({
         titulo: videoData.titulo,
         descricao: videoData.descricao,
@@ -235,6 +238,7 @@ export function VideoUpload({ onClose, onSuccess, preSelectedCourseId }: VideoUp
         curso_id: selectedCourseId,
         modulo_id: selectedModuleId || null,
         ordem: nextOrderData || 1,
+        empresa_id: empresaId,
       }).select().single();
 
       if (insertError) throw insertError;
