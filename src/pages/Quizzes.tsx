@@ -333,6 +333,7 @@ const Quizzes: React.FC = () => {
         explicacao: newQuestionForExisting.explicacao.trim() || null,
         ordem: questions.length + 1,
         audio_id: newQuestionForExisting.audio_id || null,
+        empresa_id: (userProfile as any)?.empresa_id ?? (selectedQuiz as any).empresa_id,
       }).select().single();
       if (error) throw error;
       setQuestions(prev => [...prev, data]);
@@ -363,6 +364,12 @@ const Quizzes: React.FC = () => {
 
     setSavingNewQuiz(true);
     try {
+      const empresaId = (userProfile as any)?.empresa_id;
+      if (!empresaId) {
+        toast({ title: 'Empresa não identificada', description: 'Faça login novamente.', variant: 'destructive' });
+        return;
+      }
+
       // 1. Insert quiz
       const { data: quizData, error: quizError } = await supabase.from('quizzes').insert({
         titulo: newQuizForm.titulo.trim(),
@@ -370,6 +377,7 @@ const Quizzes: React.FC = () => {
         categoria: newQuizForm.categoria.trim() || null,
         nota_minima: newQuizForm.nota_minima,
         ativo: newQuizForm.ativo,
+        empresa_id: empresaId,
       }).select().single();
       if (quizError) throw quizError;
 
@@ -382,6 +390,7 @@ const Quizzes: React.FC = () => {
         explicacao: q.explicacao.trim() || null,
         ordem: i + 1,
         audio_id: q.audio_id || null,
+        empresa_id: empresaId,
       }));
       const { error: qErr } = await supabase.from('quiz_perguntas').insert(questionsPayload);
       if (qErr) throw qErr;

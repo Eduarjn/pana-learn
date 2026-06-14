@@ -347,7 +347,8 @@ const QuizConfig: React.FC = () => {
               opcoes: pergunta.opcoes,
               resposta_correta: pergunta.resposta_correta,
               explicacao: pergunta.explicacao,
-              ordem: i + 1
+              ordem: i + 1,
+              empresa_id: (userProfile as any)?.empresa_id,
             });
 
           if (perguntaError) throw perguntaError;
@@ -360,7 +361,8 @@ const QuizConfig: React.FC = () => {
             categoria: selectedCategoria,
             titulo: `Quiz de Conclusão - ${selectedCategoria}`,
             descricao: `Quiz para avaliar o conhecimento sobre ${selectedCategoria}`,
-            nota_minima: quizConfig.nota_minima
+            nota_minima: quizConfig.nota_minima,
+            empresa_id: (userProfile as any)?.empresa_id,
           })
           .select()
           .single();
@@ -378,7 +380,8 @@ const QuizConfig: React.FC = () => {
               opcoes: pergunta.opcoes,
               resposta_correta: pergunta.resposta_correta,
               explicacao: pergunta.explicacao,
-              ordem: i + 1
+              ordem: i + 1,
+              empresa_id: (userProfile as any)?.empresa_id,
             });
 
           if (perguntaError) throw perguntaError;
