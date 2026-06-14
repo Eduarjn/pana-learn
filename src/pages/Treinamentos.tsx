@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Search, Filter, Plus, Video, Eye, BookOpen, Clock, Users, Settings, ListOrdered, ArrowLeft, Play, Trash, ChevronRight, GraduationCap, Award, Edit, Loader2, MoreVertical, Tag } from 'lucide-react';
+import { PanaLoader, PanaLoaderInline } from '@/components/ui/pana-loader';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cardHover } from '@/lib/animations';
@@ -182,8 +183,23 @@ export const Treinamentos = () => {
     catch { toast({ title: 'Erro', description: 'Erro ao excluir.', variant: 'destructive' }); }
   };
 
-  if (isLoading) return (<ERALayout><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', background: 'hsl(var(--background))' }}><div style={{ textAlign: 'center' }}><div style={{ width: 40, height: 40, border: `3px solid ${'hsl(var(--primary))'}`, borderTopColor: 'transparent', borderRadius: '50%', margin: '0 auto 12px', animation: 'era-spin 0.8s linear infinite' }} /><p style={{ color: 'hsl(var(--muted-foreground))', fontSize: 13 }}>Carregando treinamentos...</p></div></div></ERALayout>);
-  if (error) return (<ERALayout><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}><div style={{ textAlign: 'center' }}><BookOpen style={{ width: 40, height: 40, color: '#ef4444', margin: '0 auto 8px' }} /><p style={{ color: '#f87171', fontSize: 13 }}>Erro ao carregar treinamentos.</p></div></div></ERALayout>);
+  if (isLoading) return (
+    <ERALayout>
+      <div className="flex items-center justify-center bg-pana-bg" style={{ minHeight: '60vh' }}>
+        <PanaLoader label="Carregando treinamentos..." />
+      </div>
+    </ERALayout>
+  );
+  if (error) return (
+    <ERALayout>
+      <div className="flex items-center justify-center" style={{ minHeight: '60vh' }}>
+        <div className="text-center">
+          <BookOpen className="h-10 w-10 mx-auto mb-3 text-destructive" />
+          <p className="text-sm text-destructive">Erro ao carregar treinamentos.</p>
+        </div>
+      </div>
+    </ERALayout>
+  );
 
 
   return (
@@ -205,40 +221,45 @@ export const Treinamentos = () => {
         </div>
       )}
 
-      <div className="min-h-screen bg-background pb-10">
-        
-        {/* HERO */}
-        <motion.div
+      <div className="min-h-screen bg-pana-bg pb-10 font-inter">
+
+        {/* Header de marca — sóbrio, sólido indigo */}
+        <motion.header
           initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #4B3F72 60%, #417B5A 100%)' }}
+          className="relative w-full rounded-2xl mb-6 lg:mb-8 overflow-hidden bg-pana-indigo"
         >
-          <div className="px-6 lg:px-10 py-8 lg:py-12">
-            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+          <div className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-[0.07] bg-pana-teal" />
+          <div className="pointer-events-none absolute right-24 -bottom-24 w-72 h-72 rounded-full opacity-[0.05] bg-pana-grape" />
+
+          <div className="relative px-6 lg:px-10 py-8 lg:py-10">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
 
               <motion.div
                 className="flex-1"
                 initial="hidden" animate="visible"
                 variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.07 } } }}
               >
-                <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22,1,0.36,1] } } }}
+                <motion.div
+                  variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22,1,0.36,1] } } }}
                   className="flex items-center gap-2 mb-3"
                 >
-                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#D0CEBA' }}></div>
-                  <span className="text-xs lg:text-sm font-medium text-white/80">Plataforma de Ensino</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-pana-teal" />
+                  <span className="text-[11px] font-medium uppercase tracking-[0.07em] text-pana-bone/80">
+                    Plataforma de ensino
+                  </span>
                 </motion.div>
                 <motion.h1
                   variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22,1,0.36,1] } } }}
-                  className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2"
+                  className="font-quicksand font-bold text-3xl lg:text-4xl text-white mb-2"
                 >
                   Treinamentos
                 </motion.h1>
                 <motion.p
                   variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22,1,0.36,1] } } }}
-                  className="text-sm sm:text-base lg:text-lg text-white/80 max-w-2xl mb-4"
+                  className="text-sm text-pana-bone/80 max-w-xl mb-4"
                 >
-                  Cursos estruturados em trilhas de aprendizado - do básico ao avançado, com certificação.
+                  Cursos estruturados em trilhas de aprendizado, do básico ao avançado, com certificação.
                 </motion.p>
                 <motion.div
                   variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.04 } } }}
@@ -253,9 +274,9 @@ export const Treinamentos = () => {
                     <motion.div
                       key={label}
                       variants={{ hidden: { opacity: 0, y: 10 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3 } } }}
-                      className="flex items-center gap-2 text-xs lg:text-sm text-white/80"
+                      className="flex items-center gap-2 text-xs lg:text-sm text-pana-bone/80"
                     >
-                      <Icon className="h-4 w-4" style={{ color: '#D0CEBA' }} />
+                      <Icon className="h-4 w-4 text-pana-bone" />
                       <span>{label}</span>
                     </motion.div>
                   ))}
@@ -265,12 +286,12 @@ export const Treinamentos = () => {
               <motion.div
                 initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.15, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-col gap-3"
+                className="flex flex-col gap-3 w-full sm:w-auto"
               >
                 <motion.div
                   initial="hidden" animate="visible"
                   variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.06 } } }}
-                  className="flex gap-3 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar"
+                  className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar"
                 >
                   {[
                     { value: courses.length, label: 'Cursos' },
@@ -279,22 +300,30 @@ export const Treinamentos = () => {
                   ].map(({ value, label }) => (
                     <motion.div key={label}
                       variants={{ hidden: { opacity: 0, scale: 0.92 }, visible: { opacity: 1, scale: 1, transition: { duration: 0.3 } } }}
-                      className="flex flex-col items-center justify-center rounded-xl px-4 py-3 text-center min-w-[76px]"
-                      style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)' }}>
-                      <span className="text-xl font-bold text-white leading-tight">{value}</span>
-                      <span className="text-[11px] text-white/70 uppercase tracking-wider font-semibold mt-1">{label}</span>
+                      className="flex flex-col items-center justify-center rounded-lg px-4 py-2.5 text-center min-w-[78px] bg-white/[0.08] border border-white/10">
+                      <span className="font-quicksand font-bold text-lg text-white leading-tight">{value}</span>
+                      <span className="text-[10px] text-pana-bone/70 uppercase tracking-wider font-medium mt-0.5">{label}</span>
                     </motion.div>
                   ))}
                 </motion.div>
                 {isAdmin && (
                   <div className="flex gap-2">
-                    <button onClick={() => setShowUpload(true)} className="flex-1 py-2.5 px-4 text-sm text-white font-semibold rounded-xl flex items-center justify-center transition-transform hover:scale-105" style={{ background: '#417B5A' }}>
+                    <button
+                      onClick={() => setShowUpload(true)}
+                      className="flex-1 py-2.5 px-4 text-sm text-white font-medium rounded-lg flex items-center justify-center transition-colors bg-pana-teal hover:bg-pana-teal-dark"
+                    >
                       <Settings className="w-4 h-4 mr-2" /> Novo treinamento
                     </button>
-                    <button onClick={() => { setShowCategoryDialog(true); loadCategories(); }} className="px-3 rounded-xl border border-white/20 text-white hover:bg-white/10 transition-colors" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <button
+                      onClick={() => { setShowCategoryDialog(true); loadCategories(); }}
+                      className="px-3 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
+                    >
                       <Tag className="w-4 h-4" />
                     </button>
-                    <button onClick={() => navigate('/admin/gerenciar-ordem-videos')} className="px-3 rounded-xl border border-white/20 text-white hover:bg-white/10 transition-colors" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <button
+                      onClick={() => navigate('/admin/gerenciar-ordem-videos')}
+                      className="px-3 rounded-lg border border-white/20 text-white hover:bg-white/10 transition-colors"
+                    >
                       <ListOrdered className="w-4 h-4" />
                     </button>
                   </div>
@@ -303,7 +332,7 @@ export const Treinamentos = () => {
 
             </div>
           </div>
-        </motion.div>
+        </motion.header>
 
         <div className="max-w-7xl mx-auto px-4 lg:px-6 space-y-6">
           {/* SAAS FILTER HEADER */}
@@ -348,13 +377,13 @@ export const Treinamentos = () => {
           {/* VIDEOS ADMIN */}
           {isAdmin && (
             <div className="bg-card rounded-xl shadow-sm overflow-hidden border border-border flex flex-col">
-              <div className="px-5 py-4 flex items-center justify-between border-b border-border bg-muted/30">
+              <div className="px-5 py-4 flex items-center justify-between border-b border-pana-grape/10 bg-pana-grape-muted/40">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/40">
-                    <Video className="h-4 w-4 text-indigo-700 dark:text-indigo-400" />
+                  <div className="p-2 rounded-lg bg-white shadow-sm">
+                    <Video className="h-4 w-4 text-pana-grape" />
                   </div>
                   <div>
-                    <span className="font-semibold text-foreground">Vídeos Importados</span>
+                    <h3 className="font-quicksand font-semibold text-foreground">Vídeos importados</h3>
                     <p className="text-xs text-muted-foreground">Gerencie os vídeos de treinamento</p>
                   </div>
                 </div>
@@ -365,7 +394,7 @@ export const Treinamentos = () => {
               <div className="p-5">
                 {loadingVideos ? (
                   <div className="flex justify-center py-6">
-                    <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                    <PanaLoader />
                   </div>
                 ) : videos.length === 0 ? (
                   <div className="text-center py-8">
@@ -558,7 +587,7 @@ export const Treinamentos = () => {
           </DialogHeader>
           <div className="flex flex-col gap-3 mt-2">
             {loadingCategories ? (
-              <div className="flex justify-center py-6"><Loader2 className="w-6 h-6 text-primary animate-spin" /></div>
+              <div className="flex justify-center py-6"><PanaLoader /></div>
             ) : categoriesDB.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground">
                 <Tag className="w-8 h-8 mx-auto mb-2 opacity-50" />

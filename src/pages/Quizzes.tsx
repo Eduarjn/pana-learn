@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ERALayout } from '@/components/ERALayout';
 import { fadeInUp, fadeIn, staggerContainer, cardItem, cardHover } from '@/lib/animations';
+import { PanaLoader } from '@/components/ui/pana-loader';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -443,76 +444,80 @@ const Quizzes: React.FC = () => {
   // ─── Loading ─────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderColor: '#4B3F72' }}></div>
-          <p style={{ color: '#4B3F72' }} className="font-medium">Carregando quizzes...</p>
+      <ERALayout>
+        <div className="min-h-screen flex items-center justify-center bg-pana-bg">
+          <PanaLoader label="Carregando quizzes..." />
         </div>
-      </div>
+      </ERALayout>
     );
   }
 
   return (
     <ERALayout>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-pana-bg font-inter">
 
-        {/* Hero */}
-        <motion.div variants={fadeInUp} initial="hidden" animate="visible"
-          className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #2d2f5e 60%, #4B3F72 100%)' }}>
-          <div className="px-6 lg:px-10 py-8 lg:py-12">
-            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+        {/* Header de marca — sóbrio, sólido indigo */}
+        <motion.header
+          variants={fadeInUp} initial="hidden" animate="visible"
+          className="relative w-full rounded-2xl mb-6 lg:mb-8 overflow-hidden bg-pana-indigo"
+        >
+          <div className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-[0.07] bg-pana-teal" />
+          <div className="pointer-events-none absolute right-24 -bottom-24 w-72 h-72 rounded-full opacity-[0.05] bg-pana-grape" />
+
+          <div className="relative px-6 lg:px-10 py-8 lg:py-10">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-end justify-between gap-6">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#417B5A' }}></div>
-                  <span className="text-xs lg:text-sm font-medium text-white/80">Plataforma de Ensino</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-pana-teal" />
+                  <span className="text-[11px] font-medium uppercase tracking-[0.07em] text-pana-bone/80">
+                    Plataforma de ensino
+                  </span>
                 </div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">Quizzes</h1>
-                <p className="text-sm sm:text-base lg:text-lg text-white/80 max-w-2xl mb-4">
-                  Visualize e gerencie todos os quizzes de conclusao de cursos
+                <h1 className="font-quicksand font-bold text-3xl lg:text-4xl text-white mb-2">Quizzes</h1>
+                <p className="text-sm text-pana-bone/80 max-w-xl mb-4">
+                  Visualize e gerencie todos os quizzes de conclusão de cursos.
                 </p>
                 <div className="flex flex-wrap items-center gap-4">
                   {[
-                    { icon: HelpCircle, label: 'Avaliacoes interativas' },
-                    { icon: Target, label: 'Certificacao automatica' },
+                    { icon: HelpCircle, label: 'Avaliações interativas' },
+                    { icon: Target, label: 'Certificação automática' },
                     { icon: Users, label: 'Progresso dos alunos' },
                   ].map(({ icon: Icon, label }) => (
-                    <div key={label} className="flex items-center gap-2 text-xs lg:text-sm text-white/80">
-                      <Icon className="h-4 w-4" style={{ color: '#417B5A' }} />
+                    <div key={label} className="flex items-center gap-2 text-xs lg:text-sm text-pana-bone/80">
+                      <Icon className="h-4 w-4 text-pana-bone" />
                       <span>{label}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div className="flex flex-col gap-3">
-                {/* Stats inline */}
-                <div className="flex gap-3">
+              <div className="flex flex-col gap-3 w-full sm:w-auto">
+                <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 hide-scrollbar">
                   {[
-                    { label: 'Total', value: stats.total, icon: <BookOpen className="h-4 w-4" /> },
-                    { label: 'Ativos', value: stats.ativos, icon: <CheckCircle className="h-4 w-4" /> },
-                    { label: 'Perguntas', value: stats.total_perguntas, icon: <HelpCircle className="h-4 w-4" /> },
+                    { label: 'Total', value: stats.total },
+                    { label: 'Ativos', value: stats.ativos },
+                    { label: 'Perguntas', value: stats.total_perguntas },
                   ].map((s) => (
                     <div key={s.label}
-                      className="flex flex-col items-center justify-center rounded-xl px-4 py-3 text-center min-w-[72px]"
-                      style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)' }}>
-                      <div style={{ color: '#417B5A' }}>{s.icon}</div>
-                      <span className="text-xl font-bold text-white mt-1">{s.value}</span>
-                      <span className="text-xs text-white/70">{s.label}</span>
+                      className="flex flex-col items-center justify-center rounded-lg px-4 py-2.5 text-center min-w-[78px] bg-white/[0.08] border border-white/10">
+                      <span className="font-quicksand font-bold text-lg text-white leading-tight">{s.value}</span>
+                      <span className="text-[10px] text-pana-bone/70 uppercase tracking-wider font-medium mt-0.5">{s.label}</span>
                     </div>
                   ))}
                 </div>
                 {isAdmin && (
-                  <Button onClick={openNewQuizDialog} variant="default"
-                    className="font-semibold rounded-xl flex items-center gap-2 justify-center transition-all hover:scale-105">
+                  <Button
+                    onClick={openNewQuizDialog}
+                    className="bg-pana-teal hover:bg-pana-teal-dark text-white font-medium rounded-lg h-11 gap-2"
+                  >
                     <Plus className="h-4 w-4" />
-                    Novo Quiz
+                    Novo quiz
                   </Button>
                 )}
               </div>
             </div>
           </div>
-        </motion.div>
+        </motion.header>
 
         <div className="px-4 lg:px-6 pb-10">
           <div className="max-w-7xl mx-auto space-y-6">
@@ -521,19 +526,19 @@ const Quizzes: React.FC = () => {
             <motion.div variants={staggerContainer} initial="hidden" animate="visible"
               className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Total de Quizzes', value: stats.total, icon: <BookOpen className="h-6 w-6" />, color: '#1F2041' },
-                { label: 'Quizzes Ativos', value: stats.ativos, icon: <CheckCircle className="h-6 w-6" />, color: '#417B5A' },
-                { label: 'Total Perguntas', value: stats.total_perguntas, icon: <HelpCircle className="h-6 w-6" />, color: '#4B3F72' },
-                { label: 'Media Geral', value: `${stats.media_nota_geral}%`, icon: <Target className="h-6 w-6" />, color: '#7a5840' },
+                { label: 'Total de quizzes', value: stats.total, icon: <BookOpen className="h-5 w-5" />,    accent: '#1F2041', bg: 'bg-pana-indigo-muted', border: 'border-pana-indigo/10' },
+                { label: 'Quizzes ativos',   value: stats.ativos, icon: <CheckCircle className="h-5 w-5" />, accent: '#417B5A', bg: 'bg-pana-teal-muted',   border: 'border-pana-teal/15' },
+                { label: 'Total perguntas',  value: stats.total_perguntas, icon: <HelpCircle className="h-5 w-5" />, accent: '#4B3F72', bg: 'bg-pana-grape-muted', border: 'border-pana-grape/15' },
+                { label: 'Média geral',      value: `${stats.media_nota_geral}%`, icon: <Target className="h-5 w-5" />,  accent: '#7a5840', bg: 'bg-pana-petal/50',     border: 'border-pana-petal' },
               ].map((card) => (
                 <motion.div key={card.label} variants={cardItem}
-                  className="bg-card rounded-xl p-5 shadow-sm flex items-center gap-4 border border-border">
-                  <div className="rounded-lg p-2 flex-shrink-0" style={{ background: card.color + '18', color: card.color }}>
+                  className={`${card.bg} ${card.border} rounded-xl p-5 shadow-sm flex items-center gap-4 border`}>
+                  <div className="rounded-lg p-2.5 flex-shrink-0 bg-white/70" style={{ color: card.accent }}>
                     {card.icon}
                   </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">{card.label}</p>
-                    <p className="text-2xl font-bold text-foreground">{card.value}</p>
+                  <div className="min-w-0">
+                    <p className="font-quicksand font-bold text-2xl leading-tight" style={{ color: card.accent }}>{card.value}</p>
+                    <p className="text-[13px] text-foreground/70 mt-0.5 truncate">{card.label}</p>
                   </div>
                 </motion.div>
               ))}
@@ -542,11 +547,11 @@ const Quizzes: React.FC = () => {
             {/* Filters */}
             <motion.div variants={fadeIn} initial="hidden" animate="visible"
               className="bg-card rounded-xl shadow-sm overflow-hidden border border-border">
-              <div className="px-5 py-4 flex items-center gap-3 border-b border-border">
-                <div className="p-2 rounded-lg" style={{ background: '#e8e4f3' }}>
-                  <Filter className="h-4 w-4" style={{ color: '#4B3F72' }} />
+              <div className="px-5 py-4 flex items-center gap-3 border-b border-pana-grape/10 bg-pana-grape-muted/40">
+                <div className="p-2 rounded-lg bg-white shadow-sm">
+                  <Filter className="h-4 w-4 text-pana-grape" />
                 </div>
-                <span className="font-semibold text-foreground">Buscar Quizzes</span>
+                <h3 className="font-quicksand font-semibold text-foreground">Buscar quizzes</h3>
               </div>
               <div className="p-5">
                 <div className="flex flex-col md:flex-row gap-4">

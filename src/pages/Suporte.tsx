@@ -81,26 +81,33 @@ export default function Suporte() {
 
   return (
     <ERALayout>
-      <div className="min-h-screen bg-background pb-10">
-        {/* Header */}
-        <motion.div
+      <div className="min-h-screen bg-pana-bg pb-10 font-inter">
+        {/* Header de marca — sóbrio, sólido indigo */}
+        <motion.header
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full rounded-xl lg:rounded-2xl mb-6 lg:mb-8 shadow-md overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #4B3F72 60%, #417B5A 100%)' }}
+          className="relative w-full rounded-2xl mb-6 lg:mb-8 overflow-hidden bg-pana-indigo"
         >
-          <div className="px-6 lg:px-10 py-8 lg:py-10">
+          <div className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-[0.07] bg-pana-teal" />
+          <div className="pointer-events-none absolute right-24 -bottom-24 w-72 h-72 rounded-full opacity-[0.05] bg-pana-grape" />
+          <div className="relative px-6 lg:px-10 py-8 lg:py-10">
             <div className="max-w-4xl mx-auto flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
                 <Headset className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-white">Suporte SLA</h1>
-                <p className="text-sm text-white/70 mt-1">Envie uma solicitação e receba atendimento dentro do prazo garantido.</p>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-pana-teal" />
+                  <span className="text-[11px] font-medium uppercase tracking-[0.07em] text-pana-bone/80">
+                    Atendimento
+                  </span>
+                </div>
+                <h1 className="font-quicksand font-bold text-2xl lg:text-3xl text-white">Suporte SLA</h1>
+                <p className="text-sm text-pana-bone/80 mt-1">Envie uma solicitação e receba atendimento dentro do prazo garantido.</p>
               </div>
             </div>
           </div>
-        </motion.div>
+        </motion.header>
 
         <div className="max-w-4xl mx-auto px-4 lg:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

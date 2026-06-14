@@ -5,6 +5,7 @@ import { fadeInUp, staggerContainer, staggerFast, cardItem, cardHover } from '@/
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { ERALayout } from '@/components/ERALayout';
+import { PanaLoader } from '@/components/ui/pana-loader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -107,59 +108,48 @@ const Certificados: React.FC = () => {
 
   if (loading) return (
     <ERALayout>
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="text-center space-y-3">
-          <div className="w-10 h-10 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: '#4B3F72', borderTopColor: 'transparent' }} />
-          <p className="text-sm text-gray-500">Carregando certificados...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-[60vh] bg-pana-bg">
+        <PanaLoader label="Carregando certificados..." />
       </div>
     </ERALayout>
   );
 
   return (
     <ERALayout>
-      <div className="min-h-screen" style={{ background: '#F6F6FA' }}>
+      <div className="min-h-screen bg-pana-bg font-inter">
 
-        {/* Hero */}
-        <motion.div
+        {/* Header de marca — sóbrio, sólido indigo */}
+        <motion.header
           initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full rounded-xl lg:rounded-2xl mb-6 overflow-hidden shadow-md"
-          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #4B3F72 60%, #417B5A 100%)' }}
+          className="relative w-full rounded-2xl mb-6 overflow-hidden bg-pana-indigo"
         >
-          <div className="px-6 lg:px-10 py-8 lg:py-10">
+          <div className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-[0.07] bg-pana-teal" />
+          <div className="pointer-events-none absolute right-24 -bottom-24 w-72 h-72 rounded-full opacity-[0.05] bg-pana-grape" />
+
+          <div className="relative px-6 lg:px-10 py-8 lg:py-10">
             <div className="flex items-start justify-between gap-6">
-              <motion.div
-                variants={staggerContainer} initial="hidden" animate="visible"
-              >
+              <motion.div variants={staggerContainer} initial="hidden" animate="visible">
                 <motion.div variants={fadeInUp} className="flex items-center gap-2 mb-3">
-                  <span
-                    className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(233,210,192,0.12)', border: '1px solid rgba(233,210,192,0.25)', color: '#E9D2C0' }}
-                  >
-                    <Award className="w-3 h-3" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-pana-teal" />
+                  <span className="text-[11px] font-medium uppercase tracking-[0.07em] text-pana-bone/80">
                     Certificações
                   </span>
                 </motion.div>
-                <motion.h1 variants={fadeInUp} className="text-3xl md:text-4xl font-bold text-white mb-2">Certificados</motion.h1>
-                <motion.p variants={fadeInUp} className="text-white/70 text-sm md:text-base max-w-xl">
+                <motion.h1 variants={fadeInUp} className="font-quicksand font-bold text-3xl lg:text-4xl text-white mb-2">
+                  Certificados
+                </motion.h1>
+                <motion.p variants={fadeInUp} className="text-sm text-pana-bone/80 max-w-xl">
                   Visualize e gerencie todos os certificados emitidos pela plataforma.
                 </motion.p>
               </motion.div>
 
-              {/* Gerenciar Templates — visível só para admin */}
               {canManageTemplates && (
                 <motion.div variants={fadeInUp} initial="hidden" animate="visible" className="flex-shrink-0 mt-1">
                   <button
                     type="button"
                     onClick={() => navigate('/admin/certificados/templates')}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 hover:scale-[1.03]"
-                    style={{
-                      background: 'rgba(255,255,255,0.08)',
-                      border: '1px solid rgba(255,255,255,0.18)',
-                      color: '#E9D2C0',
-                      backdropFilter: 'blur(8px)',
-                    }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-white/[0.08] border border-white/15 text-pana-petal hover:bg-white/[0.14]"
                   >
                     <LayoutTemplate className="w-4 h-4" />
                     <span className="hidden sm:inline">Gerenciar templates</span>
@@ -173,7 +163,7 @@ const Certificados: React.FC = () => {
           {/* Stats bar */}
           <motion.div
             variants={staggerFast} initial="hidden" animate="visible"
-            className="px-6 md:px-10 py-4 grid grid-cols-4 gap-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
+            className="relative px-6 md:px-10 py-4 grid grid-cols-4 gap-4 border-t border-white/10"
           >
             {[
               { value: stats.total,   label: 'Total emitidos' },
@@ -182,12 +172,12 @@ const Certificados: React.FC = () => {
               { value: certificates.length > 0 ? new Date(certificates[0].data_emissao).toLocaleDateString('pt-BR') : '—', label: 'Última emissão' },
             ].map(({ value, label }) => (
               <motion.div key={label} variants={cardItem} className="text-center">
-                <div className="text-xl md:text-2xl font-bold text-white">{value}</div>
-                <div className="text-xs text-white/50 mt-0.5">{label}</div>
+                <div className="font-quicksand font-bold text-xl md:text-2xl text-white">{value}</div>
+                <div className="text-[10px] text-pana-bone/70 uppercase tracking-wider font-medium mt-0.5">{label}</div>
               </motion.div>
             ))}
           </motion.div>
-        </motion.div>
+        </motion.header>
 
         <div className="px-1 pb-8 space-y-5">
 

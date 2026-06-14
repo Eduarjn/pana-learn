@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ERALayout } from '@/components/ERALayout';
+import { PanaLoader } from '@/components/ui/pana-loader';
 import { useEmpresas } from '@/hooks/useEmpresas';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -412,7 +413,7 @@ const Empresas: React.FC = () => {
           <div className="p-4">
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8" style={{ borderBottom: '2px solid #417B5A' }}></div>
+                <PanaLoader />
                 <span className="ml-2 text-sm" style={{ color: 'rgba(255,255,255,0.5)' }}>Carregando empresas...</span>
               </div>
             ) : error ? (

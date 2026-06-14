@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp, staggerFast, cardItem, cardHover } from '@/lib/animations';
+import { PanaLoader } from '@/components/ui/pana-loader';
 import { useUserProgress } from '@/hooks/useCourses';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -74,8 +75,8 @@ const MeuPainel = () => {
           className="flex justify-between items-center"
         >
           <div>
-            <h1 className="text-3xl font-bold text-pana-indigo">Painel Administrativo</h1>
-            <p className="text-gray-500">Bem-vindo de volta, {userProfile?.nome}</p>
+            <h1 className="font-quicksand font-bold text-3xl text-pana-indigo">Painel administrativo</h1>
+            <p className="text-sm text-muted-foreground mt-1">Bem-vindo de volta, {userProfile?.nome}</p>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" className="flex items-center gap-2" onClick={() => navigate('/configuracoes')}>
@@ -295,10 +296,14 @@ const MeuPainel = () => {
         initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
       >
-        <h1 className="text-2xl font-bold mb-1 text-pana-indigo">Meu Painel</h1>
-        <p className="mb-6 text-gray-500 text-sm">Aqui você verá seus cursos, módulos e progresso.</p>
+        <h1 className="font-quicksand font-bold text-2xl mb-1 text-pana-indigo">Meu painel</h1>
+        <p className="mb-6 text-muted-foreground text-sm">Aqui você verá seus cursos, módulos e progresso.</p>
       </motion.div>
-      {isLoading && <p className="text-gray-500 text-sm">Carregando progresso...</p>}
+      {isLoading && (
+        <div className="flex justify-center py-6">
+          <PanaLoader label="Carregando progresso..." />
+        </div>
+      )}
       {error && <p className="text-red-500 text-sm">Erro ao carregar progresso.</p>}
       <motion.div
         variants={staggerFast} initial="hidden" animate="visible"

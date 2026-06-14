@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { fadeInUp, staggerContainer, staggerFast, cardItem, cardHover } from '@/lib/animations';
 import { ERALayout } from '@/components/ERALayout';
+import { PanaLoader } from '@/components/ui/pana-loader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -242,38 +243,41 @@ const Usuarios = () => {
 
   return (
     <ERALayout>
-      <div className="min-h-screen" style={{ background: '#F6F6FA' }}>
+      <div className="min-h-screen bg-pana-bg font-inter">
 
-        {/* Hero */}
-        <motion.div
+        {/* Header de marca — sóbrio, sólido indigo */}
+        <motion.header
           initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-          className="w-full rounded-xl lg:rounded-2xl mb-6 overflow-hidden shadow-md"
-          style={{ background: 'linear-gradient(135deg, #1F2041 0%, #4B3F72 60%, #417B5A 100%)' }}
+          className="relative w-full rounded-2xl mb-6 overflow-hidden bg-pana-indigo"
         >
-          <div className="px-6 lg:px-10 py-8 lg:py-10">
+          <div className="pointer-events-none absolute -right-16 -top-16 w-64 h-64 rounded-full opacity-[0.07] bg-pana-teal" />
+          <div className="pointer-events-none absolute right-24 -bottom-24 w-72 h-72 rounded-full opacity-[0.05] bg-pana-grape" />
+
+          <div className="relative px-6 lg:px-10 py-8 lg:py-10">
             <motion.div
               variants={staggerContainer} initial="hidden" animate="visible"
               className="flex items-start justify-between gap-6"
             >
               <div>
                 <motion.div variants={fadeInUp} className="flex items-center gap-2 mb-3">
-                  <span
-                    className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(233,210,192,0.12)', border: '1px solid rgba(233,210,192,0.25)', color: '#E9D2C0' }}
-                  >
-                    <Users className="w-3 h-3" />
-                    Gestão de Usuários
+                  <span className="w-1.5 h-1.5 rounded-full bg-pana-teal" />
+                  <span className="text-[11px] font-medium uppercase tracking-[0.07em] text-pana-bone/80">
+                    Gestão de usuários
                   </span>
                 </motion.div>
-                <motion.h1 variants={fadeInUp} className="text-3xl md:text-4xl font-bold text-white mb-2">Usuários</motion.h1>
-                <motion.p variants={fadeInUp} className="text-white/70 text-sm md:text-base">Gerencie usuários e permissões da plataforma.</motion.p>
+                <motion.h1 variants={fadeInUp} className="font-quicksand font-bold text-3xl lg:text-4xl text-white mb-2">
+                  Usuários
+                </motion.h1>
+                <motion.p variants={fadeInUp} className="text-sm text-pana-bone/80 max-w-xl">
+                  Gerencie usuários e permissões da plataforma.
+                </motion.p>
               </div>
             </motion.div>
           </div>
           <motion.div
             variants={staggerFast} initial="hidden" animate="visible"
-            className="px-6 md:px-10 py-4 grid grid-cols-4 gap-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}
+            className="relative px-6 md:px-10 py-4 grid grid-cols-4 gap-4 border-t border-white/10"
           >
             {[
               { value: userStats.total, label: 'Total' },
@@ -282,12 +286,12 @@ const Usuarios = () => {
               { value: userStats.novosEstaSemana, label: 'Novos esta semana' },
             ].map(({ value, label }) => (
               <motion.div key={label} variants={cardItem} className="text-center">
-                <div className="text-xl md:text-2xl font-bold text-white">{value}</div>
-                <div className="text-xs text-white/50 mt-0.5">{label}</div>
+                <div className="font-quicksand font-bold text-xl md:text-2xl text-white">{value}</div>
+                <div className="text-[10px] text-pana-bone/70 uppercase tracking-wider font-medium mt-0.5">{label}</div>
               </motion.div>
             ))}
           </motion.div>
-        </motion.div>
+        </motion.header>
 
         <div className="px-1 pb-8 space-y-5">
 
@@ -357,14 +361,13 @@ const Usuarios = () => {
                   ? `Limite do plano ${planLimits.planName} atingido (${planLimits.maxUsers} usuários). Faça upgrade para adicionar mais.`
                   : undefined
                 }
-                className="text-white text-sm flex items-center gap-1.5 px-4 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: planLimits?.isAtLimit ? '#6B7280' : 'linear-gradient(135deg, #1F2041, #4B3F72)' }}
+                className={`text-white text-sm flex items-center gap-1.5 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed ${planLimits?.isAtLimit ? 'bg-gray-500' : 'bg-pana-grape hover:bg-pana-grape-dark'}`}
               >
                 {planLimits?.isAtLimit
                   ? <ShieldAlert className="h-4 w-4" />
                   : <Plus className="h-4 w-4" />
                 }
-                {planLimits?.isAtLimit ? 'Limite atingido' : 'Novo Usuário'}
+                {planLimits?.isAtLimit ? 'Limite atingido' : 'Novo usuário'}
               </Button>
             </div>
           </div>
@@ -417,7 +420,7 @@ const Usuarios = () => {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleNewUserSubmit} className="text-white text-sm px-4" style={{ background: 'linear-gradient(135deg, #1F2041, #4B3F72)' }}>Criar usuário</Button>
+                <Button onClick={handleNewUserSubmit} className="text-white text-sm px-4" style={{ background: '#4B3F72' }}>Criar usuário</Button>
                 <Button variant="outline" onClick={() => setShowNewUserForm(false)} className="text-sm" style={{ borderColor: '#e4e5f0', color: '#4B3F72' }}>Cancelar</Button>
               </div>
             </div>
@@ -451,7 +454,7 @@ const Usuarios = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow><TableCell colSpan={7} className="text-center py-12">
-                      <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin mx-auto" style={{ borderColor: '#4B3F72', borderTopColor: 'transparent' }} />
+                      <PanaLoader size={8} />
                     </TableCell></TableRow>
                   ) : users.length === 0 ? (
                     <TableRow><TableCell colSpan={7} className="text-center py-12">
@@ -563,7 +566,7 @@ const Usuarios = () => {
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => { setShowEditModal(false); setNewPassword(''); setConfirmPassword(''); }}
               className="text-sm" style={{ borderColor: '#e4e5f0', color: '#4B3F72' }}>Cancelar</Button>
-            <Button onClick={handleSaveEdit} className="text-white text-sm" style={{ background: 'linear-gradient(135deg, #1F2041, #4B3F72)' }}>Salvar</Button>
+            <Button onClick={handleSaveEdit} className="text-white text-sm" style={{ background: '#4B3F72' }}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
