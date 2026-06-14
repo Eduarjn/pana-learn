@@ -10,6 +10,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { BrandingProvider } from '@/context/BrandingContext';
 import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from "@/components/theme-provider";
+import { PanaLoader } from "@/components/ui/pana-loader";
 import { runDiagnostics } from '@/utils/debug-env';
 
 // ── Páginas críticas (carregadas imediatamente) ─────────────────────────────
@@ -46,9 +47,8 @@ import { CadastroTest } from '@/components/CadastroTest';
 
 // ── Loading fallback ────────────────────────────────────────────────────────
 const PageLoader = () => (
-  <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'60vh' }}>
-    <div style={{ width:32, height:32, border:'3px solid #4B3F72', borderTopColor:'transparent', borderRadius:'50%', animation:'spin .7s linear infinite' }} />
-    <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+  <div className="flex items-center justify-center" style={{ minHeight: '60vh' }}>
+    <PanaLoader label="Carregando..." />
   </div>
 );
 // import AIModulePage from '@/pages/admin/ai';

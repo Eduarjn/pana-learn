@@ -16,6 +16,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { fadeInUp, fadeIn, staggerContainer, cardItem, cardHover, staggerFast } from '@/lib/animations';
+import { RotatingWords } from '@/components/ui/animated-hero';
+import { PanaLoader } from '@/components/ui/pana-loader';
 
 const formatTimeAgo = (d: string) => {
   if (!d) return '—';
@@ -112,10 +114,14 @@ const Dashboard = () => {
                     Plataforma de ensino
                   </span>
                 </motion.div>
-                <motion.h1 variants={fadeInUp} className="font-quicksand font-bold text-3xl lg:text-4xl text-white mb-2">
+                <motion.h1 variants={fadeInUp} className="font-quicksand font-bold text-3xl lg:text-4xl text-white mb-1">
                   Olá, {userName}
                 </motion.h1>
-                <motion.p variants={fadeInUp} className="text-sm lg:text-base text-pana-bone/80 max-w-xl">
+                <motion.div variants={fadeInUp} className="font-quicksand font-semibold text-lg lg:text-xl text-white/90 mb-2 flex items-center gap-2">
+                  <span>Vamos aprender algo</span>
+                  <RotatingWords words={['novo', 'prático', 'útil', 'marcante']} className="text-pana-petal" />
+                </motion.div>
+                <motion.p variants={fadeInUp} className="text-sm text-pana-bone/80 max-w-xl">
                   {courses.length > 0
                     ? `Você tem ${courses.length} curso${courses.length > 1 ? 's' : ''} disponíve${courses.length > 1 ? 'is' : 'l'}. Bons estudos.`
                     : 'Seus cursos aparecerão aqui assim que forem publicados.'}
@@ -479,7 +485,7 @@ const Dashboard = () => {
 
               {coursesLoading ? (
                 <div className="flex justify-center py-16">
-                  <div className="w-8 h-8 border-2 border-pana-grape border-t-transparent rounded-full animate-spin" />
+                  <PanaLoader label="Carregando cursos..." />
                 </div>
               ) : courses.length === 0 ? (
                 <div className="text-center py-16 bg-card rounded-xl border border-border">

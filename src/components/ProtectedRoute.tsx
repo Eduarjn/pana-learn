@@ -1,6 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { AuthForm } from '@/components/AuthForm';
-import { Loader2 } from 'lucide-react';
+import { PanaLoader } from '@/components/ui/pana-loader';
 import { useLocation, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
@@ -66,11 +66,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center hero-background">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-era-green" />
-          <p className="text-white">Carregando...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-pana-bg">
+        <PanaLoader label="Carregando..." />
       </div>
     );
   }
@@ -97,11 +94,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Gate de onboarding/pagamento (admin_master e rotas /onboarding/* já saem como 'ok' acima)
   if (gate.state === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center hero-background">
-        <div className="flex flex-col items-center space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-era-green" />
-          <p className="text-white">Carregando...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-pana-bg">
+        <PanaLoader label="Carregando..." />
       </div>
     );
   }
