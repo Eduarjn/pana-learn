@@ -855,6 +855,10 @@ export default function Landing() {
                 { l:'Blog',    href:'/blog' },
                 { l:'Contato', href:'mailto:comercial@panalearn.com' },
               ]},
+              { h:'Legal', links:[
+                { l:'Privacidade', href:'/privacidade' },
+                { l:'Termos de uso', href:'/termos' },
+              ]},
             ].map(col => (
               <div key={col.h} className="lp-ft-col">
                 <h4>{col.h}</h4>
@@ -863,8 +867,11 @@ export default function Landing() {
             ))}
           </div>
           <div className="lp-ft-bot">
-            <span className="lp-ft-copy">© 2025 PanaLearn. Todos os direitos reservados.</span>
-            <span className="lp-ft-copy">Feito com 💚 no Brasil</span>
+            <span className="lp-ft-copy">© 2026 PanaLearn. Todos os direitos reservados.</span>
+            <span className="lp-ft-copy" style={{ display: 'flex', gap: 16 }}>
+              <a href="/privacidade">Privacidade</a>
+              <a href="/termos">Termos</a>
+            </span>
           </div>
         </div>
       </footer>

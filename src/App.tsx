@@ -40,6 +40,8 @@ const GerenciarOrdemVideos = lazy(() => import("@/pages/admin/GerenciarOrdemVide
 const CertificateTemplates = lazy(() => import("@/pages/admin/CertificateTemplates"));
 const ValidarCertificado = lazy(() => import("@/pages/ValidarCertificado"));
 const Blog = lazy(() => import("@/pages/Blog"));
+const Privacidade = lazy(() => import("@/pages/Privacidade"));
+const Termos = lazy(() => import("@/pages/Termos"));
 
 // ── Componentes de diagnóstico ──────────────────────────────────────────────
 import { TestComponent } from '@/components/TestComponent';
@@ -87,6 +89,8 @@ const App = () => {
                 {/* Rotas públicas */}
                 <Route path="/" element={<Landing />} />
                 <Route path="/blog" element={<Blog />} />
+                <Route path="/privacidade" element={<Privacidade />} />
+                <Route path="/termos" element={<Termos />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/index" element={<Index />} />
                 <Route path="/reset-password" element={<ResetPassword />} />

@@ -206,6 +206,12 @@ export default function StepConta({ data, updateData, onNext }: Props) {
           >
             {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Criando...</> : 'Continuar →'}
           </Button>
+          <p className="text-xs text-pana-text-secondary text-center mt-3">
+            Ao continuar, você concorda com os{' '}
+            <a href="/termos" target="_blank" rel="noopener noreferrer" className="text-pana-teal hover:underline">termos de uso</a>{' '}
+            e a{' '}
+            <a href="/privacidade" target="_blank" rel="noopener noreferrer" className="text-pana-teal hover:underline">política de privacidade</a>.
+          </p>
         </div>
       </div>
     </div>
