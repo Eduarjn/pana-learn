@@ -86,69 +86,33 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
     setError(null);
 
     try {
-      // Gerar senha se não fornecida
-      const senha = userData.senha || Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase();
+      // Endpoint serverless (service role) cria o usuário SEM trocar a sessão
+      // do admin — elimina o bug de usuário órfão e a fragilidade do signUp.
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.');
 
-      // 1. Salvar sessão atual do admin ANTES de criar o novo usuário
-      const { data: currentSession } = await supabase.auth.getSession();
-      const adminAccessToken = currentSession?.session?.access_token;
-      const adminRefreshToken = currentSession?.session?.refresh_token;
-
-      // 2. Criar usuário via Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: userData.email,
-        password: senha,
-        options: {
-          data: {
-            nome: userData.nome,
-            tipo_usuario: userData.tipo_usuario
-          }
-        }
+      const res = await fetch('/api/admin-create-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          nome: userData.nome,
+          email: userData.email,
+          senha: userData.senha || undefined,
+          tipo_usuario: userData.tipo_usuario,
+          empresa_id: empresaId,
+        }),
       });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Erro ao criar usuário');
 
-      if (authError) {
-        if (authError.message?.includes('already registered')) {
-          throw new Error('Este email já está cadastrado no sistema');
-        }
-        throw new Error(authError.message || 'Erro ao criar usuário');
-      }
-
-      if (!authData.user) {
-        throw new Error('Erro ao criar usuário: resposta vazia');
-      }
-
-      // 3. RESTAURAR sessão do admin imediatamente (signUp pode ter feito auto-login como o novo user)
-      if (adminRefreshToken) {
-        await supabase.auth.setSession({
-          access_token: adminAccessToken!,
-          refresh_token: adminRefreshToken
-        });
-      }
-
-      // 4. Aguardar trigger criar a linha em usuarios e vincular à empresa.
-      //    Usa RPC SECURITY DEFINER: o UPDATE direto era bloqueado pela RLS,
-      //    pois a linha nova nasce com empresa_id NULL e o admin só pode
-      //    editar linhas que já são da sua empresa (bug: usuário ficava órfão).
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const { error: linkError } = await supabase.rpc('admin_link_user_to_empresa', {
-        p_user_id: authData.user.id,
-        p_empresa_id: empresaId,
-        p_tipo: userData.tipo_usuario,
-        p_nome: userData.nome,
-      });
-
-      if (linkError) {
-        throw new Error(`Usuário criado mas não vinculado à empresa: ${linkError.message}`);
-      }
-
-      // 5. Atualizar lista de usuários
+      // Atualizar lista de usuários
       await fetchUsersByEmpresa(empresaId);
 
-      return { 
-        success: true, 
-        message: `Usuário ${userData.nome} criado com sucesso!`, 
-        password: senha 
+      return {
+        success: true,
+        message: `Usuário ${userData.nome} criado com sucesso!`,
+        password: result.password,
       };
 
     } catch (err) {
