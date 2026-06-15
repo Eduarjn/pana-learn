@@ -14,6 +14,7 @@ type TenantGate =
   | { state: 'no-tenant' }              // user sem empresa → onboarding
   | { state: 'onboarding-pending' }     // tem empresa mas não completou
   | { state: 'payment-pending' }        // completou mas sem trial/active
+  | { state: 'suspended' }              // empresa desativada pelo admin_master
   | { state: 'ok' };
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
@@ -36,7 +37,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       setGate({ state: 'loading' });
       const { data, error } = await supabase
         .from('usuarios')
-        .select('empresa_id, empresas:empresa_id (onboarding_completed, plan_status)')
+        .select('empresa_id, empresas:empresa_id (onboarding_completed, plan_status, active)')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -48,6 +49,12 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
       if (error || !data?.empresa_id || !empresa) {
         setGate({ state: 'no-tenant' });
+        return;
+      }
+      // Empresa desativada pelo admin_master → bloqueia o acesso de todos os
+      // usuários dela (exceto admin_master, que já saiu como 'ok' no topo).
+      if (empresa.active === false) {
+        setGate({ state: 'suspended' });
         return;
       }
       if (!empresa.onboarding_completed) {
@@ -96,6 +103,28 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-pana-bg">
         <PanaLoader label="Carregando..." />
+      </div>
+    );
+  }
+  if (gate.state === 'suspended') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-pana-bg font-inter px-6">
+        <div className="max-w-md text-center">
+          <div className="w-14 h-14 rounded-2xl bg-pana-petal-soft mx-auto mb-5 flex items-center justify-center">
+            <span className="text-2xl">🔒</span>
+          </div>
+          <h1 className="font-quicksand font-bold text-2xl text-pana-indigo mb-2">Acesso suspenso</h1>
+          <p className="text-sm text-muted-foreground mb-6">
+            O acesso da sua organização à plataforma foi temporariamente desativado.
+            Entre em contato com o suporte para regularizar.
+          </p>
+          <a
+            href="mailto:suporte@panalearn.com"
+            className="inline-flex items-center justify-center h-11 px-6 rounded-lg bg-pana-teal text-white font-medium hover:bg-pana-teal-dark transition-colors"
+          >
+            Falar com o suporte
+          </a>
+        </div>
       </div>
     );
   }

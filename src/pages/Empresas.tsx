@@ -205,6 +205,21 @@ const Empresas: React.FC = () => {
     window.open(clientUrl, '_blank');
   };
 
+  const handleToggleActive = async (empresa: Empresa) => {
+    const novoEstado = !(empresa as any).active;
+    try {
+      await updateEmpresa(empresa.id, { active: novoEstado } as any);
+      toast({
+        title: novoEstado ? '✅ Empresa ativada' : '🔒 Empresa desativada',
+        description: novoEstado
+          ? `Os usuários de ${empresa.nome} já podem acessar.`
+          : `Os logins de ${empresa.nome} foram bloqueados.`,
+      });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message || 'Não foi possível alterar.', variant: 'destructive' });
+    }
+  };
+
   const handleViewClientDashboard = (empresa: Empresa) => {
     navigate(`/empresa/${empresa.id}`);
     toast({
@@ -554,6 +569,27 @@ const Empresas: React.FC = () => {
                                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
                                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; }}
                             >
+                              {!isPrincipal && (
+                                <button
+                                  onClick={() => handleToggleActive(empresa)}
+                                  title={(empresa as any).active === false ? 'Ativar acesso' : 'Desativar acesso'}
+                                  role="switch"
+                                  aria-checked={(empresa as any).active !== false}
+                                  className="relative inline-flex items-center rounded-full transition-colors mr-1"
+                                  style={{
+                                    width: 36, height: 20,
+                                    background: (empresa as any).active === false ? 'rgba(255,255,255,0.18)' : '#417B5A',
+                                  }}
+                                >
+                                  <span
+                                    className="inline-block rounded-full bg-white transition-transform"
+                                    style={{
+                                      width: 14, height: 14,
+                                      transform: (empresa as any).active === false ? 'translateX(3px)' : 'translateX(19px)',
+                                    }}
+                                  />
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleViewClientDashboard(empresa)}
                                 title="Visualizar"
