@@ -370,7 +370,8 @@ const EmpresaDashboard: React.FC = () => {
                 </div>
               </DialogContent>
             </Dialog>
-            <Button 
+            <Button
+              onClick={handleAccessClient}
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               <Eye className="h-4 w-4 mr-2" />
