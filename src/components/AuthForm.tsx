@@ -16,7 +16,8 @@ const ModernInput = ({ label, id, endIcon, placeholder, ...props }: any) => (
         id={id}
         placeholder={placeholder}
         {...props}
-        className="w-full bg-white/5 border border-white/10 text-white placeholder-white/30 rounded-xl px-4 py-3.5 focus:bg-white/10 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-300 outline-none shadow-sm"
+        style={{ caretColor: '#fff', color: '#fff' }}
+        className="auth-input w-full bg-white/5 border border-white/10 text-white placeholder-white/30 rounded-xl px-4 py-3.5 focus:bg-white/10 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-300 outline-none shadow-sm"
       />
       {endIcon && (
         <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/40 group-focus-within:text-indigo-300 transition-colors">
@@ -24,6 +25,19 @@ const ModernInput = ({ label, id, endIcon, placeholder, ...props }: any) => (
         </div>
       )}
     </div>
+    {/* Override do autofill do navegador: texto preenchido fica branco e legível
+        no fundo escuro (Chrome troca a cor por padrão, deixando invisível). */}
+    <style>{`
+      .auth-input:-webkit-autofill,
+      .auth-input:-webkit-autofill:hover,
+      .auth-input:-webkit-autofill:focus,
+      .auth-input:-webkit-autofill:active {
+        -webkit-text-fill-color: #ffffff !important;
+        caret-color: #ffffff !important;
+        -webkit-box-shadow: 0 0 0 1000px rgba(255,255,255,0.06) inset !important;
+        transition: background-color 9999s ease-in-out 0s;
+      }
+    `}</style>
   </div>
 );
 
