@@ -226,19 +226,22 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
         }
       }
 
-      // Prioridade do template: (1) coluna do curso no banco → (2) localStorage → (3) padrão
+      // Template do certificado: (1) coluna do curso no banco → (2) localStorage.
       let templateId: string | null = cursoTemplateId;
       if (!templateId && courseId) {
         const savedTemplateId = localStorage.getItem(`curso_template_${courseId}`);
         if (savedTemplateId) templateId = savedTemplateId;
       }
+
+      // REGRA DE PRODUTO: sem template de certificado ATRELADO ao curso,
+      // NÃO emite certificado. Isso permite módulos intermediários (sem
+      // template) que apenas registram progresso, e reserva a emissão do
+      // certificado para o curso/módulo "final" que tiver um template
+      // vinculado. (Antes havia fallback para um template padrão, que emitia
+      // certificado em qualquer curso concluído — comportamento removido.)
       if (!templateId) {
-        const { data: defaultTemplate } = await supabase
-          .from('certificate_templates')
-          .select('id')
-          .eq('is_default', true)
-          .maybeSingle();
-        templateId = defaultTemplate?.id || null;
+        console.log('ℹ️ Curso sem template de certificado atrelado — certificado não emitido.');
+        return;
       }
 
       // Gerar número único: CERT-YYYYMMDD-XXXXX
