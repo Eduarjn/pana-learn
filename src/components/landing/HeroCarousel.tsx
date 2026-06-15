@@ -54,7 +54,11 @@ export default function HeroCarousel() {
                 src={slide.image}
                 alt={slide.title}
                 className="hc-img"
-                loading="lazy"
+                // Imagem do hero é o LCP (acima da dobra): carrega eager.
+                // A primeira recebe prioridade alta para reduzir o LCP.
+                loading="eager"
+                // @ts-expect-error fetchpriority é valido em HTML, faltam tipos
+                fetchpriority={index === 0 ? 'high' : 'auto'}
                 onError={() => setFailed(f => ({ ...f, [index]: true }))}
               />
             ) : (
