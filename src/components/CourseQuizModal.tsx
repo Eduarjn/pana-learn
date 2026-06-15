@@ -26,8 +26,10 @@ export function CourseQuizModal({
   onClose,
   onQuizComplete
 }: CourseQuizModalProps) {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const { toast } = useToast();
+  // IMPORTANTE: useQuiz espera o usuarios.id (FK de progresso_quiz/certificados),
+  // não o auth.users.id. Passar user.id fazia quiz e certificado falharem.
   const {
     quizConfig,
     isLoading,
@@ -38,7 +40,7 @@ export function CourseQuizModal({
     submitQuiz,
     checkQuizAvailability,
     loadQuizByFinalQuizId
-  } = useQuiz(user?.id, courseId);
+  } = useQuiz(userProfile?.id, courseId);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -48,7 +50,7 @@ export function CourseQuizModal({
 
   // Carregar quiz específico quando modal abre
   useEffect(() => {
-    if (isOpen && user?.id && courseId) {
+    if (isOpen && userProfile?.id && courseId) {
       if (quizId) {
         // Carregar quiz específico pelo ID
         loadQuizByFinalQuizId(quizId);
@@ -57,7 +59,7 @@ export function CourseQuizModal({
         checkQuizAvailability();
       }
     }
-  }, [isOpen, user?.id, courseId, quizId, loadQuizByFinalQuizId, checkQuizAvailability]);
+  }, [isOpen, userProfile?.id, courseId, quizId, loadQuizByFinalQuizId, checkQuizAvailability]);
 
   // Resetar estado quando modal fecha
   useEffect(() => {

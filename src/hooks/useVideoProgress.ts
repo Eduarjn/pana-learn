@@ -113,7 +113,7 @@ export function useVideoProgress(
     try {
       console.log('💾 Salvando progresso:', { tempoAssistido, tempoTotal, concluido });
       
-      const progressData = {
+      const progressData: Record<string, any> = {
         user_id: userId,
         video_id: videoId,
         curso_id: cursoId,
@@ -122,6 +122,8 @@ export function useVideoProgress(
         percentual_assistido: tempoTotal > 0 ? (tempoAssistido / tempoTotal) * 100 : 0,
         concluido: concluido ?? progress.concluido
       };
+      // empresa_id para visibilidade do admin e integridade multi-tenant
+      if (empresaId) progressData.empresa_id = empresaId;
 
       // Usar UPSERT (INSERT OR UPDATE) para evitar chave duplicada
       const result = await supabase
