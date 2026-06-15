@@ -19,25 +19,37 @@ interface Slide {
   description: string;  // descrição
 }
 
-// ⬇️ EDITE AQUI — placeholders provisórios até você enviar as imagens/textos.
+// ⬇️ EDITE AQUI. Salve os 5 prints em public/landing/ com estes nomes exatos.
 const SLIDES: Slide[] = [
   {
-    image: '',
+    image: '/landing/01-dashboard.png',
+    eyebrow: 'Painel',
+    title: 'Acompanhe o progresso em um só lugar',
+    description: 'Cada aluno vê seus cursos, módulos concluídos e próximos passos. Administradores acompanham as métricas da organização em tempo real.',
+  },
+  {
+    image: '/landing/02-treinamentos.png',
     eyebrow: 'Trilhas de aprendizado',
-    title: 'Cursos estruturados em módulos',
-    description: 'Organize o conteúdo em trilhas do básico ao avançado, com vídeos, quizzes e progresso acompanhado em tempo real.',
+    title: 'Cursos organizados em trilhas',
+    description: 'Crie categorias, importe vídeos e estruture treinamentos do básico ao avançado — tudo com poucos cliques.',
   },
   {
-    image: '',
+    image: '/landing/03-quizzes.png',
     eyebrow: 'Avaliação',
-    title: 'Quizzes e certificação automática',
-    description: 'Avalie o conhecimento com quizzes e emita certificados automaticamente ao concluir cada curso.',
+    title: 'Quizzes e avaliação automática',
+    description: 'Gere quizzes de conclusão para cada curso e avalie o conhecimento dos alunos de forma automática.',
   },
   {
-    image: '',
-    eyebrow: 'Sua marca',
-    title: 'Plataforma white-label',
-    description: 'Personalize logotipo, cores e nome. Seus alunos veem a sua marca, não a nossa.',
+    image: '/landing/04-certificados.png',
+    eyebrow: 'Certificação',
+    title: 'Certificados emitidos automaticamente',
+    description: 'Ao concluir um curso, o aluno recebe um certificado validável. Acompanhe todas as emissões em um painel único.',
+  },
+  {
+    image: '/landing/05-usuarios.png',
+    eyebrow: 'Gestão',
+    title: 'Gerencie sua equipe com facilidade',
+    description: 'Cadastre alunos e administradores, defina permissões e acompanhe os acessos — com isolamento total por organização.',
   },
 ];
 
@@ -45,6 +57,7 @@ const INTERVAL = 4000; // 4 segundos por slide
 
 export default function FeatureCarousel() {
   const [index, setIndex] = useState(0);
+  const [failed, setFailed] = useState<Record<number, boolean>>({});
   const prefersReduced = useReducedMotion();
   const count = SLIDES.length;
 
@@ -79,8 +92,14 @@ export default function FeatureCarousel() {
                 exit={prefersReduced ? undefined : { opacity: 0, scale: 0.99 }}
                 transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
               >
-                {slide.image ? (
-                  <img src={slide.image} alt={slide.title} className="fc-img" />
+                {slide.image && !failed[index] ? (
+                  <img
+                    src={slide.image}
+                    alt={slide.title}
+                    className="fc-img"
+                    loading="lazy"
+                    onError={() => setFailed(f => ({ ...f, [index]: true }))}
+                  />
                 ) : (
                   <div className="fc-placeholder">
                     <span>Imagem {index + 1}</span>
@@ -134,11 +153,13 @@ export default function FeatureCarousel() {
           border-radius: 16px;
           overflow: hidden;
           box-shadow: 0 12px 28px rgba(31,32,65,0.16);
-          background: #F6F6FA;
+          background: #EDEDF4;
+          border: 1px solid #E6E5EE;
           aspect-ratio: 16 / 10;
+          padding: 10px;
         }
-        .fc-media-inner { width: 100%; height: 100%; }
-        .fc-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .fc-media-inner { width: 100%; height: 100%; border-radius: 8px; overflow: hidden; }
+        .fc-img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
         .fc-placeholder {
           width: 100%; height: 100%;
           display: flex; align-items: center; justify-content: center;
