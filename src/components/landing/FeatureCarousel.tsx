@@ -22,31 +22,31 @@ interface Slide {
 // ⬇️ EDITE AQUI. Salve os 5 prints em public/landing/ com estes nomes exatos.
 const SLIDES: Slide[] = [
   {
-    image: '/landing/01-dashboard.png',
+    image: '/landing/01-dashboard.jpg',
     eyebrow: 'Painel',
     title: 'Acompanhe o progresso em um só lugar',
     description: 'Cada aluno vê seus cursos, módulos concluídos e próximos passos. Administradores acompanham as métricas da organização em tempo real.',
   },
   {
-    image: '/landing/02-treinamentos.png',
+    image: '/landing/02-treinamentos.jpg',
     eyebrow: 'Trilhas de aprendizado',
     title: 'Cursos organizados em trilhas',
     description: 'Crie categorias, importe vídeos e estruture treinamentos do básico ao avançado — tudo com poucos cliques.',
   },
   {
-    image: '/landing/03-quizzes.png',
+    image: '/landing/03-quizzes.jpg',
     eyebrow: 'Avaliação',
     title: 'Quizzes e avaliação automática',
     description: 'Gere quizzes de conclusão para cada curso e avalie o conhecimento dos alunos de forma automática.',
   },
   {
-    image: '/landing/04-certificados.png',
+    image: '/landing/04-certificados.jpg',
     eyebrow: 'Certificação',
     title: 'Certificados emitidos automaticamente',
     description: 'Ao concluir um curso, o aluno recebe um certificado validável. Acompanhe todas as emissões em um painel único.',
   },
   {
-    image: '/landing/05-usuarios.png',
+    image: '/landing/05-usuarios.jpg',
     eyebrow: 'Gestão',
     title: 'Gerencie sua equipe com facilidade',
     description: 'Cadastre alunos e administradores, defina permissões e acompanhe os acessos — com isolamento total por organização.',
