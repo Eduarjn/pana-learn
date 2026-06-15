@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 
 export default function ResetPassword() {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -16,8 +15,22 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // Sessão de recuperação válida? O supabase-js processa o token do link
+  // (hash #access_token=... ou ?code=...) automaticamente e dispara
+  // PASSWORD_RECOVERY. Não dependemos de ler o token da query string.
+  const [recoveryReady, setRecoveryReady] = useState(false);
 
-  const accessToken = searchParams.get('access_token');
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) setRecoveryReady(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+        setRecoveryReady(true);
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +38,8 @@ export default function ResetPassword() {
     setError('');
     setMessage('');
 
-    if (!accessToken) {
-      setError('Token de redefinição inválido.');
+    if (!recoveryReady) {
+      setError('Link inválido ou expirado. Volte ao login e solicite um novo email de recuperação.');
       setLoading(false);
       return;
     }
