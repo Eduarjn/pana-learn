@@ -125,20 +125,21 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
         });
       }
 
-      // 4. Aguardar trigger e atualizar empresa_id
+      // 4. Aguardar trigger criar a linha em usuarios e vincular à empresa.
+      //    Usa RPC SECURITY DEFINER: o UPDATE direto era bloqueado pela RLS,
+      //    pois a linha nova nasce com empresa_id NULL e o admin só pode
+      //    editar linhas que já são da sua empresa (bug: usuário ficava órfão).
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      const { error: updateError } = await supabase
-        .from('usuarios')
-        .update({
-          empresa_id: empresaId,
-          tipo_usuario: userData.tipo_usuario,
-          nome: userData.nome
-        })
-        .eq('user_id', authData.user.id);
+      const { error: linkError } = await supabase.rpc('admin_link_user_to_empresa', {
+        p_user_id: authData.user.id,
+        p_empresa_id: empresaId,
+        p_tipo: userData.tipo_usuario,
+        p_nome: userData.nome,
+      });
 
-      if (updateError) {
-        console.warn('Aviso: não foi possível vincular empresa ao usuário:', updateError);
+      if (linkError) {
+        throw new Error(`Usuário criado mas não vinculado à empresa: ${linkError.message}`);
       }
 
       // 5. Atualizar lista de usuários
