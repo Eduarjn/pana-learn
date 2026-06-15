@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useEmpresa } from '@/context/EmpresaContext';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -186,35 +187,50 @@ function migrateBranding(cfg: BrandingConfig): BrandingConfig {
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export const BrandingProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { empresa } = useEmpresa();
+  const empresaId = empresa?.id ?? null;
+  const cacheKey = empresaId ? `panalearn-branding-${empresaId}` : 'panalearn-branding';
+
   const [branding, setBranding] = useState<BrandingConfig>(defaultBranding);
   const [loading, setLoading] = useState(true);
 
-  // Carrega do banco (com fallback para localStorage)
+  // Carrega o branding DA EMPRESA ATUAL (isolado por tenant). Recarrega quando
+  // a empresa muda (ex.: admin_master entrando em "modo visualização").
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
+        // Sem empresa resolvida (login/público/admin_master sem masquerade):
+        // usa cache local se houver, senão o padrão.
+        if (!empresaId) {
+          const saved = localStorage.getItem(cacheKey);
+          const cfg = saved ? migrateBranding({ ...defaultBranding, ...JSON.parse(saved) }) : defaultBranding;
+          setBranding(cfg);
+          applyBrandingToDOM(cfg);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('branding_config')
           .select('*')
+          .eq('empresa_id', empresaId)
           .order('created_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (!error && data) {
           const cfg = migrateBranding({ ...defaultBranding, ...data });
           setBranding(cfg);
           applyBrandingToDOM(cfg);
-          localStorage.setItem('panalearn-branding', JSON.stringify(cfg));
+          localStorage.setItem(cacheKey, JSON.stringify(cfg));
         } else {
-          // fallback localStorage
-          const saved = localStorage.getItem('panalearn-branding');
+          const saved = localStorage.getItem(cacheKey);
           const cfg = saved ? migrateBranding({ ...defaultBranding, ...JSON.parse(saved) }) : defaultBranding;
           setBranding(cfg);
           applyBrandingToDOM(cfg);
         }
       } catch {
-        const saved = localStorage.getItem('panalearn-branding');
+        const saved = localStorage.getItem(cacheKey);
         const cfg = saved ? migrateBranding({ ...defaultBranding, ...JSON.parse(saved) }) : defaultBranding;
         setBranding(cfg);
         applyBrandingToDOM(cfg);
@@ -223,35 +239,38 @@ export const BrandingProvider: React.FC<{ children: ReactNode }> = ({ children }
       }
     };
     load();
-  }, []);
+  }, [empresaId, cacheKey]);
 
-  // Persiste no banco + localStorage e aplica ao DOM imediatamente
+  // Persiste o branding DA EMPRESA ATUAL (escopado por empresa_id).
   const updateBranding = useCallback(async (updates: Partial<BrandingConfig>) => {
     const next = { ...branding, ...updates };
-    
-    // Aplica ao DOM instantaneamente (feedback imediato)
+
     applyBrandingToDOM(next);
     setBranding(next);
-    localStorage.setItem('panalearn-branding', JSON.stringify(next));
+    localStorage.setItem(cacheKey, JSON.stringify(next));
 
-    // Persiste no banco
+    // Sem empresa resolvida não persiste no banco (evita escrever em registro
+    // de outro tenant — causa do bug "muda o nome de todas as empresas").
+    if (!empresaId) return;
+
     try {
       const { data: existing } = await supabase
         .from('branding_config')
         .select('id')
+        .eq('empresa_id', empresaId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (existing?.id) {
         await supabase.from('branding_config').update(updates).eq('id', existing.id);
       } else {
-        await supabase.from('branding_config').insert({ ...next });
+        await supabase.from('branding_config').insert({ ...next, empresa_id: empresaId });
       }
     } catch (err) {
       console.warn('Branding não persistido no banco (usando localStorage):', err);
     }
-  }, [branding]);
+  }, [branding, empresaId, cacheKey]);
 
   const updateLogo         = (url: string)                    => updateBranding({ logo_url: url });
   const updateSubLogo      = (url: string)                    => updateBranding({ sub_logo_url: url });
