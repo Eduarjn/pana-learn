@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { heroStagger, heroEntrance, ctaGlow, pressEffect, liftOnHover } from '@/lib/motion-variants';
 import { RotatingWords } from '@/components/ui/animated-hero';
-import FeatureCarousel from '@/components/landing/FeatureCarousel';
+import HeroCarousel from '@/components/landing/HeroCarousel';
 
 const LANDING_CSS = `
 /* Fonts loaded via <link> in index.html — removed render-blocking @import */
@@ -510,47 +510,13 @@ export default function Landing() {
               </motion.div>
             </motion.div>
 
-            {/* Coluna direita — mockup entra após o stagger da esquerda */}
+            {/* Coluna direita — carrossel de screenshots reais (entra após o stagger) */}
             <motion.div
-              className="lp-mock"
               initial={prefersReduced ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1], delay: prefersReduced ? 0 : 0.7 }}
             >
-              <div className="lp-mock-hdr">
-                <div className="lp-dots"><div className="lp-dot"/><div className="lp-dot"/><div className="lp-dot"/></div>
-                <div className="lp-titlebar"/>
-              </div>
-              <div className="lp-mc">
-                <div className="lp-mc-lbl">Curso em andamento</div>
-                <div className="lp-mc-title">Onboarding Comercial 2025</div>
-                <div className="lp-prog-bg"><div className="lp-prog-fill"/></div>
-                <div className="lp-prog-lbl"><span>Progresso</span><span style={{color:'#D0CEBA',fontWeight:700}}>72%</span></div>
-              </div>
-              <div className="lp-mc">
-                <div className="lp-cert-row">
-                  <div className="lp-cert-ico">
-                    <svg viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M6 8h6M6 11h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><circle cx="13" cy="13" r="3" fill="currentColor" opacity="0.2"/><path d="M12 13l1 1 1.5-1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>
-                  </div>
-                  <div>
-                    <div className="lp-cert-name">Certificado emitido</div>
-                    <div className="lp-cert-date">Liderança Estratégica • Hoje</div>
-                  </div>
-                  <div className="lp-cert-badge">Novo</div>
-                </div>
-              </div>
-              <div className="lp-mc">
-                <div className="lp-chart-lbl">Atividade semanal</div>
-                <div className="lp-chart">
-                  {[30,55,45,85,70,90,100].map((h,i) => (
-                    <div key={i} className={`lp-bar${i===3||i===6?' act':''}`} style={{height:`${h}%`}}/>
-                  ))}
-                </div>
-              </div>
-              <div className="lp-stats">
-                <div className="lp-stat"><div className="lp-stat-n">247</div><div className="lp-stat-l">Alunos ativos</div></div>
-                <div className="lp-stat"><div className="lp-stat-n">94%</div><div className="lp-stat-l">Conclusão</div></div>
-              </div>
+              <HeroCarousel />
             </motion.div>
 
           </div>
@@ -684,9 +650,6 @@ export default function Landing() {
           </div>
         </div>
       </section>
-
-      {/* CARROSSEL DE DESTAQUE — imagem + texto trocando a cada 4s */}
-      <FeatureCarousel />
 
       {/* BLOG */}
       <section id="lp-blog" className="lp-sec" style={{background:'#fff'}}>
