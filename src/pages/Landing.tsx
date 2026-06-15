@@ -47,6 +47,9 @@ const LANDING_CSS = `
 .lp-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; border-radius: 8px; font-size: 0.9rem; font-weight: 600; transition: all 0.25s; cursor: pointer; }
 .lp-btn-ow { border: 1.5px solid rgba(255,255,255,0.6); color: #fff; background: transparent; }
 .lp-btn-ow:hover { background: rgba(255,255,255,0.1); border-color: #fff; }
+/* navbar com fundo branco (rolada): botão outline-white vira grape p/ legibilidade */
+.lp-nav.lp-scrolled .lp-btn-ow { border-color: #4B3F72; color: #4B3F72; }
+.lp-nav.lp-scrolled .lp-btn-ow:hover { background: #F4F3FA; border-color: #4B3F72; }
 .lp-btn-op { border: 1.5px solid #4B3F72; color: #4B3F72; background: transparent; }
 .lp-btn-op:hover { background: #F4F3FA; }
 .lp-btn-g { background: #417B5A; color: #fff; border: none; }
@@ -356,21 +359,22 @@ export default function Landing() {
       const la = document.getElementById('lp-la');
       if (lm) lm.classList.toggle('active', !window.__lpIsAnnual);
       if (la) la.classList.toggle('active', window.__lpIsAnnual);
+      // Enterprise é "Sob demanda" — não entra no toggle de preço.
       const prices: Record<string, { monthly: number; annual: number }> = {
-        starter: { monthly: 697, annual: 597 },
-        pro: { monthly: 997, annual: 857 },
-        enterprise: { monthly: SOB-DEMANDA, annual: SOB-DEMANDA },
+        starter: { monthly: 697, annual: 558 },
+        pro: { monthly: 1097, annual: 878 },
       };
       for (const [plan, vals] of Object.entries(prices)) {
         const price = document.getElementById('lp-p-' + plan);
         const old = document.getElementById('lp-o-' + plan);
         if (!price || !old) continue;
+        const fmt = (n: number) => 'R$\u00A0' + n.toLocaleString('pt-BR');
         if (window.__lpIsAnnual) {
-          price.textContent = 'R$\u00A0' + vals.annual;
-          old.textContent = 'R$\u00A0' + vals.monthly;
+          price.textContent = fmt(vals.annual);
+          old.textContent = fmt(vals.monthly);
           old.classList.add('show');
         } else {
-          price.textContent = 'R$\u00A0' + vals.monthly;
+          price.textContent = fmt(vals.monthly);
           old.classList.remove('show');
         }
       }
@@ -496,9 +500,9 @@ export default function Landing() {
               </motion.div>
 
               <motion.div variants={heroEntrance} className="lp-trust">
-                <span className="lp-trust-txt">Mais de 10 organizações já confiam na PanaLearn</span>
+                <span className="lp-trust-txt">Organizações que já confiam na PanaLearn</span>
                 <div className="lp-trust-logos">
-                  {['ACME Corp','EduMax','TechGroup','FranquiasBR','HealthCare'].map(n => (
+                  {['ERAlearn','swisscorp.texas'].map(n => (
                     <span className="lp-trust-pill" key={n}>{n}</span>
                   ))}
                 </div>
@@ -728,7 +732,7 @@ export default function Landing() {
           <div className="lp-plans lp-fade">
             <div className="lp-plan">
               <div className="lp-plan-name">Starter</div>
-              <div><span className="lp-plan-old" id="lp-o-starter">R$&nbsp;397</span><span className="lp-plan-price" id="lp-p-starter">R$&nbsp;397</span><span className="lp-plan-per">/mês</span></div>
+              <div><span className="lp-plan-old" id="lp-o-starter">R$&nbsp;697</span><span className="lp-plan-price" id="lp-p-starter">R$&nbsp;697</span><span className="lp-plan-per">/mês</span></div>
               <div className="lp-plan-desc">Ideal para pequenas equipes e empresas começando no e-learning.</div>
               <ul className="lp-plan-feats">
                 {['Até 40 usuários ativos','Cursos limitados','Quizzes inclusos','Certificados automáticos','Painel básico de progresso'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
@@ -738,7 +742,7 @@ export default function Landing() {
             <div className="lp-plan featured">
               <div className="lp-plan-badge">Mais popular</div>
               <div className="lp-plan-name">Pro</div>
-              <div><span className="lp-plan-old" id="lp-o-pro">R$&nbsp;697</span><span className="lp-plan-price" id="lp-p-pro">R$&nbsp;697</span><span className="lp-plan-per">/mês</span></div>
+              <div><span className="lp-plan-old" id="lp-o-pro">R$&nbsp;1.097</span><span className="lp-plan-price" id="lp-p-pro">R$&nbsp;1.097</span><span className="lp-plan-per">/mês</span></div>
               <div className="lp-plan-desc">Para empresas em crescimento que precisam de personalização e IA.</div>
               <ul className="lp-plan-feats">
                 {['Até 180 usuários ativos','Cursos ilimitados','Quizzes + certificados','Gestão de usuários','Suporte com SLA garantido'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
@@ -747,10 +751,10 @@ export default function Landing() {
             </div>
             <div className="lp-plan">
               <div className="lp-plan-name">Enterprise</div>
-              <div><span className="lp-plan-old" id="lp-o-enterprise">R$&nbsp;1.097</span><span className="lp-plan-price" id="lp-p-enterprise">R$&nbsp;1.097</span><span className="lp-plan-per">/mês</span></div>
+              <div><span className="lp-plan-price" id="lp-p-enterprise">Sob demanda</span></div>
               <div className="lp-plan-desc">Para grandes organizações com necessidades avançadas e escala.</div>
               <ul className="lp-plan-feats">
-                {['Até 500 usuários ativos','Cursos ilimitados','Quizzes + certificados','White-label completo','Integrações via API','Suporte prioritário','IA de suporte incluída 🤖'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
+                {['Usuários ilimitados','Cursos ilimitados','Quizzes + certificados','White-label completo','Integrações via API','Suporte prioritário','IA de suporte incluída'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
               </ul>
               <a href="mailto:comercial@panalearn.com?subject=Plano%20Enterprise%20%E2%80%94%20preciso%20falar%20com%20um%20especialista" className="lp-plan-cta lp-btn lp-btn-op">Falar com especialista</a>
             </div>
