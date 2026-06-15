@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { heroStagger, heroEntrance, ctaGlow, pressEffect, liftOnHover } from '@/lib/motion-variants';
 import { RotatingWords } from '@/components/ui/animated-hero';
+import FeatureCarousel from '@/components/landing/FeatureCarousel';
 
 const LANDING_CSS = `
 /* Fonts loaded via <link> in index.html — removed render-blocking @import */
@@ -683,6 +684,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* CARROSSEL DE DESTAQUE — imagem + texto trocando a cada 4s */}
+      <FeatureCarousel />
 
       {/* BLOG */}
       <section id="lp-blog" className="lp-sec" style={{background:'#fff'}}>
