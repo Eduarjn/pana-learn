@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface QuizAudio {
   id: string;
@@ -27,6 +28,7 @@ export interface CreateAudioInput {
 }
 
 export function useQuizAudios() {
+  const { userProfile } = useAuth();
   const [audios, setAudios] = useState<QuizAudio[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -72,17 +74,23 @@ export function useQuizAudios() {
 
       const audioUrl = urlData.publicUrl;
 
-      // Insert metadata into quiz_audios
+      // Insert metadata into quiz_audios — escopado ao tenant do usuário.
+      // empresa_id é omitido quando ausente: o DB tem DEFAULT get_empresa_id()
+      // (derivado da sessão, à prova de spoof) que preenche o tenant correto.
+      const payload: Record<string, any> = {
+        nome: metadata.nome,
+        descricao: metadata.descricao || null,
+        audio_url: audioUrl,
+        tamanho_bytes: file.size,
+        tipo_mime: file.type,
+        categoria: metadata.categoria || null,
+        criado_por: userProfile?.id || null,
+      };
+      if (userProfile?.empresa_id) payload.empresa_id = userProfile.empresa_id;
+
       const { data, error } = await (supabase
         .from('quiz_audios' as any)
-        .insert({
-          nome: metadata.nome,
-          descricao: metadata.descricao || null,
-          audio_url: audioUrl,
-          tamanho_bytes: file.size,
-          tipo_mime: file.type,
-          categoria: metadata.categoria || null,
-        })
+        .insert(payload)
         .select()
         .single() as any);
 
@@ -96,21 +104,25 @@ export function useQuizAudios() {
     } finally {
       setUploading(false);
     }
-  }, []);
+  }, [userProfile?.empresa_id, userProfile?.id]);
 
   const addAudioByUrl = useCallback(async (input: CreateAudioInput) => {
     try {
+      const payload: Record<string, any> = {
+        nome: input.nome,
+        descricao: input.descricao || null,
+        audio_url: input.audio_url,
+        duracao_segundos: input.duracao_segundos || null,
+        tamanho_bytes: input.tamanho_bytes || null,
+        tipo_mime: input.tipo_mime || 'audio/mpeg',
+        categoria: input.categoria || null,
+        criado_por: userProfile?.id || null,
+      };
+      if (userProfile?.empresa_id) payload.empresa_id = userProfile.empresa_id;
+
       const { data, error } = await (supabase
         .from('quiz_audios' as any)
-        .insert({
-          nome: input.nome,
-          descricao: input.descricao || null,
-          audio_url: input.audio_url,
-          duracao_segundos: input.duracao_segundos || null,
-          tamanho_bytes: input.tamanho_bytes || null,
-          tipo_mime: input.tipo_mime || 'audio/mpeg',
-          categoria: input.categoria || null,
-        })
+        .insert(payload)
         .select()
         .single() as any);
 
@@ -122,7 +134,7 @@ export function useQuizAudios() {
       console.error('Erro ao adicionar áudio:', err);
       throw err;
     }
-  }, []);
+  }, [userProfile?.empresa_id, userProfile?.id]);
 
   const deleteAudio = useCallback(async (audioId: string) => {
     try {

@@ -9,6 +9,7 @@ interface UserProfile {
   tipo_usuario: 'admin' | 'admin_master' | 'cliente'; // Adicionado 'admin_master'
   status: string;
   avatar_url?: string;
+  empresa_id?: string; // tenant do usuário — vem do select('*') em runtime
 }
 
 interface AuthContextType {
