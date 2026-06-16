@@ -15,6 +15,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp, fadeInLeft, fadeIn, staggerContainer, cardItem } from '@/lib/animations';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useEmpresa } from '@/context/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useBranding, defaultBranding } from '@/context/BrandingContext';
 import { useTheme } from '@/components/theme-provider';
@@ -104,7 +105,20 @@ const Conta = () => {
   const [changingPwd, setChangingPwd] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(userProfile?.avatar_url || '');
   const [uploading, setUploading] = useState(false);
+  const [nome, setNome] = useState(userProfile?.nome || '');
+  const [savingNome, setSavingNome] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { setNome(userProfile?.nome || ''); }, [userProfile?.nome]);
+
+  const handleSaveNome = async () => {
+    if (!nome.trim()) { toast({ title: 'Informe um nome', variant: 'destructive' }); return; }
+    setSavingNome(true);
+    const { error } = await supabase.from('usuarios').update({ nome: nome.trim() }).eq('id', userProfile.id);
+    setSavingNome(false);
+    if (error) { toast({ title: 'Erro ao salvar nome', variant: 'destructive' }); return; }
+    toast({ title: 'Nome atualizado!' });
+  };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -162,12 +176,19 @@ const Conta = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label className="text-xs font-medium text-white/60 mb-1.5 block">Nome</Label>
-            <Input defaultValue={userProfile?.nome || ''} className="border-slate-700 bg-slate-900/60 text-white text-sm rounded-lg" />
+            <Input value={nome} onChange={e => setNome(e.target.value)} className="border-slate-700 bg-slate-900/60 text-white text-sm rounded-lg" />
           </div>
           <div>
             <Label className="text-xs font-medium text-white/60 mb-1.5 block">Email</Label>
             <Input defaultValue={userProfile?.email || ''} disabled className="border-slate-700 bg-slate-800 text-white/40 text-sm rounded-lg" />
           </div>
+        </div>
+        <div className="flex justify-end mt-4">
+          <Button onClick={handleSaveNome} disabled={savingNome || nome.trim() === (userProfile?.nome || '')}
+            className="text-sm px-4 flex items-center gap-2"
+            style={{ backgroundColor: '#4B3F72', color: '#E9D2C0', fontWeight: 600 }}>
+            {savingNome ? <><Loader2 className="h-4 w-4 animate-spin" />Salvando...</> : <><Check className="h-4 w-4" />Salvar nome</>}
+          </Button>
         </div>
       </SectionCard>
 
@@ -858,11 +879,21 @@ const TAB_COMPONENTS: Record<TabKey, React.FC> = {
 
 const Configuracoes = () => {
   const { userProfile } = useAuth();
-  const isAdmin = userProfile?.tipo_usuario === 'admin' || userProfile?.tipo_usuario === 'admin_master';
+  const { empresa } = useEmpresa();
   const [activeTab, setActiveTab] = useState<TabKey>('preferencias');
 
-  const visible = CONFIG_SECTIONS.filter(s => !s.adminOnly || isAdmin);
-  const ActiveComponent = TAB_COMPONENTS[activeTab];
+  // Submenus avançados (White-Label, Áudios, Integrações, Segurança) só
+  // aparecem para admin_master OU admin de empresa no plano Enterprise.
+  // Customização/branding é um recurso Enterprise — planos menores não veem.
+  const isAdminMaster = userProfile?.tipo_usuario === 'admin_master';
+  const isAdmin = userProfile?.tipo_usuario === 'admin' || isAdminMaster;
+  const isEnterprise = (empresa?.plan ?? '').toLowerCase() === 'enterprise';
+  const canSeeAdvanced = isAdminMaster || (isAdmin && isEnterprise);
+
+  const visible = CONFIG_SECTIONS.filter(s => !s.adminOnly || canSeeAdvanced);
+  // Se a aba ativa não está mais visível (ex.: plano mudou), volta para a 1ª.
+  const safeTab: TabKey = visible.some(s => s.key === activeTab) ? activeTab : 'preferencias';
+  const ActiveComponent = TAB_COMPONENTS[safeTab];
 
   return (
     <ERALayout>
@@ -887,7 +918,7 @@ const Configuracoes = () => {
               style={{ width: 210, flexShrink: 0 }}>
               <div style={{ background: '#1F2041', border: '1px solid rgba(75,63,114,0.15)', borderRadius: 12, overflow: 'hidden' }}>
                 {visible.map(s => {
-                  const active = activeTab === s.key;
+                  const active = safeTab === s.key;
                   return (
                     <button
                       key={s.key}
@@ -916,7 +947,7 @@ const Configuracoes = () => {
             {/* Conteúdo da aba ativa */}
             <div style={{ flex: 1, minWidth: 0 }}>
               <AnimatePresence mode="wait">
-                <motion.div key={activeTab}
+                <motion.div key={safeTab}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
