@@ -39,6 +39,7 @@ import {
   HardDrive
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import type { Database as DatabaseType } from '@/integrations/supabase/types';
 
 type Empresa = DatabaseType['public']['Tables']['empresas']['Row'];
@@ -62,6 +63,31 @@ const EmpresaDashboard: React.FC = () => {
   const [empresa, setEmpresa] = useState<Empresa | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('visao-geral');
+
+  // Cursos e certificados do tenant visualizado. admin_master passa na RLS
+  // (policies de cursos/certificados têm OR is_admin_master()), então a busca
+  // escopada por empresa_id retorna os dados do cliente para suporte.
+  const [cursos, setCursos] = useState<{ id: string; nome: string; categoria: string | null; descricao: string | null; status: string }[]>([]);
+  const [cursosLoading, setCursosLoading] = useState(true);
+  const [certCount, setCertCount] = useState(0);
+
+  useEffect(() => {
+    if (!empresaId) return;
+    let mounted = true;
+    (async () => {
+      setCursosLoading(true);
+      const [cursosRes, certRes] = await Promise.all([
+        supabase.from('cursos').select('id, nome, categoria, descricao, status').eq('empresa_id', empresaId).order('nome'),
+        supabase.from('certificados').select('id', { count: 'exact', head: true }).eq('empresa_id', empresaId),
+      ]);
+      if (!mounted) return;
+      if (cursosRes.error) console.error('Erro ao carregar cursos do tenant:', cursosRes.error);
+      setCursos(cursosRes.data || []);
+      setCertCount(certRes.count || 0);
+      setCursosLoading(false);
+    })();
+    return () => { mounted = false; };
+  }, [empresaId]);
 
   const { data: planLimits } = usePlanLimits(empresa ? { id: empresa.id, plan: empresa.plan } : undefined);
   const { data: monthlyUsage } = useMonthlyUsage(empresa?.id);
@@ -241,9 +267,9 @@ const EmpresaDashboard: React.FC = () => {
   const clientStats = {
     totalUsers: users.length,
     activeUsers: users.filter(u => u.status === 'ativo').length,
-    totalCourses: 0,
+    totalCourses: cursos.length,
     completedCourses: 0,
-    totalCertificates: 0,
+    totalCertificates: certCount,
     averageProgress: 0
   };
 
@@ -794,9 +820,66 @@ const EmpresaDashboard: React.FC = () => {
 
           <TabsContent value="cursos" className="mt-4">
             <Card style={{ border: '0.5px solid #e4e5f0', borderRadius: '12px' }}>
-              <CardContent className="py-12 text-center text-gray-400">
-                <BookOpen className="h-10 w-10 mx-auto mb-3" style={{ color: '#e4e5f0' }} />
-                <p className="text-[14px]">Cursos deste tenant serão exibidos aqui.</p>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between text-[16px] font-medium" style={{ color: '#1F2041' }}>
+                  <div className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" style={{ color: '#4B3F72' }} />
+                    Cursos da empresa
+                  </div>
+                  <Button size="sm" variant="secondary" onClick={handleAccessClient}>
+                    <Eye className="h-4 w-4 mr-1.5" />
+                    Modo Visualização
+                  </Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {cursosLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                    <span className="ml-2 text-gray-600">Carregando cursos...</span>
+                  </div>
+                ) : cursos.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <BookOpen className="h-10 w-10 mx-auto mb-3" style={{ color: '#e4e5f0' }} />
+                    <p className="text-[14px]">Esta empresa ainda não criou nenhum curso.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-4 font-medium">Nome</th>
+                          <th className="text-left py-3 px-4 font-medium">Categoria</th>
+                          <th className="text-left py-3 px-4 font-medium">Status</th>
+                          <th className="text-left py-3 px-4 font-medium">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cursos.map((curso) => (
+                          <tr key={curso.id} className="border-b hover:bg-gray-50">
+                            <td className="py-3 px-4 font-medium">{curso.nome}</td>
+                            <td className="py-3 px-4 text-sm text-gray-600">{curso.categoria || '—'}</td>
+                            <td className="py-3 px-4">
+                              <Badge variant={curso.status === 'ativo' ? 'ativo' : 'inativo'}>
+                                {curso.status === 'ativo' ? 'Ativo' : curso.status}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-4">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(`${window.location.origin}/curso/${curso.id}?simular_empresa=${empresa.id}`, '_blank')}
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1.5" />
+                                Abrir
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
