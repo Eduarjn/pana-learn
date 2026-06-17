@@ -930,10 +930,10 @@ const Configuracoes = () => {
         </motion.div>
 
         <div style={{ padding: '0 4px 32px' }}>
-          <div style={{ display: 'flex', gap: 20, flexDirection: 'row' }}>
-            {/* Sidebar de abas */}
+          <div className="flex flex-col md:flex-row gap-5">
+            {/* Sidebar de abas — empilha no mobile, lateral no desktop */}
             <motion.nav variants={fadeInLeft} initial="hidden" animate="visible"
-              style={{ width: 210, flexShrink: 0 }}>
+              className="w-full md:w-[210px] md:flex-shrink-0">
               <div style={{ background: '#1F2041', border: '1px solid rgba(75,63,114,0.15)', borderRadius: 12, overflow: 'hidden' }}>
                 {visible.map(s => {
                   const active = safeTab === s.key;

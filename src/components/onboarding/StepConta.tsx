@@ -185,7 +185,7 @@ export default function StepConta({ data, updateData, onNext }: Props) {
       <p className="font-inter text-sm text-pana-text-secondary mb-8">Cadastre sua organização e configure o ambiente rapidamente.</p>
 
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="nome">Nome completo</Label>
             <Input id="nome" {...register('nome')} placeholder="João Silva" className="mt-1" />
@@ -204,7 +204,7 @@ export default function StepConta({ data, updateData, onNext }: Props) {
           {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="senha">Senha</Label>
             <div className="relative mt-1">
