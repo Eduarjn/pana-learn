@@ -37,6 +37,21 @@ function traduzErroAuth(msg: string): string {
   return msg || 'Tente novamente.';
 }
 
+// Avalia a força da senha ao vivo para o medidor visual (não substitui a
+// verificação de senha vazada do Supabase, que roda no servidor).
+function avaliarForcaSenha(s: string): { nivel: 0 | 1 | 2 | 3; label: string; cor: string } {
+  if (!s) return { nivel: 0, label: '', cor: '#E5E7EB' };
+  let score = 0;
+  if (s.length >= 8) score++;
+  if (s.length >= 12) score++;
+  if (/[a-z]/.test(s) && /[A-Z]/.test(s)) score++;
+  if (/\d/.test(s)) score++;
+  if (/[^A-Za-z0-9]/.test(s)) score++;
+  if (score <= 2) return { nivel: 1, label: 'Fraca', cor: '#DC2626' };
+  if (score <= 3) return { nivel: 2, label: 'Média', cor: '#F59E0B' };
+  return { nivel: 3, label: 'Forte', cor: '#417B5A' };
+}
+
 interface Props {
   data: any;
   updateData: (d: any) => void;
@@ -47,10 +62,13 @@ export default function StepConta({ data, updateData, onNext }: Props) {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
     defaultValues: { nome: data.nome, email: data.email, organizacaoNome: data.organizacaoNome },
   });
+
+  const senhaAtual = watch('senha') || '';
+  const forca = avaliarForcaSenha(senhaAtual);
 
   const onSubmit = async (formData: FormData) => {
     setLoading(true);
@@ -203,9 +221,26 @@ export default function StepConta({ data, updateData, onNext }: Props) {
           <div>
             <Label htmlFor="senha">Senha</Label>
             <Input id="senha" type="password" {...register('senha')} placeholder="Mínimo 8 caracteres" className="mt-1" />
+            {/* Medidor de força da senha ao vivo */}
+            {senhaAtual && (
+              <div className="mt-2">
+                <div className="flex gap-1">
+                  {[1, 2, 3].map(i => (
+                    <div
+                      key={i}
+                      className="h-1.5 flex-1 rounded-full transition-colors"
+                      style={{ background: i <= forca.nivel ? forca.cor : '#E5E7EB' }}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs mt-1 font-medium" style={{ color: forca.cor }}>
+                  Senha {forca.label}
+                </p>
+              </div>
+            )}
             {errors.senha
               ? <p className="text-red-500 text-xs mt-1">{errors.senha.message}</p>
-              : <p className="text-pana-text-secondary text-xs mt-1">Use uma senha forte e única (evite senhas comuns — elas são bloqueadas).</p>}
+              : <p className="text-pana-text-secondary text-xs mt-1">8+ caracteres com letras, números e símbolos. Senhas comuns ou vazadas são bloqueadas.</p>}
           </div>
           <div>
             <Label htmlFor="confirmarSenha">Confirmar senha</Label>
