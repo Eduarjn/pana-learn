@@ -362,8 +362,8 @@ export default function Landing() {
       if (la) la.classList.toggle('active', window.__lpIsAnnual);
       // Enterprise é "Sob demanda" — não entra no toggle de preço.
       const prices: Record<string, { monthly: number; annual: number }> = {
-        starter: { monthly: 100, annual: 80 },
-        pro: { monthly: 200, annual: 160 },
+        starter: { monthly: 597, annual: 478 },
+        pro: { monthly: 897, annual: 718 },
       };
       for (const [plan, vals] of Object.entries(prices)) {
         const price = document.getElementById('lp-p-' + plan);
@@ -699,7 +699,7 @@ export default function Landing() {
           <div className="lp-plans lp-fade">
             <div className="lp-plan">
               <div className="lp-plan-name">Starter</div>
-              <div><span className="lp-plan-old" id="lp-o-starter">R$&nbsp;100</span><span className="lp-plan-price" id="lp-p-starter">R$&nbsp;100</span><span className="lp-plan-per">/mês</span></div>
+              <div><span className="lp-plan-old" id="lp-o-starter">R$&nbsp;597</span><span className="lp-plan-price" id="lp-p-starter">R$&nbsp;597</span><span className="lp-plan-per">/mês</span></div>
               <div className="lp-plan-desc">Ideal para pequenas equipes e empresas começando no e-learning.</div>
               <ul className="lp-plan-feats">
                 {['Até 40 usuários ativos','Cursos limitados','Quizzes inclusos','Certificados automáticos','Painel básico de progresso'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
@@ -709,7 +709,7 @@ export default function Landing() {
             <div className="lp-plan featured">
               <div className="lp-plan-badge">Mais popular</div>
               <div className="lp-plan-name">Pro</div>
-              <div><span className="lp-plan-old" id="lp-o-pro">R$&nbsp;200</span><span className="lp-plan-price" id="lp-p-pro">R$&nbsp;200</span><span className="lp-plan-per">/mês</span></div>
+              <div><span className="lp-plan-old" id="lp-o-pro">R$&nbsp;897</span><span className="lp-plan-price" id="lp-p-pro">R$&nbsp;897</span><span className="lp-plan-per">/mês</span></div>
               <div className="lp-plan-desc">Para empresas em crescimento que precisam de personalização e IA.</div>
               <ul className="lp-plan-feats">
                 {['Até 180 usuários ativos','Cursos ilimitados','Quizzes + certificados','Gestão de usuários','Suporte com SLA garantido'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}

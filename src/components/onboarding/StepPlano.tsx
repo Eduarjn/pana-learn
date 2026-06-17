@@ -7,7 +7,7 @@ const PLANOS = [
   {
     id: 'starter',
     nome: 'Starter',
-    preco: 'R$ 100',
+    preco: 'R$ 597',
     periodo: '/mês',
     icon: Zap,
     cor: '#3b82f6',
@@ -18,7 +18,7 @@ const PLANOS = [
   {
     id: 'pro',
     nome: 'Pro',
-    preco: 'R$ 200',
+    preco: 'R$ 897',
     periodo: '/mês',
     icon: Rocket,
     cor: '#22c55e',

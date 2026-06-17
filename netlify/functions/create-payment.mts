@@ -8,8 +8,8 @@ const ASAAS_API_URL = process.env.ASAAS_API_URL || 'https://sandbox.asaas.com/ap
 const ASAAS_API_KEY = process.env.ASAAS_API_KEY || '';
 
 const PLANOS: Record<string, { nome: string; valor: number }> = {
-  starter:    { nome: 'Panalearn Starter',    valor: 100.00 },
-  pro:        { nome: 'Panalearn Pro',         valor: 200.00 },
+  starter:    { nome: 'Panalearn Starter',    valor: 597.00 },
+  pro:        { nome: 'Panalearn Pro',         valor: 897.00 },
   enterprise: { nome: 'Panalearn Enterprise',  valor: 1097.00 },
 };
 
