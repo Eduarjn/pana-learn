@@ -9,8 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, CreditCard, Gift, ShieldCheck, ExternalLink } from 'lucide-react';
 
 const PLANO_INFO: Record<string, { nome: string; preco: string }> = {
-  starter:    { nome: 'Starter',    preco: 'R$ 397,00/mês' },
-  pro:        { nome: 'Pro',        preco: 'R$ 697,00/mês' },
+  starter:    { nome: 'Starter',    preco: 'R$ 100,00/mês' },
+  pro:        { nome: 'Pro',        preco: 'R$ 200,00/mês' },
   enterprise: { nome: 'Enterprise', preco: 'R$ 1.097,00/mês' },
 };
 

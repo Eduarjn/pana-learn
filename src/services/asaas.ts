@@ -35,8 +35,8 @@ async function asaasRequest<T = any>(
 // ── Planos ──────────────────────────────────────────────────────────────────
 
 export const PLANOS: Record<string, { nome: string; valor: number; descricao: string }> = {
-  starter:    { nome: 'Panalearn Starter',    valor: 397.00, descricao: 'Até 40 alunos' },
-  pro:        { nome: 'Panalearn Pro',         valor: 697.00, descricao: 'Até 180 alunos' },
+  starter:    { nome: 'Panalearn Starter',    valor: 100.00, descricao: 'Até 40 alunos' },
+  pro:        { nome: 'Panalearn Pro',         valor: 200.00, descricao: 'Até 180 alunos' },
   enterprise: { nome: 'Panalearn Enterprise',  valor: 1097.00, descricao: 'Alunos ilimitados' },
 };
 
