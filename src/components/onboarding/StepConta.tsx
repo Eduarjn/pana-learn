@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 const schema = z.object({
   nome: z.string().min(3, 'Nome deve ter ao menos 3 caracteres'),
@@ -54,6 +54,8 @@ export default function StepConta({ data, updateData, onNext }: Props) {
   });
 
   const senhaAtual = watch('senha') || '';
+  const [showSenha, setShowSenha] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const onSubmit = async (formData: FormData) => {
     setLoading(true);
@@ -205,13 +207,27 @@ export default function StepConta({ data, updateData, onNext }: Props) {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label htmlFor="senha">Senha</Label>
-            <Input id="senha" type="password" {...register('senha')} placeholder="Mínimo 8 caracteres" className="mt-1" />
+            <div className="relative mt-1">
+              <Input id="senha" type={showSenha ? 'text' : 'password'} {...register('senha')} placeholder="Mínimo 8 caracteres" className="pr-10" />
+              <button type="button" onClick={() => setShowSenha(v => !v)} tabIndex={-1}
+                aria-label={showSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-pana-text-secondary hover:text-pana-indigo">
+                {showSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
             <PasswordStrengthMeter senha={senhaAtual} />
             {errors.senha && <p className="text-red-500 text-xs mt-1">{errors.senha.message}</p>}
           </div>
           <div>
             <Label htmlFor="confirmarSenha">Confirmar senha</Label>
-            <Input id="confirmarSenha" type="password" {...register('confirmarSenha')} placeholder="Repita a senha" className="mt-1" />
+            <div className="relative mt-1">
+              <Input id="confirmarSenha" type={showConfirm ? 'text' : 'password'} {...register('confirmarSenha')} placeholder="Repita a senha" className="pr-10" />
+              <button type="button" onClick={() => setShowConfirm(v => !v)} tabIndex={-1}
+                aria-label={showConfirm ? 'Ocultar senha' : 'Mostrar senha'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-pana-text-secondary hover:text-pana-indigo">
+                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
             {errors.confirmarSenha && <p className="text-red-500 text-xs mt-1">{errors.confirmarSenha.message}</p>}
           </div>
         </div>

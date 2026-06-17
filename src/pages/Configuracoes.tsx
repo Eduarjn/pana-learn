@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import {
   Settings, Globe, Mail, Shield, Database, Bell,
   Palette, UserCheck, Award, Image as ImageIcon,
-  Building, Upload, Check, Eye, RefreshCw, Loader2,
+  Building, Upload, Check, Eye, EyeOff, RefreshCw, Loader2,
   Music, Trash2, Plus, Link, FileAudio, X
 } from 'lucide-react';
 import { AudioPlayer } from '@/components/AudioPlayer';
@@ -107,6 +107,7 @@ const Conta = () => {
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
   const [changingPwd, setChangingPwd] = useState(false);
+  const [showPwds, setShowPwds] = useState<Record<string, boolean>>({});
   const [avatarUrl, setAvatarUrl] = useState(userProfile?.avatar_url || '');
   const [uploading, setUploading] = useState(false);
   const [nome, setNome] = useState(userProfile?.nome || '');
@@ -205,8 +206,16 @@ const Conta = () => {
           ].map(([id,label,type,val,fn]) => (
             <div key={id as string}>
               <Label className="text-xs font-medium text-white/60 mb-1.5 block">{label as string}</Label>
-              <Input type={type as string} value={val as string} onChange={e => (fn as Function)(e.target.value)}
-                className="border-slate-700 bg-slate-900/60 text-white text-sm rounded-lg" />
+              <div className="relative">
+                <Input type={showPwds[id as string] ? 'text' : 'password'} value={val as string} onChange={e => (fn as Function)(e.target.value)}
+                  className="border-slate-700 bg-slate-900/60 text-white text-sm rounded-lg pr-10" />
+                <button type="button" tabIndex={-1}
+                  onClick={() => setShowPwds(s => ({ ...s, [id as string]: !s[id as string] }))}
+                  aria-label={showPwds[id as string] ? 'Ocultar senha' : 'Mostrar senha'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80">
+                  {showPwds[id as string] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
               {id === 'newPwd' && (val as string) && <PasswordStrengthMeter senha={val as string} hint={false} />}
             </div>
           ))}
