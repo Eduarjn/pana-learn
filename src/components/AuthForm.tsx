@@ -28,6 +28,13 @@ const ModernInput = ({ label, id, endIcon, placeholder, ...props }: any) => (
     {/* Override do autofill do navegador: texto preenchido fica branco e legível
         no fundo escuro (Chrome troca a cor por padrão, deixando invisível). */}
     <style>{`
+      /* Texto digitado SEMPRE branco e legível (sobrepõe CSS global de input) */
+      .auth-input, .auth-input:focus {
+        color: #ffffff !important;
+        -webkit-text-fill-color: #ffffff !important;
+        caret-color: #ffffff !important;
+      }
+      .auth-input::placeholder { color: rgba(255,255,255,0.35) !important; }
       .auth-input:-webkit-autofill,
       .auth-input:-webkit-autofill:hover,
       .auth-input:-webkit-autofill:focus,
@@ -207,7 +214,7 @@ export function AuthForm() {
                 <Button 
                   type="submit" 
                   disabled={loading}
-                  className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-sm font-semibold tracking-wide transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] disabled:opacity-70 disabled:hover:scale-100 group mt-4 border border-white/10"
+                  className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 !text-white rounded-xl text-sm font-bold tracking-wide transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] disabled:opacity-70 disabled:hover:scale-100 group mt-4 border border-white/10"
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span className="flex items-center gap-2">Entrar na plataforma <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" /></span>}
                 </Button>
@@ -222,7 +229,7 @@ export function AuthForm() {
                 <Button 
                   type="submit" 
                   disabled={loading}
-                  className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl text-sm font-semibold tracking-wide transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] disabled:opacity-70 disabled:hover:scale-100 mt-4 border border-white/10"
+                  className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 !text-white rounded-xl text-sm font-bold tracking-wide transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(79,70,229,0.4)] disabled:opacity-70 disabled:hover:scale-100 mt-4 border border-white/10"
                 >
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Enviar instruções de acesso'}
                 </Button>

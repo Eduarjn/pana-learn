@@ -53,8 +53,11 @@ const LANDING_CSS = `
 .lp-nav.lp-scrolled .lp-btn-ow:hover { background: #F4F3FA; border-color: #4B3F72; }
 .lp-btn-op { border: 1.5px solid #4B3F72; color: #4B3F72; background: transparent; }
 .lp-btn-op:hover { background: #F4F3FA; }
-.lp-btn-g { background: #417B5A; color: #fff; border: none; }
-.lp-btn-g:hover { background: #356848; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(65,123,90,0.35); }
+.lp-btn-g { background: #417B5A; color: #fff; border: none; font-weight: 700; box-shadow: 0 4px 14px rgba(65,123,90,0.45); }
+.lp-btn-g:hover { background: #356848; transform: translateY(-1px); box-shadow: 0 6px 18px rgba(65,123,90,0.55); }
+/* CTAs do nav (Entrar/Teste gratis): maxima visibilidade em qualquer estado */
+.lp-nav-actions .lp-btn-ow, .lp-nav.lp-scrolled .lp-nav-actions .lp-btn-ow { background: #4B3F72; color: #fff; border: 1.5px solid #4B3F72; font-weight: 700; }
+.lp-nav-actions .lp-btn-ow:hover, .lp-nav.lp-scrolled .lp-nav-actions .lp-btn-ow:hover { background: #1F2041; border-color: #1F2041; color: #fff; }
 .lp-btn-dark { background: #4B3F72; color: #fff; border: none; }
 .lp-btn-dark:hover { background: #1F2041; transform: translateY(-1px); }
 .lp-btn-lg { padding: 14px 28px; font-size: 1rem; border-radius: 10px; }
