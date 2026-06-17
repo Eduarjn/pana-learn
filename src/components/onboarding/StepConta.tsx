@@ -23,6 +23,20 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+// Traduz mensagens de erro do Supabase Auth (que vêm em inglês) para PT-BR.
+function traduzErroAuth(msg: string): string {
+  const m = (msg || '').toLowerCase();
+  if (m.includes('weak') || m.includes('easy to guess') || m.includes('pwned') || m.includes('leaked')) {
+    return 'Essa senha é muito comum ou apareceu em vazamentos. Escolha uma senha mais forte e única — 8+ caracteres, misturando letras, números e símbolos.';
+  }
+  if (m.includes('already registered') || m.includes('already been registered') || m.includes('user already')) {
+    return 'Este e-mail já está cadastrado. Faça login ou use outro e-mail.';
+  }
+  if (m.includes('invalid email')) return 'E-mail inválido.';
+  if (m.includes('password should be at least')) return 'A senha é muito curta. Use ao menos 8 caracteres.';
+  return msg || 'Tente novamente.';
+}
+
 interface Props {
   data: any;
   updateData: (d: any) => void;
@@ -152,7 +166,7 @@ export default function StepConta({ data, updateData, onNext }: Props) {
     } catch (error: any) {
       toast({
         title: 'Erro ao criar conta',
-        description: error.message || 'Tente novamente.',
+        description: traduzErroAuth(error.message),
         variant: 'destructive',
       });
     } finally {
@@ -189,7 +203,9 @@ export default function StepConta({ data, updateData, onNext }: Props) {
           <div>
             <Label htmlFor="senha">Senha</Label>
             <Input id="senha" type="password" {...register('senha')} placeholder="Mínimo 8 caracteres" className="mt-1" />
-            {errors.senha && <p className="text-red-500 text-xs mt-1">{errors.senha.message}</p>}
+            {errors.senha
+              ? <p className="text-red-500 text-xs mt-1">{errors.senha.message}</p>
+              : <p className="text-pana-text-secondary text-xs mt-1">Use uma senha forte e única (evite senhas comuns — elas são bloqueadas).</p>}
           </div>
           <div>
             <Label htmlFor="confirmarSenha">Confirmar senha</Label>
