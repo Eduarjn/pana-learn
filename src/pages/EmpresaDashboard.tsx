@@ -36,10 +36,12 @@ import {
   CheckCircle,
   XCircle,
   Zap,
-  HardDrive
+  HardDrive,
+  KeyRound
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { PasswordStrengthMeter, gerarSenhaForte } from '@/components/PasswordStrengthMeter';
 import type { Database as DatabaseType } from '@/integrations/supabase/types';
 
 type Empresa = DatabaseType['public']['Tables']['empresas']['Row'];
@@ -54,6 +56,7 @@ const EmpresaDashboard: React.FC = () => {
     loading: usersLoading, 
     error: usersError,
     createUser,
+    resetPassword,
     fetchUsersByEmpresa,
     setupDefaultUsers,
     deleteUser,
@@ -101,6 +104,11 @@ const EmpresaDashboard: React.FC = () => {
   });
   const [setupLoading, setSetupLoading] = useState(false);
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
+  const [createdPasswordEmail, setCreatedPasswordEmail] = useState<string | null>(null);
+  // Reset de senha
+  const [resetTarget, setResetTarget] = useState<{ id: string; nome: string; email: string } | null>(null);
+  const [resetPwd, setResetPwd] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
     if (empresaId && empresas.length > 0) {
@@ -211,10 +219,9 @@ const EmpresaDashboard: React.FC = () => {
       
       if (result.password) {
         setCreatedPassword(result.password);
-        // Mostrar senha por 5 segundos
-        setTimeout(() => setCreatedPassword(null), 5000);
+        setCreatedPasswordEmail(newUser.email);
       }
-      
+
       setShowCreateUserModal(false);
       setNewUser({ nome: '', email: '', tipo_usuario: 'cliente', senha: '' });
     } else {
@@ -223,6 +230,22 @@ const EmpresaDashboard: React.FC = () => {
         description: result.message,
         variant: "destructive"
       });
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetTarget) return;
+    setResetLoading(true);
+    const result = await resetPassword(resetTarget.id, resetPwd || undefined);
+    setResetLoading(false);
+    if (result.success && result.password) {
+      setCreatedPassword(result.password);
+      setCreatedPasswordEmail(resetTarget.email);
+      toast({ title: '✅ Senha redefinida', description: `Nova senha de ${resetTarget.email} gerada.` });
+      setResetTarget(null);
+      setResetPwd('');
+    } else {
+      toast({ title: '❌ Erro', description: result.message, variant: 'destructive' });
     }
   };
 
@@ -378,14 +401,27 @@ const EmpresaDashboard: React.FC = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label htmlFor="senha">Senha (opcional)</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="senha">Senha (opcional)</Label>
+                      <button
+                        type="button"
+                        onClick={() => setNewUser({ ...newUser, senha: gerarSenhaForte() })}
+                        className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                      >
+                        Gerar senha forte
+                      </button>
+                    </div>
                     <Input
                       id="senha"
-                      type="password"
+                      type="text"
                       value={newUser.senha}
                       onChange={(e) => setNewUser({ ...newUser, senha: e.target.value })}
                       placeholder="Deixe em branco para gerar automaticamente"
                     />
+                    {newUser.senha && <PasswordStrengthMeter senha={newUser.senha} hint={false} />}
+                    <p className="text-xs text-gray-400 mt-1">
+                      Em branco = senha forte gerada automaticamente. A senha aparece uma vez após criar — anote e repasse ao usuário.
+                    </p>
                   </div>
                   <Button 
                     onClick={handleCreateUser}
@@ -445,10 +481,13 @@ const EmpresaDashboard: React.FC = () => {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-green-900 mb-1">
-                    Usuário Criado com Sucesso!
+                    Senha de acesso{createdPasswordEmail ? ` — ${createdPasswordEmail}` : ''}
                   </h3>
                   <p className="text-green-700">
-                    Senha gerada: <strong>{createdPassword}</strong>
+                    Senha: <strong className="font-mono">{createdPassword}</strong>
+                  </p>
+                  <p className="text-xs text-green-600 mt-1">
+                    Anote e repasse ao usuário agora — por segurança, ela não pode ser exibida de novo.
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -793,15 +832,17 @@ const EmpresaDashboard: React.FC = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => {/* Implementar edição */}}
+                              title="Redefinir senha"
+                              onClick={() => { setResetTarget({ id: user.id, nome: user.nome, email: user.email }); setResetPwd(''); }}
                             >
-                              <Edit className="h-3 w-3" />
+                              <KeyRound className="h-3 w-3" />
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => handleDeleteUser(user.id, user.nome)}
                               className="text-red-600 hover:text-red-700"
+                              title="Excluir usuário"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -893,6 +934,44 @@ const EmpresaDashboard: React.FC = () => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Modal: redefinir senha de um usuário (substituto seguro do "ver senha") */}
+        <Dialog open={!!resetTarget} onOpenChange={(o) => { if (!o) { setResetTarget(null); setResetPwd(''); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Redefinir senha {resetTarget ? `de ${resetTarget.nome}` : ''}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <p className="text-sm text-gray-500">
+                A senha atual não pode ser exibida (fica criptografada). Defina uma nova senha —
+                ela aparecerá uma vez para você repassar a <strong>{resetTarget?.email}</strong>.
+              </p>
+              <div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="reset-pwd">Nova senha</Label>
+                  <button
+                    type="button"
+                    onClick={() => setResetPwd(gerarSenhaForte())}
+                    className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                  >
+                    Gerar senha forte
+                  </button>
+                </div>
+                <Input
+                  id="reset-pwd"
+                  type="text"
+                  value={resetPwd}
+                  onChange={(e) => setResetPwd(e.target.value)}
+                  placeholder="Em branco = gerar automaticamente"
+                />
+                {resetPwd && <PasswordStrengthMeter senha={resetPwd} hint={false} />}
+              </div>
+              <Button onClick={handleResetPassword} disabled={resetLoading} className="w-full">
+                {resetLoading ? 'Redefinindo...' : 'Redefinir senha'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </ERALayout>
   );

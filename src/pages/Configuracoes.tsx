@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useEmpresa } from '@/context/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter';
 import { useBranding, defaultBranding } from '@/context/BrandingContext';
 import { useTheme } from '@/components/theme-provider';
 
@@ -206,6 +207,7 @@ const Conta = () => {
               <Label className="text-xs font-medium text-white/60 mb-1.5 block">{label as string}</Label>
               <Input type={type as string} value={val as string} onChange={e => (fn as Function)(e.target.value)}
                 className="border-slate-700 bg-slate-900/60 text-white text-sm rounded-lg" />
+              {id === 'newPwd' && (val as string) && <PasswordStrengthMeter senha={val as string} hint={false} />}
             </div>
           ))}
           <Button onClick={handleChangePwd} disabled={changingPwd || !currentPwd || !newPwd || newPwd !== confirmPwd}

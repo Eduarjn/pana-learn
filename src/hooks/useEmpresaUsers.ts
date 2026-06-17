@@ -17,6 +17,7 @@ interface UseEmpresaUsersReturn {
   loading: boolean;
   error: string | null;
   createUser: (empresaId: string, userData: CreateUserData) => Promise<{ success: boolean; message: string; password?: string }>;
+  resetPassword: (targetUserId: string, senha?: string) => Promise<{ success: boolean; message: string; password?: string }>;
   fetchUsersByEmpresa: (empresaId: string) => Promise<void>;
   setupDefaultUsers: (empresaId: string, empresaNome?: string) => Promise<{ success: boolean; message: string }>;
   deleteUser: (userId: string) => Promise<{ success: boolean; message: string }>;
@@ -124,6 +125,35 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
     }
   }, [isAdminMaster, fetchUsersByEmpresa]);
 
+  const resetPassword = useCallback(async (targetUserId: string, senha?: string): Promise<{ success: boolean; message: string; password?: string }> => {
+    if (!isAdmin) {
+      return { success: false, message: 'Sem permissão para redefinir senhas' };
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.');
+
+      const res = await fetch('/api/admin-reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ target_user_id: targetUserId, senha: senha || undefined }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Erro ao redefinir senha');
+
+      return { success: true, message: 'Senha redefinida com sucesso!', password: result.password };
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao redefinir senha';
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setLoading(false);
+    }
+  }, [isAdmin]);
+
   const setupDefaultUsers = useCallback(async (empresaId: string, empresaNome?: string): Promise<{ success: boolean; message: string }> => {
     if (!isAdminMaster) {
       return { success: false, message: 'Apenas admin_master pode configurar usuários padrão' };
@@ -223,6 +253,7 @@ export function useEmpresaUsers(): UseEmpresaUsersReturn {
     loading,
     error,
     createUser,
+    resetPassword,
     fetchUsersByEmpresa,
     setupDefaultUsers,
     deleteUser,
