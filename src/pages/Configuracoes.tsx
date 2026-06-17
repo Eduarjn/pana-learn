@@ -22,13 +22,16 @@ import { useTheme } from '@/components/theme-provider';
 
 type TabKey = 'preferencias' | 'conta' | 'whitelabel' | 'audios' | 'integracoes' | 'seguranca';
 
-const CONFIG_SECTIONS: { key: TabKey; label: string; icon: React.ComponentType<{className?:string}>; adminOnly: boolean }[] = [
+// adminOnly: admin_master OU admin de empresa Enterprise.
+// masterOnly: SÓ admin_master (seções ainda não funcionais — Integrações/Segurança
+// ficam visíveis apenas para o master enquanto não são implementadas de verdade).
+const CONFIG_SECTIONS: { key: TabKey; label: string; icon: React.ComponentType<{className?:string}>; adminOnly: boolean; masterOnly?: boolean }[] = [
   { key: 'preferencias', label: 'Preferências',     icon: Settings,  adminOnly: false },
   { key: 'conta',        label: 'Minha conta',      icon: UserCheck, adminOnly: false },
   { key: 'whitelabel',   label: 'White-Label',      icon: Palette,   adminOnly: true  },
   { key: 'audios',       label: 'Biblioteca de Áudios', icon: Music, adminOnly: true  },
-  { key: 'integracoes',  label: 'Integrações & API', icon: Database, adminOnly: true  },
-  { key: 'seguranca',    label: 'Segurança',        icon: Shield,    adminOnly: true  },
+  { key: 'integracoes',  label: 'Integrações & API', icon: Database, adminOnly: true, masterOnly: true },
+  { key: 'seguranca',    label: 'Segurança',        icon: Shield,    adminOnly: true, masterOnly: true },
 ];
 
 // ─── Seção: Preferências ──────────────────────────────────────────────────────
@@ -890,7 +893,11 @@ const Configuracoes = () => {
   const isEnterprise = (empresa?.plan ?? '').toLowerCase() === 'enterprise';
   const canSeeAdvanced = isAdminMaster || (isAdmin && isEnterprise);
 
-  const visible = CONFIG_SECTIONS.filter(s => !s.adminOnly || canSeeAdvanced);
+  const visible = CONFIG_SECTIONS.filter(s => {
+    if (s.masterOnly) return isAdminMaster;   // Integrações/Segurança: só master
+    if (s.adminOnly) return canSeeAdvanced;    // White-Label/Áudios: master ou Enterprise
+    return true;                               // Preferências/Conta: todos
+  });
   // Se a aba ativa não está mais visível (ex.: plano mudou), volta para a 1ª.
   const safeTab: TabKey = visible.some(s => s.key === activeTab) ? activeTab : 'preferencias';
   const ActiveComponent = TAB_COMPONENTS[safeTab];
