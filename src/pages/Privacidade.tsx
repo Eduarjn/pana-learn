@@ -13,7 +13,7 @@ export default function Privacidade() {
       <h2>1. Quem é o controlador dos dados</h2>
       <p>
         O controlador dos dados é a PanaLearn [razão social e CNPJ a preencher], com contato pelo
-        e-mail <a href="mailto:privacidade@panalearn.com">privacidade@panalearn.com</a>.
+        e-mail <a href="mailto:mipanalearn@gmail.com">mipanalearn@gmail.com</a>.
       </p>
       <p>
         Quando uma organização (empresa cliente) cadastra seus próprios alunos na Plataforma, essa
@@ -90,7 +90,7 @@ export default function Privacidade() {
       </ul>
       <p>
         Para exercer esses direitos, escreva para{' '}
-        <a href="mailto:privacidade@panalearn.com">privacidade@panalearn.com</a>. Se você for aluno de
+        <a href="mailto:mipanalearn@gmail.com">mipanalearn@gmail.com</a>. Se você for aluno de
         uma organização, encaminharemos sua solicitação à organização responsável quando aplicável.
       </p>
 
@@ -124,7 +124,7 @@ export default function Privacidade() {
       <h2>13. Contato</h2>
       <p>
         Para qualquer questão sobre privacidade e proteção de dados, fale com nosso encarregado pelo
-        e-mail <a href="mailto:privacidade@panalearn.com">privacidade@panalearn.com</a>.
+        e-mail <a href="mailto:mipanalearn@gmail.com">mipanalearn@gmail.com</a>.
       </p>
     </LegalLayout>
   );

@@ -34,8 +34,8 @@ export default function LegalLayout({ titulo, atualizadoEm, children }: LegalLay
         <div className="mt-14 pt-6 border-t border-pana-bone/50 text-sm text-muted-foreground">
           <p>
             Dúvidas sobre este documento? Escreva para{' '}
-            <a href="mailto:privacidade@panalearn.com" className="text-pana-teal hover:underline">
-              privacidade@panalearn.com
+            <a href="mailto:mipanalearn@gmail.com" className="text-pana-teal hover:underline">
+              mipanalearn@gmail.com
             </a>.
           </p>
         </div>

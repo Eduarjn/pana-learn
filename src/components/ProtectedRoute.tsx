@@ -119,7 +119,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
             Entre em contato com o suporte para regularizar.
           </p>
           <a
-            href="mailto:suporte@panalearn.com"
+            href="mailto:mipanalearn@gmail.com"
             className="inline-flex items-center justify-center h-11 px-6 rounded-lg bg-pana-teal text-white font-medium hover:bg-pana-teal-dark transition-colors"
           >
             Falar com o suporte

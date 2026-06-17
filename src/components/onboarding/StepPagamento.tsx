@@ -164,7 +164,7 @@ export default function StepPagamento({ data, updateData, onBack }: Props) {
               Seu pagamento pode ainda estar sendo processado pelo Asaas. Se já pagou, aguarde alguns minutos e atualize a página. Se precisar de ajuda, fale com o suporte.
             </p>
             <a
-              href="mailto:suporte@panalearn.com"
+              href="mailto:mipanalearn@gmail.com"
               className="inline-flex items-center gap-2 text-sm text-pana-teal hover:underline font-medium"
             >
               Falar com o suporte

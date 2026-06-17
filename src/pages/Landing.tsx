@@ -723,7 +723,7 @@ export default function Landing() {
               <ul className="lp-plan-feats">
                 {['Usuários ilimitados','Cursos ilimitados','Quizzes + certificados','White-label completo','Integrações via API','Suporte prioritário','IA de suporte incluída'].map(f => <li key={f} className="lp-plan-feat">{planCheckSVG}{f}</li>)}
               </ul>
-              <a href="mailto:comercial@panalearn.com?subject=Plano%20Enterprise%20%E2%80%94%20preciso%20falar%20com%20um%20especialista" className="lp-plan-cta lp-btn lp-btn-op">Falar com especialista</a>
+              <a href="mailto:mipanalearn@gmail.com?subject=Plano%20Enterprise%20%E2%80%94%20preciso%20falar%20com%20um%20especialista" className="lp-plan-cta lp-btn lp-btn-op">Falar com especialista</a>
             </div>
           </div>
         </div>
@@ -824,7 +824,7 @@ export default function Landing() {
               ]},
               { h:'Empresa', links:[
                 { l:'Blog',    href:'/blog' },
-                { l:'Contato', href:'mailto:comercial@panalearn.com' },
+                { l:'Contato', href:'mailto:mipanalearn@gmail.com' },
               ]},
               { h:'Legal', links:[
                 { l:'Privacidade', href:'/privacidade' },

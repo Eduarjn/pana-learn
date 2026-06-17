@@ -108,7 +108,7 @@ export default function Termos() {
       <h2>14. Contato</h2>
       <p>
         Dúvidas sobre estes Termos? Fale conosco em{' '}
-        <a href="mailto:comercial@panalearn.com">comercial@panalearn.com</a>.
+        <a href="mailto:mipanalearn@gmail.com">mipanalearn@gmail.com</a>.
       </p>
     </LegalLayout>
   );

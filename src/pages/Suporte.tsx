@@ -58,7 +58,7 @@ export default function Suporte() {
     ].join('\n');
 
     // Usar mailto como fallback (funciona em qualquer ambiente)
-    const mailtoUrl = `mailto:suporte@panalearn.com?subject=${encodeURIComponent(`[SLA ${prioridade.toUpperCase()}] ${titulo}`)}&body=${encodeURIComponent(corpo)}`;
+    const mailtoUrl = `mailto:mipanalearn@gmail.com?subject=${encodeURIComponent(`[SLA ${prioridade.toUpperCase()}] ${titulo}`)}&body=${encodeURIComponent(corpo)}`;
     window.open(mailtoUrl, '_blank');
 
     setEnviado(true);
@@ -202,12 +202,12 @@ export default function Suporte() {
                   Para urgências, entre em contato direto pelo e-mail.
                 </p>
                 <a
-                  href="mailto:suporte@panalearn.com"
+                  href="mailto:mipanalearn@gmail.com"
                   className="text-sm font-semibold flex items-center gap-1.5"
                   style={{ color: '#417B5A' }}
                 >
                   <Headset className="w-4 h-4" />
-                  suporte@panalearn.com
+                  mipanalearn@gmail.com
                 </a>
               </div>
             </motion.div>
