@@ -195,6 +195,11 @@ const LANDING_CSS = `
 .lp-plan-feat { display: flex; align-items: center; gap: 10px; font-size: 0.88rem; color: #374151; }
 .lp-plan-feat svg { width: 16px; height: 16px; color: #417B5A; flex-shrink: 0; }
 .lp-plan-cta { width: 100%; padding: 13px; border-radius: 8px; font-size: 0.95rem; font-weight: 700; text-align: center; transition: all 0.25s; display: block; cursor: pointer; }
+/* CTAs de plano = acao primaria: sempre preenchidos com texto branco puro
+   (alto contraste / WCAG), nunca contorno grape que parece cinza. */
+.lp-plan-cta.lp-btn-op { background: #417B5A !important; color: #FFFFFF !important; border-color: #417B5A !important; }
+.lp-plan-cta.lp-btn-op:hover { background: #356848 !important; border-color: #356848 !important; color: #FFFFFF !important; }
+.lp-plan-cta.lp-btn-dark { color: #FFFFFF !important; }
 
 /* TESTIMONIALS */
 .lp-testi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-top: 48px; }
