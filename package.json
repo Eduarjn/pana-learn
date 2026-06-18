@@ -20,6 +20,7 @@
     "load-test:k6:stress": "k6 run --env SCENARIO=stress load-test/k6-load-test.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.2",
     "@hookform/resolvers": "^3.9.0",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",

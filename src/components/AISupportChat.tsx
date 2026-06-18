@@ -17,8 +17,14 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useEmpresa } from '@/context/EmpresaContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+
+// Orçamento mensal de tokens por plano — espelha o servidor (ai-support.mts).
+const PLAN_TOKEN_LIMITS: Record<string, number> = {
+  trial: 20000, starter: 50000, pro: 200000, enterprise: 1000000,
+};
 
 interface Message {
   id: string;
@@ -44,6 +50,7 @@ interface AISupportChatProps {
 
 export function AISupportChat({ isOpen, onClose, courseId, courseName }: AISupportChatProps) {
   const { userProfile } = useAuth();
+  const { empresa } = useEmpresa();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -82,7 +89,7 @@ export function AISupportChat({ isOpen, onClose, courseId, courseName }: AISuppo
       loadChatHistory();
       loadTokenUsage();
     }
-  }, [isOpen, userProfile?.id]);
+  }, [isOpen, userProfile?.id, empresa?.id]);
 
   // Auto-scroll para última mensagem
   useEffect(() => {
@@ -125,53 +132,22 @@ export function AISupportChat({ isOpen, onClose, courseId, courseName }: AISuppo
 
   const loadTokenUsage = async () => {
     try {
-      const { data, error } = await supabase
-        .from('ai_token_usage')
-        .select('*')
-        .eq('user_id', userProfile?.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-
-      if (data) {
-        setTokenUsage({
-          userId: data.user_id,
-          tokensUsed: data.tokens_used || 0,
-          tokensLimit: data.tokens_limit || 10000,
-          lastReset: new Date(data.last_reset)
-        });
-      } else {
-        // Criar registro inicial
-        await createInitialTokenUsage();
+      const plan = (empresa?.plan || 'trial').toLowerCase();
+      const tokensLimit = PLAN_TOKEN_LIMITS[plan] ?? PLAN_TOKEN_LIMITS.trial;
+      const period = new Date().toISOString().slice(0, 7); // YYYY-MM
+      let tokensUsed = 0;
+      if (empresa?.id) {
+        const { data } = await supabase
+          .from('ai_token_usage')
+          .select('tokens_used')
+          .eq('empresa_id', empresa.id)
+          .eq('period_month', period)
+          .maybeSingle();
+        tokensUsed = Number((data as any)?.tokens_used || 0);
       }
+      setTokenUsage({ userId: userProfile?.id || '', tokensUsed, tokensLimit, lastReset: new Date() });
     } catch (error) {
       console.error('Erro ao carregar uso de tokens:', error);
-    }
-  };
-
-  const createInitialTokenUsage = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ai_token_usage')
-        .insert({
-          user_id: userProfile?.id,
-          tokens_used: 0,
-          tokens_limit: 10000,
-          last_reset: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setTokenUsage({
-        userId: data.user_id,
-        tokensUsed: 0,
-        tokensLimit: 10000,
-        lastReset: new Date(data.last_reset)
-      });
-    } catch (error) {
-      console.error('Erro ao criar uso de tokens:', error);
     }
   };
 
@@ -194,23 +170,39 @@ export function AISupportChat({ isOpen, onClose, courseId, courseName }: AISuppo
     setIsLoading(true);
 
     try {
-      // Verificar limite de tokens
+      // Limite informativo no cliente — o servidor é a fonte de verdade.
       if (tokenUsage && tokenUsage.tokensUsed >= tokenUsage.tokensLimit) {
-        throw new Error('Limite de tokens atingido. Entre em contato com o suporte.');
+        throw new Error('Limite mensal de tokens da IA atingido para sua empresa. Fale com o suporte.');
       }
 
-      // Salvar mensagem do usuário
-      await saveMessage(userMessage);
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error('Sessão expirada. Faça login novamente.');
 
-      // Gerar resposta da IA
-      const aiResponse = await generateAIResponse(inputMessage.trim());
-      
-      // Salvar resposta da IA
-      await saveMessage(aiResponse);
+      const res = await fetch('/api/ai-support', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ message: userMessage.content, courseId, courseName }),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Não foi possível consultar a IA.');
 
-      // Atualizar uso de tokens
-      await updateTokenUsage(aiResponse.tokensUsed || 0);
+      const aiResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        content: result.reply,
+        sender: 'ai',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, aiResponse]);
 
+      if (typeof result.tokensUsed === 'number' && typeof result.tokensLimit === 'number') {
+        setTokenUsage(prev => ({
+          userId: prev?.userId || '',
+          lastReset: prev?.lastReset || new Date(),
+          tokensUsed: result.tokensUsed,
+          tokensLimit: result.tokensLimit,
+        }));
+      }
     } catch (error) {
       console.error('Erro ao processar mensagem:', error);
       
@@ -229,70 +221,6 @@ export function AISupportChat({ isOpen, onClose, courseId, courseName }: AISuppo
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const saveMessage = async (message: Message) => {
-    try {
-      const { error } = await supabase
-        .from('ai_chat_history')
-        .insert({
-          user_id: userProfile?.id,
-          content: message.content,
-          sender: message.sender,
-          tokens_used: message.tokensUsed || 0,
-          course_id: courseId
-        });
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Erro ao salvar mensagem:', error);
-    }
-  };
-
-  const generateAIResponse = async (userMessage: string): Promise<Message> => {
-    // Simulação de resposta da IA (substitua pela API real)
-    const responses = [
-      "Entendo sua dúvida sobre a plataforma Panalearn. Posso ajudar com configurações, vídeos, cursos e muito mais. O que você gostaria de saber especificamente?",
-      "Para resolver esse problema, você pode verificar as configurações do curso na seção administrativa. Se precisar de mais ajuda, posso detalhar o processo.",
-      "Essa funcionalidade está disponível para usuários com permissão de administrador. Você pode solicitar acesso através do suporte.",
-      "O sistema de vídeos suporta formatos MP4, MOV e AVI. Para uploads, use a seção 'Adicionar Vídeo' no curso desejado.",
-      "Para dúvidas mais complexas, recomendo entrar em contato com nosso suporte humano. Posso ajudar com questões básicas e orientações gerais."
-    ];
-
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-    const estimatedTokens = Math.ceil(randomResponse.length / 4); // Estimativa aproximada
-
-    // Simular delay de processamento
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000));
-
-    return {
-      id: Date.now().toString(),
-      content: randomResponse,
-      sender: 'ai',
-      timestamp: new Date(),
-      tokensUsed: estimatedTokens
-    };
-  };
-
-  const updateTokenUsage = async (tokensUsed: number) => {
-    try {
-      const { error } = await supabase
-        .from('ai_token_usage')
-        .update({
-          tokens_used: (tokenUsage?.tokensUsed || 0) + tokensUsed,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userProfile?.id);
-
-      if (error) throw error;
-
-      setTokenUsage(prev => prev ? {
-        ...prev,
-        tokensUsed: prev.tokensUsed + tokensUsed
-      } : null);
-    } catch (error) {
-      console.error('Erro ao atualizar uso de tokens:', error);
     }
   };
 
