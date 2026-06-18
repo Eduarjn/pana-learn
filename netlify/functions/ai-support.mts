@@ -92,11 +92,14 @@ export default async (req: Request, _ctx: Context) => {
   if (!usuario?.id) return json({ error: 'Usuário não encontrado' }, 404);
 
   let plan = 'trial';
+  let override: number | null = null;
   if (usuario.empresa_id) {
-    const { data: empresa } = await admin.from('empresas').select('plan').eq('id', usuario.empresa_id).maybeSingle();
+    const { data: empresa } = await admin.from('empresas').select('plan, ai_tokens_limit_override').eq('id', usuario.empresa_id).maybeSingle();
     plan = (empresa?.plan || 'trial').toLowerCase();
+    override = (empresa as any)?.ai_tokens_limit_override ?? null;
   }
-  const limit = PLAN_TOKEN_LIMITS[plan] ?? PLAN_TOKEN_LIMITS.trial;
+  // Override por empresa (definido pelo admin_master) > limite do plano
+  const limit = override !== null ? Number(override) : (PLAN_TOKEN_LIMITS[plan] ?? PLAN_TOKEN_LIMITS.trial);
 
   // 3) Orçamento mensal por empresa
   const period = new Date().toISOString().slice(0, 7); // YYYY-MM

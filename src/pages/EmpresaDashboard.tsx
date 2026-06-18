@@ -42,6 +42,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { PasswordStrengthMeter, gerarSenhaForte } from '@/components/PasswordStrengthMeter';
+import { AIUsagePanel } from '@/components/empresa/AIUsagePanel';
 import type { Database as DatabaseType } from '@/integrations/supabase/types';
 
 type Empresa = DatabaseType['public']['Tables']['empresas']['Row'];
@@ -518,6 +519,7 @@ const EmpresaDashboard: React.FC = () => {
             <TabsTrigger value="visao-geral">Visão geral</TabsTrigger>
             <TabsTrigger value="usuarios">Usuários ({users.length})</TabsTrigger>
             <TabsTrigger value="cursos">Cursos</TabsTrigger>
+            <TabsTrigger value="ia">Suporte IA</TabsTrigger>
             <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
           </TabsList>
 
@@ -923,6 +925,10 @@ const EmpresaDashboard: React.FC = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="ia" className="mt-4">
+            {empresa && <AIUsagePanel empresaId={empresa.id} empresaNome={empresa.nome} empresaPlan={(empresa as any).plan} />}
           </TabsContent>
 
           <TabsContent value="relatorios" className="mt-4">
