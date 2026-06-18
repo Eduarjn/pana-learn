@@ -650,3 +650,131 @@
   opacity: 0.08;
   box-shadow: 0 8px 32px 0 #0002;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   AI CHAT — Premium Design System
+   ═══════════════════════════════════════════════════════════ */
+
+/* --- Botão flutuante: anel pulsante orbital --- */
+@keyframes ai-pulse-ring {
+  0%   { transform: scale(1);   opacity: 0.6; }
+  50%  { transform: scale(1.25); opacity: 0; }
+  100% { transform: scale(1);   opacity: 0; }
+}
+
+/* --- Botão flutuante: entrada com bounce --- */
+@keyframes ai-bounce-in {
+  0%   { opacity: 0; transform: translateY(24px) scale(0.8); }
+  60%  { opacity: 1; transform: translateY(-4px) scale(1.05); }
+  80%  { transform: translateY(2px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* --- Painel de chat: slide-up com fade --- */
+@keyframes ai-slide-up {
+  0%   { opacity: 0; transform: translateY(20px) scale(0.96); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* --- Painel de chat: slide-down ao fechar --- */
+@keyframes ai-slide-down {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(20px) scale(0.96); }
+}
+
+/* --- Digitando: dots bouncing (estilo iMessage) --- */
+@keyframes ai-typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%           { transform: translateY(-6px); opacity: 1; }
+}
+
+/* --- Glow suave no hover do botão --- */
+@keyframes ai-glow {
+  0%, 100% { box-shadow: 0 0 12px rgba(65,123,90,0.3), 0 0 24px rgba(75,63,114,0.15); }
+  50%      { box-shadow: 0 0 20px rgba(65,123,90,0.5), 0 0 40px rgba(75,63,114,0.25); }
+}
+
+/* --- Shimmer no header do chat --- */
+@keyframes ai-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Utility Classes ── */
+
+.ai-fab {
+  animation: ai-bounce-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.ai-fab-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(65,123,90,0.5);
+  animation: ai-pulse-ring 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  pointer-events: none;
+}
+
+.ai-fab:hover {
+  animation: ai-glow 2s ease-in-out infinite;
+}
+
+.ai-chat-panel {
+  animation: ai-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ai-typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ai-typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pana-teal, #417B5A);
+  animation: ai-typing-dot 1.4s ease-in-out infinite;
+}
+
+.ai-typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+.ai-typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+.ai-glass {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.ai-glass-light {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.ai-gradient-header {
+  background: linear-gradient(135deg, #1F2041 0%, #4B3F72 60%, #417B5A 100%);
+}
+
+.ai-gradient-user-msg {
+  background: linear-gradient(135deg, #4B3F72 0%, #1F2041 100%);
+}
+
+.ai-token-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: #e4e5f0;
+  overflow: hidden;
+}
+
+.ai-token-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease, background 0.4s ease;
+}
+
+.ai-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: ai-shimmer 3s linear infinite;
+}

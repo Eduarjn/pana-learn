@@ -1,20 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-  MessageCircle, 
   Send, 
-  Bot, 
   User, 
   X, 
-  Zap, 
   AlertCircle,
-  Loader2,
-  ChevronUp,
-  ChevronDown
+  Minimize2,
+  Maximize2,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useEmpresa } from '@/context/EmpresaContext';
@@ -236,156 +231,398 @@ export function AISupportChat({ isOpen, onClose, courseId, courseName }: AISuppo
     return Math.min((tokenUsage.tokensUsed / tokenUsage.tokensLimit) * 100, 100);
   };
 
-  const getTokenUsageColor = () => {
-    const percentage = getTokenUsagePercentage();
-    if (percentage >= 90) return 'text-red-500';
-    if (percentage >= 75) return 'text-yellow-500';
-    return 'text-green-500';
+  const getTokenBarColor = () => {
+    const pct = getTokenUsagePercentage();
+    if (pct >= 90) return '#ef4444';
+    if (pct >= 75) return '#f59e0b';
+    if (pct >= 50) return '#eab308';
+    return '#417B5A';
+  };
+
+  const formatTokens = (n: number) => {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
+    return n.toString();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <Card className={`
-        w-80 transition-all duration-300 ${isMinimized ? 'h-12' : 'h-96'}
-        bg-surface border border-futuristic shadow-neon
-      `}
-      style={{
-        '--surface': 'var(--surface)',
-        '--border': 'var(--border)',
-      } as React.CSSProperties}
+    <div className="fixed bottom-6 right-6 z-50 ai-chat-panel" style={{ transformOrigin: 'bottom right' }}>
+      <div
+        className={`flex flex-col overflow-hidden transition-all duration-300 ${isMinimized ? 'h-14' : ''}`}
+        style={{
+          width: isMinimized ? 320 : 384,
+          height: isMinimized ? 56 : 540,
+          borderRadius: 16,
+          boxShadow: '0 8px 40px rgba(31,32,65,0.22), 0 2px 8px rgba(0,0,0,0.08)',
+          background: '#ffffff',
+          border: '1px solid rgba(208,206,186,0.3)',
+        }}
       >
-        <CardHeader className="pb-2 border-b border-futuristic">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-sm text-text">
-              <Bot className="h-4 w-4 text-accent" />
-              Suporte IA
-            </CardTitle>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setIsMinimized(!isMinimized)}
-                className="h-6 w-6 p-0 text-muted hover:text-text hover:bg-surface-hover"
-              >
-                {isMinimized ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                className="h-6 w-6 p-0 text-muted hover:text-text hover:bg-surface-hover"
-              >
-                <X className="h-3 w-3" />
-              </Button>
+        {/* ── Header Premium ── */}
+        <div
+          className="ai-gradient-header relative flex items-center justify-between px-4 flex-shrink-0 cursor-pointer"
+          style={{ height: 56, minHeight: 56 }}
+          onClick={() => isMinimized && setIsMinimized(false)}
+        >
+          {/* Shimmer overlay */}
+          <div className="ai-shimmer absolute inset-0 pointer-events-none" style={{ borderRadius: '16px 16px 0 0' }} />
+
+          <div className="flex items-center gap-3 relative z-10">
+            {/* Logo PanaLearn mini no header */}
+            <div
+              className="flex items-center justify-center rounded-lg overflow-hidden flex-shrink-0"
+              style={{
+                width: 34,
+                height: 34,
+                background: 'rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(8px)',
+              }}
+            >
+              <img
+                src="/brand/panalearn-mark-white.png"
+                alt="PanaLearn"
+                className="w-6 h-6 object-contain"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
+            <div>
+              <p style={{ color: '#E9D2C0', fontSize: 14, fontWeight: 600, lineHeight: 1.2, margin: 0 }}>
+                Assistente IA
+              </p>
+              <div className="flex items-center gap-1.5" style={{ marginTop: 1 }}>
+                <span
+                  className="animate-pulse"
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: '#4ade80',
+                    display: 'inline-block',
+                  }}
+                />
+                <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 400 }}>
+                  Online • PanaLearn
+                </span>
+              </div>
             </div>
           </div>
-          
-          {!isMinimized && (
-            <div className="flex items-center justify-between text-xs text-muted">
-              <span>Tokens: {tokenUsage?.tokensUsed || 0}/{tokenUsage?.tokensLimit || 10000}</span>
-              <span className={getTokenUsageColor()}>
-                {getTokenUsagePercentage().toFixed(1)}%
-              </span>
-            </div>
-          )}
-        </CardHeader>
 
+          <div className="flex items-center gap-1 relative z-10">
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); }}
+              className="p-1.5 rounded-md transition-colors duration-150"
+              style={{ color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#E9D2C0'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.5)'; (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}
+              title={isMinimized ? 'Expandir' : 'Minimizar'}
+            >
+              {isMinimized ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              className="p-1.5 rounded-md transition-colors duration-150"
+              style={{ color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#E9D2C0'; (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.5)'; (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}
+              title="Fechar"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Token usage bar (abaixo do header) ── */}
+        {!isMinimized && tokenUsage && (
+          <div className="px-4 pt-2 pb-1 flex items-center gap-2" style={{ background: '#fafafa' }}>
+            <div className="ai-token-bar flex-1">
+              <div
+                className="ai-token-bar-fill"
+                style={{
+                  width: `${getTokenUsagePercentage()}%`,
+                  background: getTokenBarColor(),
+                }}
+              />
+            </div>
+            <span style={{ fontSize: 10, color: '#9ca3af', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              {formatTokens(tokenUsage.tokensUsed)}/{formatTokens(tokenUsage.tokensLimit)}
+            </span>
+          </div>
+        )}
+
+        {/* ── Área de mensagens ── */}
         {!isMinimized && (
-          <CardContent className="p-0">
-            <ScrollArea className="h-64 px-4">
-              <div className="space-y-3 pb-4">
-                                 {messages.length === 0 && (
-                   <div className="text-center text-sm text-muted py-8">
-                     <Bot className="h-8 w-8 mx-auto mb-2 text-accent" />
-                     <p>Olá! Sou o assistente IA da Panalearn.</p>
-                     <p>Como posso ajudar você hoje?</p>
-                   </div>
-                 )}
-                
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <ScrollArea className="flex-1 px-4">
+              <div className="space-y-3 py-3">
+                {/* Welcome message */}
+                {messages.length === 0 && (
+                  <div className="text-center py-8 px-4">
+                    <div
+                      className="mx-auto mb-4 flex items-center justify-center rounded-2xl"
+                      style={{
+                        width: 64,
+                        height: 64,
+                        background: 'linear-gradient(135deg, rgba(65,123,90,0.08) 0%, rgba(75,63,114,0.08) 100%)',
+                        border: '1px solid rgba(65,123,90,0.12)',
+                      }}
+                    >
+                      <img
+                        src="/brand/panalearn-mark-color.png"
+                        alt="PanaLearn IA"
+                        className="w-10 h-10 object-contain"
+                      />
+                    </div>
+                    <p style={{ fontSize: 15, fontWeight: 600, color: '#1F2041', marginBottom: 4 }}>
+                      Olá! Sou o assistente IA
+                    </p>
+                    <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>
+                      da PanaLearn. Como posso ajudar você hoje?
+                    </p>
+                    <div className="flex flex-wrap gap-2 justify-center mt-4">
+                      {['Como começar?', 'Dúvida técnica', 'Meus cursos'].map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          onClick={() => { setInputMessage(suggestion); inputRef.current?.focus(); }}
+                          className="px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-150"
+                          style={{
+                            background: 'rgba(65,123,90,0.06)',
+                            color: '#417B5A',
+                            border: '1px solid rgba(65,123,90,0.15)',
+                            cursor: 'pointer',
+                          }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(65,123,90,0.12)'; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(65,123,90,0.06)'; }}
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Messages */}
                 {messages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                                         <div
-                       className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
-                         message.sender === 'user'
-                           ? 'bg-accent text-black border border-accent-600'
-                           : message.sender === 'ai'
-                           ? 'bg-surface-2 text-text border border-futuristic'
-                           : 'bg-red-900/20 text-red-300 border border-red-500/30'
-                       }`}
-                     >
-                      <div className="flex items-center gap-2 mb-1">
-                        {message.sender === 'user' ? (
-                          <User className="h-3 w-3" />
-                        ) : message.sender === 'ai' ? (
-                          <Bot className="h-3 w-3" />
-                        ) : (
+                    {/* AI Avatar */}
+                    {message.sender === 'ai' && (
+                      <div
+                        className="flex-shrink-0 mt-1 mr-2 flex items-center justify-center rounded-lg"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          background: 'linear-gradient(135deg, rgba(65,123,90,0.1), rgba(75,63,114,0.1))',
+                          border: '1px solid rgba(65,123,90,0.15)',
+                        }}
+                      >
+                        <img
+                          src="/brand/panalearn-mark-color.png"
+                          alt="IA"
+                          className="w-4 h-4 object-contain"
+                        />
+                      </div>
+                    )}
+
+                    <div
+                      className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 text-sm ${
+                        message.sender === 'user'
+                          ? 'ai-gradient-user-msg'
+                          : message.sender === 'ai'
+                          ? ''
+                          : ''
+                      }`}
+                      style={
+                        message.sender === 'user'
+                          ? {
+                              color: '#E9D2C0',
+                              borderBottomRightRadius: 4,
+                            }
+                          : message.sender === 'ai'
+                          ? {
+                              background: '#f5f5f7',
+                              color: '#1F2041',
+                              border: '1px solid rgba(208,206,186,0.25)',
+                              borderBottomLeftRadius: 4,
+                            }
+                          : {
+                              background: 'rgba(239,68,68,0.06)',
+                              color: '#dc2626',
+                              border: '1px solid rgba(239,68,68,0.15)',
+                              borderRadius: 12,
+                            }
+                      }
+                    >
+                      {/* Message meta */}
+                      <div className="flex items-center gap-1.5 mb-1">
+                        {message.sender === 'user' && (
+                          <User className="h-3 w-3" style={{ opacity: 0.6 }} />
+                        )}
+                        {message.sender === 'system' && (
                           <AlertCircle className="h-3 w-3" />
                         )}
-                        <span className="text-xs opacity-70">
-                          {message.timestamp.toLocaleTimeString()}
+                        <span style={{ fontSize: 10, opacity: 0.5 }}>
+                          {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                         {message.tokensUsed && (
-                          <Badge variant="outline" className="text-xs">
-                            {message.tokensUsed} tokens
+                          <Badge
+                            variant="outline"
+                            className="text-xs py-0 h-4"
+                            style={{ fontSize: 9, opacity: 0.6 }}
+                          >
+                            {message.tokensUsed}t
                           </Badge>
                         )}
                       </div>
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+                      <p className="whitespace-pre-wrap leading-relaxed" style={{ margin: 0, color: 'inherit' }}>
+                        {message.content}
+                      </p>
                     </div>
+
+                    {/* User Avatar */}
+                    {message.sender === 'user' && (
+                      <div
+                        className="flex-shrink-0 mt-1 ml-2 flex items-center justify-center rounded-lg"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          background: '#4B3F72',
+                        }}
+                      >
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#E9D2C0' }}>
+                          {userProfile?.nome?.charAt(0)?.toUpperCase() || 'U'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))}
-                
-                                 {isLoading && (
-                   <div className="flex justify-start">
-                     <div className="bg-surface-2 border border-futuristic rounded-lg px-3 py-2 text-sm">
-                       <div className="flex items-center gap-2">
-                         <Loader2 className="h-3 w-3 animate-spin text-accent" />
-                         <span className="text-text">IA está digitando...</span>
-                       </div>
-                     </div>
-                   </div>
-                 )}
-                
+
+                {/* Typing indicator */}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div
+                      className="flex-shrink-0 mt-1 mr-2 flex items-center justify-center rounded-lg"
+                      style={{
+                        width: 28,
+                        height: 28,
+                        background: 'linear-gradient(135deg, rgba(65,123,90,0.1), rgba(75,63,114,0.1))',
+                        border: '1px solid rgba(65,123,90,0.15)',
+                      }}
+                    >
+                      <img src="/brand/panalearn-mark-color.png" alt="IA" className="w-4 h-4 object-contain" />
+                    </div>
+                    <div
+                      className="rounded-2xl px-4 py-3"
+                      style={{
+                        background: '#f5f5f7',
+                        border: '1px solid rgba(208,206,186,0.25)',
+                        borderBottomLeftRadius: 4,
+                      }}
+                    >
+                      <div className="ai-typing-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
 
-                         <div className="border-t border-futuristic p-3">
-               <div className="flex gap-2">
-                 <Input
-                   ref={inputRef}
-                   value={inputMessage}
-                   onChange={(e) => setInputMessage(e.target.value)}
-                   onKeyPress={handleKeyPress}
-                   placeholder="Digite sua dúvida..."
-                   disabled={isLoading}
-                   className="flex-1 text-sm bg-surface border-futuristic text-text placeholder:text-muted focus:border-accent focus:ring-accent"
-                 />
-                 <Button
-                   onClick={handleSendMessage}
-                   disabled={isLoading || !inputMessage.trim()}
-                   size="sm"
-                   className="bg-accent hover:bg-accent-600 text-black border border-accent-600 focus:ring-accent"
-                 >
-                   <Send className="h-4 w-4" />
-                 </Button>
-               </div>
-              
-                             {tokenUsage && getTokenUsagePercentage() >= 90 && (
-                 <div className="mt-2 p-2 bg-red-900/20 border border-red-500/30 rounded text-xs text-red-300">
-                   <AlertCircle className="h-3 w-3 inline mr-1" />
-                   Limite de tokens próximo. Entre em contato com suporte humano.
-                 </div>
-               )}
+            {/* ── Input area ── */}
+            <div
+              className="flex-shrink-0 px-4 py-3"
+              style={{
+                borderTop: '1px solid rgba(208,206,186,0.2)',
+                background: '#fafafa',
+              }}
+            >
+              <div className="flex gap-2 items-end">
+                <Input
+                  ref={inputRef}
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Digite sua dúvida..."
+                  disabled={isLoading}
+                  className="flex-1 text-sm rounded-xl border"
+                  style={{
+                    background: '#ffffff',
+                    borderColor: 'rgba(208,206,186,0.35)',
+                    color: '#1F2041',
+                    padding: '10px 14px',
+                    fontSize: 13,
+                    transition: 'border-color 0.2s, box-shadow 0.2s',
+                  }}
+                  onFocus={(e) => {
+                    e.currentTarget.style.borderColor = '#417B5A';
+                    e.currentTarget.style.boxShadow = '0 0 0 3px rgba(65,123,90,0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(208,206,186,0.35)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={isLoading || !inputMessage.trim()}
+                  className="flex items-center justify-center rounded-xl transition-all duration-200"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    background: isLoading || !inputMessage.trim()
+                      ? '#e4e5f0'
+                      : 'linear-gradient(135deg, #417B5A 0%, #4B3F72 100%)',
+                    border: 'none',
+                    cursor: isLoading || !inputMessage.trim() ? 'not-allowed' : 'pointer',
+                    flexShrink: 0,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLoading && inputMessage.trim()) {
+                      (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.05)';
+                      (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 2px 12px rgba(65,123,90,0.3)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)';
+                    (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none';
+                  }}
+                >
+                  <Send
+                    className="h-4 w-4"
+                    style={{
+                      color: isLoading || !inputMessage.trim() ? '#9ca3af' : '#ffffff',
+                    }}
+                  />
+                </button>
+              </div>
+
+              {/* Token warning */}
+              {tokenUsage && getTokenUsagePercentage() >= 90 && (
+                <div
+                  className="mt-2 px-3 py-2 rounded-lg flex items-center gap-2"
+                  style={{
+                    background: 'rgba(239,68,68,0.06)',
+                    border: '1px solid rgba(239,68,68,0.12)',
+                    fontSize: 11,
+                    color: '#dc2626',
+                  }}
+                >
+                  <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                  <span>Limite de tokens próximo. Contate o suporte humano se necessário.</span>
+                </div>
+              )}
             </div>
-          </CardContent>
+          </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
