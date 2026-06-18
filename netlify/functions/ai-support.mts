@@ -22,7 +22,9 @@ const PLAN_TOKEN_LIMITS: Record<string, number> = {
   enterprise: 1000000,
 };
 
-const SYSTEM_PROMPT = `Você é o assistente de suporte da PanaLearn, uma plataforma de
+// Prompt padrão (fallback) — usado se a tabela ai_settings estiver vazia/falhar.
+// A versão "ao vivo" é editável pelo admin_master via /api/admin-ai-prompt.
+const SYSTEM_PROMPT_FALLBACK = `Você é o assistente de suporte da PanaLearn, uma plataforma de
 treinamento corporativo (LMS) white-label. Ajuda usuários a tirarem dúvidas sobre como usar a plataforma.
 
 Contexto da plataforma:
@@ -132,9 +134,19 @@ export default async (req: Request, _ctx: Context) => {
   while (messages.length && messages[0].role !== 'user') messages.shift();
   messages.push({ role: 'user', content: message.trim() });
 
+  // Carrega o system prompt vigente do banco (editável pelo admin_master). Fallback pro hardcoded.
+  let systemPrompt = SYSTEM_PROMPT_FALLBACK;
+  try {
+    const { data: settings } = await admin.from('ai_settings').select('system_prompt').eq('id', true).maybeSingle();
+    if (settings?.system_prompt && typeof settings.system_prompt === 'string' && settings.system_prompt.trim()) {
+      systemPrompt = settings.system_prompt;
+    }
+  } catch (e: any) {
+    console.warn('[ai-support] falha ao carregar ai_settings, usando fallback:', e?.message);
+  }
   const system = courseName
-    ? `${SYSTEM_PROMPT}\n\nContexto atual: o usuário está no curso "${courseName}"${courseId ? ` (id ${courseId})` : ''}.`
-    : SYSTEM_PROMPT;
+    ? `${systemPrompt}\n\nContexto atual: o usuário está no curso "${courseName}"${courseId ? ` (id ${courseId})` : ''}.`
+    : systemPrompt;
 
   // 5) Chamar Claude Haiku
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });

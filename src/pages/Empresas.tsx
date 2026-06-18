@@ -29,6 +29,8 @@ import type { Database } from '@/integrations/supabase/types';
 import { useNavigate } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
+import { Textarea } from '@/components/ui/textarea';
+import { Sparkles } from 'lucide-react';
 
 type Empresa = Database['public']['Tables']['empresas']['Row'];
 
@@ -64,6 +66,12 @@ const Empresas: React.FC = () => {
   const [cleanupLoading, setCleanupLoading] = useState(false);
   const [cleanupPreview, setCleanupPreview] = useState<{ count: number; samples: string[] } | null>(null);
   const [cleanupBucket, setCleanupBucket] = useState('training-videos');
+  // Editor do system prompt da IA (admin_master)
+  const [showPromptModal, setShowPromptModal] = useState(false);
+  const [promptText, setPromptText] = useState('');
+  const [promptOriginal, setPromptOriginal] = useState('');
+  const [promptLoading, setPromptLoading] = useState(false);
+  const [promptUpdatedAt, setPromptUpdatedAt] = useState<string | null>(null);
 
   // Verificar se é admin_master
   if (!isAdminMaster) {
@@ -245,6 +253,62 @@ const Empresas: React.FC = () => {
     });
   };
 
+  // Carrega o system prompt atual da IA
+  const loadPrompt = async () => {
+    setPromptLoading(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error('Sessão expirada.');
+      const res = await fetch('/api/admin-ai-prompt', {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || 'Erro');
+      setPromptText(j.system_prompt || '');
+      setPromptOriginal(j.system_prompt || '');
+      setPromptUpdatedAt(j.updated_at || null);
+    } catch (e: any) {
+      toast({ title: '❌ Erro', description: e.message, variant: 'destructive' });
+    } finally {
+      setPromptLoading(false);
+    }
+  };
+
+  // Salva o system prompt
+  const savePrompt = async () => {
+    if (!promptText.trim()) {
+      toast({ title: 'Prompt vazio', description: 'O prompt não pode ficar em branco.', variant: 'destructive' });
+      return;
+    }
+    setPromptLoading(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error('Sessão expirada.');
+      const res = await fetch('/api/admin-ai-prompt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ system_prompt: promptText }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || 'Erro');
+      toast({ title: '✅ Prompt atualizado', description: `${j.length} caracteres salvos. Já vale na próxima pergunta da IA.` });
+      setPromptOriginal(promptText);
+      setShowPromptModal(false);
+    } catch (e: any) {
+      toast({ title: '❌ Erro', description: e.message, variant: 'destructive' });
+    } finally {
+      setPromptLoading(false);
+    }
+  };
+
+  const openPromptEditor = async () => {
+    setShowPromptModal(true);
+    await loadPrompt();
+  };
+
   // Chama a edge function cleanup-storage-bucket (admin_master)
   const callCleanup = async (dryRun: boolean) => {
     setCleanupLoading(true);
@@ -320,6 +384,21 @@ const Empresas: React.FC = () => {
             >
               <RefreshCw className="w-4 h-4" />
               Atualizar
+            </button>
+            <button
+              onClick={openPromptEditor}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all"
+              style={{
+                color: 'rgba(255,255,255,0.6)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'transparent'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+              title="Editar o system prompt do assistente IA"
+            >
+              <Sparkles className="w-4 h-4" />
+              Prompt da IA
             </button>
             <button
               onClick={() => { setCleanupPreview(null); setShowCleanupModal(true); }}
@@ -738,6 +817,59 @@ const Empresas: React.FC = () => {
                 </Button>
               </div>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal: Editor do system prompt da IA (admin_master) */}
+        <Dialog open={showPromptModal} onOpenChange={(o) => { if (!o && !promptLoading) setShowPromptModal(false); }}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600" /> Prompt do assistente IA
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <p className="text-sm text-gray-600">
+                Este é o <strong>system prompt</strong> que orienta o assistente em <strong>todas as empresas</strong>.
+                Aqui você escreve regras, FAQ, fluxos e tudo o que a IA deve saber. Mudanças se aplicam <strong>na próxima pergunta</strong>.
+              </p>
+              {promptUpdatedAt && (
+                <p className="text-xs text-gray-500">
+                  Última edição: {new Date(promptUpdatedAt).toLocaleString('pt-BR')}
+                </p>
+              )}
+              <Textarea
+                value={promptText}
+                onChange={(e) => setPromptText(e.target.value)}
+                disabled={promptLoading}
+                className="font-mono text-xs min-h-[400px] max-h-[60vh]"
+                placeholder="Carregando..."
+              />
+              <div className="flex items-center justify-between text-xs text-gray-500">
+                <span>{promptText.length.toLocaleString('pt-BR')} caracteres</span>
+                <span>Limite: 100.000</span>
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <Button variant="outline" onClick={() => setShowPromptModal(false)} disabled={promptLoading}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setPromptText(promptOriginal)}
+                  disabled={promptLoading || promptText === promptOriginal}
+                  title="Descartar alterações desta sessão"
+                >
+                  Descartar
+                </Button>
+                <Button
+                  onClick={savePrompt}
+                  disabled={promptLoading || !promptText.trim() || promptText === promptOriginal}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  {promptLoading ? 'Salvando...' : 'Salvar prompt'}
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
 
