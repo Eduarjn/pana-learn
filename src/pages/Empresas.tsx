@@ -10,10 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Building2, 
+  Plus,
+  Edit,
+  Trash2,
+  Building2,
   Calendar,
   Clock,
   AlertCircle,
@@ -21,12 +21,14 @@ import {
   RefreshCw,
   Shield,
   Eye,
-  ExternalLink
+  ExternalLink,
+  Trash
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 import { useNavigate } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
 
 type Empresa = Database['public']['Tables']['empresas']['Row'];
 
@@ -57,6 +59,11 @@ const Empresas: React.FC = () => {
     subdominio: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  // Manutenção: limpeza de bucket órfão (admin_master)
+  const [showCleanupModal, setShowCleanupModal] = useState(false);
+  const [cleanupLoading, setCleanupLoading] = useState(false);
+  const [cleanupPreview, setCleanupPreview] = useState<{ count: number; samples: string[] } | null>(null);
+  const [cleanupBucket, setCleanupBucket] = useState('training-videos');
 
   // Verificar se é admin_master
   if (!isAdminMaster) {
@@ -238,6 +245,35 @@ const Empresas: React.FC = () => {
     });
   };
 
+  // Chama a edge function cleanup-storage-bucket (admin_master)
+  const callCleanup = async (dryRun: boolean) => {
+    setCleanupLoading(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess.session?.access_token;
+      if (!token) throw new Error('Sessão expirada.');
+      const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || 'https://oqoxhavdhrgdjvxvajze.supabase.co';
+      const res = await fetch(`${supabaseUrl}/functions/v1/cleanup-storage-bucket`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ bucket: cleanupBucket, dry_run: dryRun }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || 'Erro');
+      if (dryRun) {
+        setCleanupPreview({ count: j.would_delete || 0, samples: j.files || [] });
+      } else {
+        toast({ title: '🧹 Limpeza concluída', description: `${j.deleted} arquivos deletados do bucket "${cleanupBucket}".` });
+        setShowCleanupModal(false);
+        setCleanupPreview(null);
+      }
+    } catch (e: any) {
+      toast({ title: '❌ Erro', description: e.message, variant: 'destructive' });
+    } finally {
+      setCleanupLoading(false);
+    }
+  };
+
   const sortedEmpresas = [...empresas].sort((a, b) => {
     if (a.nome.toLowerCase() === 'panalearn') return -1;
     if (b.nome.toLowerCase() === 'panalearn') return 1;
@@ -284,6 +320,21 @@ const Empresas: React.FC = () => {
             >
               <RefreshCw className="w-4 h-4" />
               Atualizar
+            </button>
+            <button
+              onClick={() => { setCleanupPreview(null); setShowCleanupModal(true); }}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all"
+              style={{
+                color: 'rgba(255,255,255,0.6)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'transparent'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.6)'; }}
+              title="Limpar arquivos órfãos de um bucket"
+            >
+              <Trash className="w-4 h-4" />
+              Manutenção
             </button>
             <button
               onClick={() => handleOpenModal()}
@@ -687,6 +738,62 @@ const Empresas: React.FC = () => {
                 </Button>
               </div>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal: Manutenção — limpeza de bucket órfão */}
+        <Dialog open={showCleanupModal} onOpenChange={(o) => { if (!o) { setShowCleanupModal(false); setCleanupPreview(null); } }}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Trash className="w-5 h-5 text-orange-600" /> Manutenção — Limpeza de bucket
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Remove <strong>todos</strong> os arquivos do bucket selecionado no Supabase Storage.
+                Use somente para buckets cujo fluxo migrou para outro lugar (ex.: <code className="bg-gray-100 px-1 rounded">training-videos</code> → Bunny Stream).
+              </p>
+              <div>
+                <Label htmlFor="bucket-name">Bucket</Label>
+                <Input id="bucket-name" value={cleanupBucket} onChange={(e) => { setCleanupBucket(e.target.value); setCleanupPreview(null); }} placeholder="training-videos" />
+                <p className="text-xs text-gray-500 mt-1">Sempre clique em <strong>"Pré-visualizar"</strong> antes de deletar.</p>
+              </div>
+
+              {cleanupPreview && (
+                <div className="rounded-lg border p-3 bg-amber-50 border-amber-200">
+                  <p className="text-sm font-semibold text-amber-900">
+                    {cleanupPreview.count > 0
+                      ? `${cleanupPreview.count} arquivo(s) serão deletados`
+                      : 'Nenhum arquivo encontrado no bucket'}
+                  </p>
+                  {cleanupPreview.samples.length > 0 && (
+                    <>
+                      <p className="text-xs text-amber-800 mt-2 mb-1">Amostra dos primeiros arquivos:</p>
+                      <ul className="text-xs text-amber-900 max-h-40 overflow-auto font-mono space-y-0.5">
+                        {cleanupPreview.samples.map((s) => <li key={s}>• {s}</li>)}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => { setShowCleanupModal(false); setCleanupPreview(null); }} disabled={cleanupLoading}>
+                  Cancelar
+                </Button>
+                <Button variant="outline" onClick={() => callCleanup(true)} disabled={cleanupLoading || !cleanupBucket}>
+                  Pré-visualizar
+                </Button>
+                <Button
+                  onClick={() => callCleanup(false)}
+                  disabled={cleanupLoading || !cleanupPreview || cleanupPreview.count === 0}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                >
+                  {cleanupLoading ? 'Limpando...' : `Deletar ${cleanupPreview?.count || ''} arquivo(s)`}
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
