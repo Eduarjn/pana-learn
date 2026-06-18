@@ -11,7 +11,10 @@ const LANDING_CSS = `
 
 .lp-root *, .lp-root *::before, .lp-root *::after { box-sizing: border-box; }
 .lp-root { font-family: 'Inter', system-ui, sans-serif; color: #374151; -webkit-font-smoothing: antialiased; }
-.lp-root a { text-decoration: none; color: inherit; }
+.lp-root a { text-decoration: none; }
+/* color:inherit só para links normais — NUNCA para botões (.lp-btn),
+   senão herdam a cor do texto pai e o branco do botão some. */
+.lp-root a:not(.lp-btn) { color: inherit; }
 .lp-root ul { list-style: none; padding: 0; margin: 0; }
 .lp-root button { cursor: pointer; font-family: inherit; border: none; outline: none; }
 .lp-root input { font-family: inherit; outline: none; border: none; }
