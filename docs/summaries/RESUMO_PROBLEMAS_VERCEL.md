@@ -15,7 +15,7 @@ No Vercel Dashboard → Settings → Environment Variables:
 ```bash
 # OBRIGATÓRIAS:
 VITE_SUPABASE_URL=https://oqoxhavdhrgdjvxvajze.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xb3hoYXZkaHJnZGp2eHZhanplIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxNzg3NTQsImV4cCI6MjA2NTc1NDc1NH0.m5r7W5hzL1x8pA0nqRQXRpFLTqM1sUIJuSCh00uFRgM
+VITE_SUPABASE_ANON_KEY=<copie do Supabase Dashboard → Project Settings → API → anon public>
 ```
 
 ### **3. Configure URLs no Supabase**

@@ -58,6 +58,7 @@ const menuSections = [
     label: "SISTEMA",
     items: [
       { title: "Configurações", icon: Cog, path: "/configuracoes", roles: ["admin", "cliente", "admin_master"] },
+      { title: "Meus dados", icon: FileText, path: "/meus-dados", roles: ["admin", "cliente", "admin_master"] },
       { title: "Suporte SLA", icon: Headset, path: "/suporte", roles: ["admin", "admin_master"] },
     ],
   },

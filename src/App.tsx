@@ -25,6 +25,7 @@ const Treinamentos = lazy(() => import("./pages/Treinamentos"));
 const Usuarios = lazy(() => import("./pages/Usuarios"));
 const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const Suporte = lazy(() => import("./pages/Suporte"));
+const MeusDados = lazy(() => import("./pages/MeusDados"));
 const Empresas = lazy(() => import("./pages/Empresas"));
 const EmpresaDashboard = lazy(() => import("./pages/EmpresaDashboard"));
 const MeuPainel = lazy(() => import("./pages/MeuPainel"));
@@ -147,13 +148,21 @@ const App = () => {
                     </ProtectedRoute>
                   } 
                 />
-                <Route 
-                  path="/configuracoes" 
+                <Route
+                  path="/configuracoes"
                   element={
                     <ProtectedRoute>
                       <Configuracoes />
                     </ProtectedRoute>
-                  } 
+                  }
+                />
+                <Route
+                  path="/meus-dados"
+                  element={
+                    <ProtectedRoute>
+                      <MeusDados />
+                    </ProtectedRoute>
+                  }
                 />
                 <Route
                   path="/suporte"

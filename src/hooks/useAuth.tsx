@@ -59,12 +59,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   ];
 
   const createTestUsers = async () => {
-    if (import.meta.env.DEV) {
-      console.log('👥 Usuários de teste disponíveis:');
-      testUsers.forEach(user => {
-        console.log(`✅ ${user.email} - Senha: ${user.senha}`);
-      });
-    }
+    // Mantido como no-op para preservar a assinatura do contexto (alguns callers
+    // chamam essa função). Não logamos credenciais — nem em dev — para evitar
+    // vazamento de senhas no console e no bundle compilado.
   };
 
   useEffect(() => {

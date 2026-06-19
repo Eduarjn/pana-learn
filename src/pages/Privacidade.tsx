@@ -44,6 +44,7 @@ export default function Privacidade() {
         <li>Prestar suporte e responder solicitações.</li>
         <li>Garantir a segurança, prevenir fraudes e cumprir obrigações legais.</li>
         <li>Melhorar a Plataforma e desenvolver novas funcionalidades.</li>
+        <li>Responder dúvidas no chat de suporte por IA — as perguntas digitadas são enviadas ao serviço da Anthropic e a resposta retorna sem armazenar dados pessoais identificáveis fora da Plataforma.</li>
       </ul>
 
       <h2>4. Bases legais</h2>
@@ -56,10 +57,11 @@ export default function Privacidade() {
       <h2>5. Compartilhamento com terceiros</h2>
       <p>Compartilhamos dados apenas com fornecedores necessários para operar a Plataforma:</p>
       <ul>
-        <li><strong>Supabase</strong> — banco de dados, autenticação e armazenamento.</li>
+        <li><strong>Supabase</strong> — banco de dados, autenticação e armazenamento de arquivos.</li>
         <li><strong>Asaas</strong> — processamento de pagamentos.</li>
         <li><strong>Bunny.net</strong> — hospedagem e streaming dos vídeos.</li>
-        <li><strong>Vercel / Netlify</strong> — hospedagem da aplicação.</li>
+        <li><strong>Netlify</strong> — hospedagem da aplicação web e funções serverless.</li>
+        <li><strong>Anthropic</strong> — modelo de IA do assistente de suporte; recebe apenas as perguntas que o usuário envia ao chat, sem dados pessoais identificáveis no corpo da requisição.</li>
       </ul>
       <p>
         Esses fornecedores tratam os dados conforme nossas instruções e suas próprias políticas de
@@ -73,11 +75,15 @@ export default function Privacidade() {
       </p>
 
       <h2>7. Por quanto tempo guardamos os dados</h2>
-      <p>
-        Mantemos os dados pelo tempo necessário para prestar o serviço e cumprir obrigações legais.
-        Ao encerrar a conta, os dados são excluídos ou anonimizados em prazo razoável, exceto quando
-        a retenção for exigida por lei (por exemplo, registros fiscais).
-      </p>
+      <p>Mantemos os dados pelo tempo necessário para prestar o serviço e cumprir obrigações legais. Como regra:</p>
+      <ul>
+        <li><strong>Dados da conta</strong> (nome, e-mail, perfil): enquanto a conta estiver ativa.</li>
+        <li><strong>Após exclusão da conta</strong>: dados pessoais são anonimizados ou excluídos em até <strong>30 dias</strong>.</li>
+        <li><strong>Registros financeiros</strong> (faturas, recibos): até <strong>5 anos</strong>, por exigência da legislação fiscal.</li>
+        <li><strong>Logs de acesso e segurança</strong> (IP, login, falhas de autenticação): <strong>12 meses</strong>.</li>
+        <li><strong>Conteúdo de cursos</strong> publicado pela organização: até o cancelamento da assinatura + 30 dias para exportação.</li>
+        <li><strong>Histórico do chat de suporte por IA</strong>: 90 dias após a última interação.</li>
+      </ul>
 
       <h2>8. Seus direitos</h2>
       <p>Como titular de dados, você pode, a qualquer momento:</p>
@@ -89,7 +95,9 @@ export default function Privacidade() {
         <li>Revogar o consentimento e se opor a tratamentos.</li>
       </ul>
       <p>
-        Para exercer esses direitos, escreva para{' '}
+        Para exercer estes direitos, você pode usar a página{' '}
+        <a href="/meus-dados"><strong>Meus dados</strong></a> dentro da Plataforma (autosserviço para
+        exportar seus dados em JSON ou excluir sua conta), ou nos escrever em{' '}
         <a href="mailto:mipanalearn@gmail.com">mipanalearn@gmail.com</a>. Se você for aluno de
         uma organização, encaminharemos sua solicitação à organização responsável quando aplicável.
       </p>
