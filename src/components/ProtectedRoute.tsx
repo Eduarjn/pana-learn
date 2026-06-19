@@ -13,7 +13,8 @@ type TenantGate =
   | { state: 'loading' }
   | { state: 'no-tenant' }              // user sem empresa → onboarding
   | { state: 'onboarding-pending' }     // tem empresa mas não completou
-  | { state: 'payment-pending' }        // completou mas sem trial/active
+  | { state: 'payment-pending' }        // completou mas sem trial/active (em onboarding inicial)
+  | { state: 'reactivation' }           // empresa já onboardada, mas plano cancelado/expirado
   | { state: 'suspended' }              // empresa desativada pelo admin_master
   | { state: 'ok' };
 
@@ -24,10 +25,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   const isAdminMaster = userProfile?.tipo_usuario === 'admin_master';
   const isOnboardingPath = location.pathname.startsWith('/onboarding');
+  const isReativarPath = location.pathname.startsWith('/reativar');
 
   // Verificar status do tenant (onboarding + plano)
   useEffect(() => {
-    if (!user || isAdminMaster || isOnboardingPath) {
+    if (!user || isAdminMaster || isOnboardingPath || isReativarPath) {
       setGate({ state: 'ok' });
       return;
     }
@@ -57,19 +59,29 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
         setGate({ state: 'suspended' });
         return;
       }
-      if (!empresa.onboarding_completed) {
+      const isOnboardingDone = empresa.onboarding_completed === true;
+      const isPlanLive = empresa.plan_status === 'trial' || empresa.plan_status === 'active';
+
+      if (!isOnboardingDone && !isPlanLive) {
+        // Tenant ainda em meio ao setup inicial (não pagou/iniciou trial) → retomar onboarding
         setGate({ state: 'onboarding-pending' });
         return;
       }
-      if (empresa.plan_status !== 'trial' && empresa.plan_status !== 'active') {
-        setGate({ state: 'payment-pending' });
+      if (isOnboardingDone && !isPlanLive) {
+        // Tenant já configurado, mas plano cancelado/expirado → fluxo de reativação
+        setGate({ state: 'reactivation' });
+        return;
+      }
+      if (!isOnboardingDone && isPlanLive) {
+        // Caso raro: pagou via outro caminho mas ainda não marcou onboarding. Trata como pendente.
+        setGate({ state: 'onboarding-pending' });
         return;
       }
       setGate({ state: 'ok' });
     })();
 
     return () => { cancelled = true; };
-  }, [user?.id, isAdminMaster, isOnboardingPath]);
+  }, [user?.id, isAdminMaster, isOnboardingPath, isReativarPath]);
 
   if (loading) {
     return (
@@ -133,6 +145,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
   if (gate.state === 'payment-pending') {
     return <Navigate to="/onboarding/pagamento" replace />;
+  }
+  if (gate.state === 'reactivation') {
+    return <Navigate to="/reativar" replace />;
   }
 
   return <>{children}</>;

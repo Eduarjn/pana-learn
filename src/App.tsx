@@ -37,6 +37,7 @@ const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const Onboarding = lazy(() => import("@/pages/Onboarding"));
 const OnboardingSucesso = lazy(() => import("@/pages/OnboardingSucesso"));
 const PlanoExpirado = lazy(() => import("@/pages/PlanoExpirado"));
+const ReativarAssinatura = lazy(() => import("@/pages/ReativarAssinatura"));
 const GerenciarOrdemVideos = lazy(() => import("@/pages/admin/GerenciarOrdemVideos"));
 const CertificateTemplates = lazy(() => import("@/pages/admin/CertificateTemplates"));
 const ValidarCertificado = lazy(() => import("@/pages/ValidarCertificado"));
@@ -102,6 +103,7 @@ const App = () => {
                 <Route path="/onboarding/sucesso" element={<OnboardingSucesso />} />
                 <Route path="/onboarding/pendente" element={<OnboardingSucesso />} />
                 <Route path="/onboarding/pagamento" element={<Onboarding />} />
+                <Route path="/reativar" element={<ReativarAssinatura />} />
 
                 {/* Rotas protegidas */}
                 <Route 

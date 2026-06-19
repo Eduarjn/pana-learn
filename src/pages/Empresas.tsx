@@ -235,6 +235,28 @@ const Empresas: React.FC = () => {
     }
   };
 
+  // Força plan_status='active'. Usado quando a assinatura caiu (cancelled, past_due, etc)
+  // e o admin_master quer liberar o tenant manualmente sem depender do webhook do Asaas.
+  const handleReactivatePlan = async (empresa: Empresa) => {
+    const statusAtual = empresa.plan_status || 'sem plano';
+    const ok = window.confirm(
+      `Reativar o plano de "${empresa.nome}"?\n\n` +
+      `Status atual: ${statusAtual} → será mudado para "active".\n\n` +
+      `Use isso quando o cliente cancelou no Asaas mas você quer liberar o acesso manualmente. ` +
+      `Não cria cobrança nova — apenas destrava o login.`
+    );
+    if (!ok) return;
+    try {
+      await updateEmpresa(empresa.id, { plan_status: 'active' } as any);
+      toast({
+        title: '✅ Plano reativado',
+        description: `${empresa.nome} agora aparece como "active". Peça pro usuário recarregar a página.`,
+      });
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message || 'Não foi possível reativar.', variant: 'destructive' });
+    }
+  };
+
   const handleViewClientDashboard = (empresa: Empresa) => {
     navigate(`/empresa/${empresa.id}`);
     toast({
@@ -702,7 +724,7 @@ const Empresas: React.FC = () => {
                               {!isPrincipal && (
                                 <button
                                   onClick={() => handleToggleActive(empresa)}
-                                  title={(empresa as any).active === false ? 'Ativar acesso' : 'Desativar acesso'}
+                                  title={(empresa as any).active === false ? 'Liberar login (suspensão)' : 'Suspender login (bloqueia todos os usuários)'}
                                   role="switch"
                                   aria-checked={(empresa as any).active !== false}
                                   className="relative inline-flex items-center rounded-full transition-colors mr-1"
@@ -718,6 +740,18 @@ const Empresas: React.FC = () => {
                                       transform: (empresa as any).active === false ? 'translateX(3px)' : 'translateX(19px)',
                                     }}
                                   />
+                                </button>
+                              )}
+                              {!isPrincipal && empresa.plan_status !== 'active' && empresa.plan_status !== 'trial' && (
+                                <button
+                                  onClick={() => handleReactivatePlan(empresa)}
+                                  title={`Reativar plano (status atual: ${empresa.plan_status || 'sem plano'})`}
+                                  className="p-2 rounded-lg transition-all"
+                                  style={{ color: '#86c9a4' }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(65,123,90,0.2)'; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                >
+                                  <RefreshCw className="w-4 h-4" />
                                 </button>
                               )}
                               <button
