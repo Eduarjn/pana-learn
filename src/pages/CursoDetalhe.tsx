@@ -237,27 +237,33 @@ const CursoDetalhe = () => {
     if (!id || !selectedTemplateId) return;
     setSavingTemplate(true);
 
-    // 1. Tentar persistir no banco (cursos.template_id) — funciona entre todos os usuários
-    const { error: dbError } = await supabase
+    // Persistir no banco (cursos.template_id) — é a fonte da verdade e vale para
+    // TODOS os usuários (o aluno precisa dela para emitir o certificado).
+    // Usa .select() para confirmar que a linha foi realmente atualizada: um UPDATE
+    // bloqueado por RLS retorna 0 linhas SEM erro, então checar só `dbError` daria
+    // um falso sucesso.
+    const { data: updated, error: dbError } = await supabase
       .from('cursos')
       .update({ template_id: selectedTemplateId } as any)
-      .eq('id', id);
+      .eq('id', id)
+      .select('id');
 
-    // 2. Sempre guardar no localStorage como cache/fallback
-    localStorage.setItem(`curso_template_${id}`, selectedTemplateId);
-    setCurrentTemplateId(selectedTemplateId);
     setSavingTemplate(false);
 
-    if (dbError) {
-      // Coluna ainda não existe no banco — vínculo salvo apenas localmente
-      console.warn('Coluna cursos.template_id ausente, usando localStorage:', dbError.message);
+    if (dbError || !updated || updated.length === 0) {
+      console.error('Falha ao vincular template ao curso:', dbError?.message);
       toast({
-        title: 'Template vinculado (local)',
-        description: 'Vínculo salvo neste navegador. Para valer entre todos os usuários, adicione a coluna cursos.template_id no banco.',
+        title: 'Não foi possível vincular o template',
+        description: dbError?.message
+          || 'O curso não foi atualizado (verifique suas permissões). Tente novamente.',
+        variant: 'destructive',
       });
-    } else {
-      toast({ title: 'Template vinculado', description: 'O template de certificado foi vinculado a este curso.' });
+      return;
     }
+
+    setCurrentTemplateId(selectedTemplateId);
+    localStorage.setItem(`curso_template_${id}`, selectedTemplateId); // cache opcional para a UI do admin
+    toast({ title: 'Template vinculado', description: 'O template de certificado foi vinculado a este curso.' });
   };
 
   const handleSaveFinalQuiz = async () => {
@@ -462,12 +468,18 @@ const CursoDetalhe = () => {
       });
 
       if (shouldGenerate) {
-        await generateCertificate(100);
-        console.log('✅ Certificado gerado com sucesso!');
-        toast({
-          title: "Parabéns!",
-          description: "Você concluiu todo o conteúdo do curso! Seu certificado foi gerado.",
-        });
+        const certId = await generateCertificate(100);
+        if (certId) {
+          console.log('✅ Certificado gerado com sucesso!');
+          toast({
+            title: "Parabéns!",
+            description: "Você concluiu todo o conteúdo do curso! Seu certificado foi gerado.",
+          });
+        } else {
+          // Conteúdo concluído mas certificado não emitido — quase sempre porque o
+          // curso não tem template de certificado atrelado (cursos.template_id).
+          console.warn('Conteúdo concluído, mas certificado não emitido (curso sem template atrelado?).');
+        }
       }
     } catch (error) {
       console.error('❌ Erro ao verificar/gerar certificado:', error);

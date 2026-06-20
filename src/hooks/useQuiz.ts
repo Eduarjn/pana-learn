@@ -173,8 +173,8 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
   }, [userId, courseId, loadQuizByFinalQuizId]);
 
   // Gerar certificado — insere directamente na tabela certificados
-  const generateCertificate = useCallback(async (nota: number) => {
-    if (!userId || !courseId) return;
+  const generateCertificate = useCallback(async (nota: number): Promise<string | null> => {
+    if (!userId || !courseId) return null;
     try {
       // Evitar duplicata: verificar se já existe
       const { data: existing } = await supabase
@@ -192,7 +192,7 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
           .eq('id', existing.id)
           .single();
         if (certData) setCertificate(certData as any);
-        return;
+        return existing.id;
       }
 
       // Buscar empresa_id do usuário (necessário para RLS multi-tenant)
@@ -226,12 +226,11 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
         }
       }
 
-      // Template do certificado: (1) coluna do curso no banco → (2) localStorage.
-      let templateId: string | null = cursoTemplateId;
-      if (!templateId && courseId) {
-        const savedTemplateId = localStorage.getItem(`curso_template_${courseId}`);
-        if (savedTemplateId) templateId = savedTemplateId;
-      }
+      // Template do certificado: fonte da verdade é cursos.template_id (no banco),
+      // para funcionar em QUALQUER navegador/usuário. NÃO usar localStorage — era
+      // por-navegador e fazia o certificado falhar silenciosamente para alunos em
+      // outra máquina/aba anônima (admin via localStorage, aluno não).
+      const templateId: string | null = cursoTemplateId;
 
       // REGRA DE PRODUTO: sem template de certificado ATRELADO ao curso,
       // NÃO emite certificado. Isso permite módulos intermediários (sem
@@ -241,7 +240,7 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
       // certificado em qualquer curso concluído — comportamento removido.)
       if (!templateId) {
         console.log('ℹ️ Curso sem template de certificado atrelado — certificado não emitido.');
-        return;
+        return null;
       }
 
       // Gerar número único: CERT-YYYYMMDD-XXXXX
@@ -274,15 +273,18 @@ export function useQuiz(userId: string | undefined, courseId: string | undefined
 
       if (insertError) {
         console.error('Erro ao inserir certificado:', insertError);
-        return;
+        return null;
       }
 
       if (newCert) {
         setCertificate(newCert as any);
         console.log('✅ Certificado gerado:', newCert);
+        return (newCert as any).id ?? null;
       }
+      return null;
     } catch (err) {
       console.error('Erro ao gerar certificado:', err);
+      return null;
     }
   }, [userId, courseId]);
 
