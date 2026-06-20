@@ -397,12 +397,24 @@ const CursoDetalhe = () => {
       const videoIds = (courseVideos || []).map(v => v.id);
       const hasVideos = videoIds.length > 0;
 
-      // 2. Quizzes vinculados ao curso
+      // 2. Quizzes vinculados ao curso — considera APENAS os quizzes que o aluno
+      //    realmente pode ver (RLS = mesmo tenant) e que estão ativos. Isso evita
+      //    que um mapeamento órfão/cross-tenant em curso_quiz_mapping bloqueie o
+      //    certificado para sempre (allQuizzesOk nunca ficaria true).
       const { data: courseMappings } = await supabase
         .from('curso_quiz_mapping')
         .select('quiz_id')
         .eq('curso_id', id);
-      const quizIds = (courseMappings || []).map(m => m.quiz_id);
+      const mappedQuizIds = (courseMappings || []).map(m => m.quiz_id);
+      let quizIds: string[] = [];
+      if (mappedQuizIds.length > 0) {
+        const { data: validQuizzes } = await supabase
+          .from('quizzes')
+          .select('id')
+          .in('id', mappedQuizIds)
+          .eq('ativo', true);
+        quizIds = (validQuizzes || []).map(q => q.id);
+      }
       const hasQuizzes = quizIds.length > 0;
 
       // Sem conteúdo = sem certificado
